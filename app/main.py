@@ -225,39 +225,42 @@ async def process_voice(audio_file: UploadFile = None, options: Optional[str] = 
             except json.JSONDecodeError:
                 logger.warning("Invalid options JSON, using default options")
         
-        # Process voice input (mock implementation for testing)
-        # In a real implementation, this would call a voice recognition service
-        result = {
-            "status": "success",
-            "transcribed_text": "Sample transcribed text from voice input",
-            "structured_prompt": {
-                "title": "Voice Generated Project",
-                "description": "Project generated from voice input",
-                "features": ["API", "Database", "Authentication"]
-            }
-        }
+        # Initialize voice processor with API key from environment
+        from app.utils.voice_processor import VoiceInputProcessor
+        voice_processor = VoiceInputProcessor()
+        
+        # Process voice input using the real implementation
+        processing_result = voice_processor.process_voice_input(temp_file_path)
+        
+        if processing_result["status"] != "success":
+            logger.error(f"Voice processing failed: {processing_result.get('message', 'Unknown error')}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Voice processing failed: {processing_result.get('message', 'Unknown error')}"
+            )
         
         # Clean up temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         
+        # Add serialization safety net
         try:
-            # Return result
+            # Return result with real transcription and processing
             return {
                 "id": str(uuid.uuid4()),
-                "transcribed_text": result["transcribed_text"],
-                "structured_prompt": result["structured_prompt"],
+                "transcribed_text": processing_result.get("transcribed_text", ""),
+                "structured_prompt": processing_result.get("structured_prompt", {}),
                 "status": "success",
                 "message": "Voice prompt processed successfully",
                 "timestamp": datetime.now().isoformat()
-             }
+            }
         except TypeError as e:
             # Log serialization error
             logger.error(f"Error serializing voice processing result: {str(e)}")
-    
+            
             # Create a serializable version of the response
-            serializable_result = json.loads(json.dumps(result, default=str))
-    
+            serializable_result = json.loads(json.dumps(processing_result, default=str))
+            
             return {
                 "id": str(uuid.uuid4()),
                 "transcribed_text": serializable_result.get("transcribed_text", ""),
@@ -266,7 +269,6 @@ async def process_voice(audio_file: UploadFile = None, options: Optional[str] = 
                 "message": "Voice prompt processed successfully",
                 "timestamp": datetime.now().isoformat()
             }
-
     
     except HTTPException as e:
         raise e
@@ -277,6 +279,7 @@ async def process_voice(audio_file: UploadFile = None, options: Optional[str] = 
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing voice input: {str(e)}"
         )
+
 
 @app.get("/api/v1/debug/status")
 async def get_repository_status():
