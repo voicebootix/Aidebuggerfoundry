@@ -277,10 +277,8 @@ async def init_db():
         });
     });
     
-    // Voice Input Button
-    const voiceInputBtn = document.getElementById('voice-input-button');
-    
-    // Replace the entire voice input button event listener (lines 260-320) with:
+      
+// Replace the entire voice input button event listener (lines 260-320) with:
 
 if (voiceInputBtn) {
     voiceInputBtn.addEventListener('click', function() {
