@@ -41,7 +41,7 @@ def generate_backend_code(prompt: str, contract: Dict[str, Any], options: Dict[s
     
     # Determine file structure based on options
     modular_structure = options.get("modular_structure", False)
-    use_database = options.get("use_database", True)
+    use_database = getattr(prompt_data.options, 'use_database', True)
     generate_tests = options.get("generate_tests", True)
     
     # Generate files
