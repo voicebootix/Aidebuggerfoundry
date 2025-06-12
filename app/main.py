@@ -135,35 +135,34 @@ async def build_from_prompt(
         # Save contract to file
         with open("../../meta/api-contracts.json", "w") as f:
             json.dump(contract, f, indent=2)
-        
-        # Find where you return the PromptResponse in build_from_prompt
-    try:
-        # Return response with generated code info
-        return PromptResponse(
-            id=prompt_request.id,
-            title=prompt_request.title,
-            status="success",
-            contract=contract,
-            files_generated=code_result["files_generated"],
-            message="Backend code generated successfully",
-            timestamp=datetime.now().isoformat()
-        )
-    except TypeError as e:
-        # Log serialization error
-        logger.error(f"Error serializing generated code: {str(e)}")
-    
-        # Create a serializable version of the response
-        serializable_contract = json.loads(json.dumps(contract, default=str))
-    
-        return PromptResponse(
-            id=prompt_request.id,
-            title=prompt_request.title,
-            status="success",
-            contract=serializable_contract,
-            files_generated=code_result["files_generated"],
-            message="Backend code generated successfully",
-            timestamp=datetime.now().isoformat()
-        )
+
+        try:
+            # Return response with generated code info
+            return PromptResponse(
+                id=prompt_request.id,
+                title=prompt_request.title,
+                status="success",
+                contract=contract,
+                files_generated=code_result["files_generated"],
+                message="Backend code generated successfully",
+                timestamp=datetime.now().isoformat()
+            )
+        except TypeError as e:
+            # Log serialization error
+            logger.error(f"Error serializing generated code: {str(e)}")
+
+            # Create a serializable version of the response
+            serializable_contract = json.loads(json.dumps(contract, default=str))
+
+            return PromptResponse(
+                id=prompt_request.id,
+                title=prompt_request.title,
+                status="success",
+                contract=serializable_contract,
+                files_generated=code_result["files_generated"],
+                message="Backend code generated successfully",
+                timestamp=datetime.now().isoformat()
+            )
 
         
     except Exception as e:
