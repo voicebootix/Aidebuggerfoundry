@@ -136,6 +136,8 @@ async def build_from_prompt(
         with open("../../meta/api-contracts.json", "w") as f:
             json.dump(contract, f, indent=2)
         
+        # Find where you return the PromptResponse in build_from_prompt
+    try:
         # Return response with generated code info
         return PromptResponse(
             id=prompt_request.id,
@@ -146,6 +148,23 @@ async def build_from_prompt(
             message="Backend code generated successfully",
             timestamp=datetime.now().isoformat()
         )
+    except TypeError as e:
+        # Log serialization error
+        logger.error(f"Error serializing generated code: {str(e)}")
+    
+        # Create a serializable version of the response
+        serializable_contract = json.loads(json.dumps(contract, default=str))
+    
+        return PromptResponse(
+            id=prompt_request.id,
+            title=prompt_request.title,
+            status="success",
+            contract=serializable_contract,
+            files_generated=code_result["files_generated"],
+            message="Backend code generated successfully",
+            timestamp=datetime.now().isoformat()
+        )
+
         
     except Exception as e:
         logger.error(f"Error generating code: {str(e)}")
@@ -223,15 +242,32 @@ async def process_voice(audio_file: UploadFile = None, options: Optional[str] = 
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         
-        # Return result
-        return {
-            "id": str(uuid.uuid4()),
-            "transcribed_text": result["transcribed_text"],
-            "structured_prompt": result["structured_prompt"],
-            "status": "success",
-            "message": "Voice prompt processed successfully",
-            "timestamp": datetime.now().isoformat()
-        }
+        try:
+            # Return result
+            return {
+                "id": str(uuid.uuid4()),
+                "transcribed_text": result["transcribed_text"],
+                "structured_prompt": result["structured_prompt"],
+                "status": "success",
+                "message": "Voice prompt processed successfully",
+                "timestamp": datetime.now().isoformat()
+             }
+        except TypeError as e:
+            # Log serialization error
+            logger.error(f"Error serializing voice processing result: {str(e)}")
+    
+            # Create a serializable version of the response
+            serializable_result = json.loads(json.dumps(result, default=str))
+    
+            return {
+                "id": str(uuid.uuid4()),
+                "transcribed_text": serializable_result.get("transcribed_text", ""),
+                "structured_prompt": serializable_result.get("structured_prompt", {}),
+                "status": "success",
+                "message": "Voice prompt processed successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+
     
     except HTTPException as e:
         raise e
