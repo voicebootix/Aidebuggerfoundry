@@ -280,64 +280,133 @@ async def init_db():
     // Voice Input Button
     const voiceInputBtn = document.getElementById('voice-input-button');
     
-    if (voiceInputBtn) {
-        voiceInputBtn.addEventListener('click', function() {
-            // Check if browser supports the Web Speech API
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                alert('Voice input is ready! Click OK and start speaking your requirements.');
-                
-                // Create a new instance of SpeechRecognition
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                
-                recognition.lang = 'en-US';
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                
-                recognition.onstart = function() {
-                    console.log('Voice recognition started. Speak now.');
-                    alert('Listening... Speak your requirements clearly.');
-                };
-                
-                recognition.onresult = function(event) {
-                    const transcript = Array.from(event.results)
-                        .map(result => result[0])
-                        .map(result => result.transcript)
-                        .join('');
+    // Replace the entire voice input button event listener (lines 260-320) with:
+
+if (voiceInputBtn) {
+    voiceInputBtn.addEventListener('click', function() {
+        // Create audio recording elements
+        const recordingContainer = document.createElement('div');
+        recordingContainer.className = 'recording-container';
+        recordingContainer.innerHTML = `
+            <div class="recording-controls">
+                <button id="start-recording" class="btn btn-primary">Start Recording</button>
+                <button id="stop-recording" class="btn btn-danger" disabled>Stop Recording</button>
+                <div class="recording-status">Not recording</div>
+            </div>
+        `;
+        
+        // Add to page
+        const promptBuilder = document.querySelector('.prompt-builder');
+        promptBuilder.appendChild(recordingContainer);
+        
+        // Get elements
+        const startRecordingBtn = document.getElementById('start-recording');
+        const stopRecordingBtn = document.getElementById('stop-recording');
+        const recordingStatus = document.querySelector('.recording-status');
+        
+        // Recording variables
+        let mediaRecorder;
+        let audioChunks = [];
+        
+        // Start recording
+        startRecordingBtn.addEventListener('click', function() {
+            // Request microphone access
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    // Update UI
+                    startRecordingBtn.disabled = true;
+                    stopRecordingBtn.disabled = false;
+                    recordingStatus.textContent = 'Recording...';
                     
-                    document.getElementById('prompt-editor').value = transcript;
-                    console.log('Voice input:', transcript);
-                };
-                
-                recognition.onerror = function(event) {
-                    console.error('Speech recognition error', event.error);
-                    alert('Error with voice recognition: ' + event.error);
-                };
-                
-                recognition.onend = function() {
-                    console.log('Voice recognition ended.');
-                    alert('Voice input completed. You can edit the text if needed.');
-                };
-                
-                // Start recognition
-                recognition.start();
-            } else {
-                // Fallback for browsers that don't support Web Speech API
-                console.log('Calling voice API endpoint');
-                
-                // Show a message that we're processing
-                alert('Processing voice input via API...');
-                
-                // In a real implementation, this would call the voice API endpoint
-                // For now, we'll simulate it with a timeout
-                setTimeout(() => {
-                    const simulatedTranscript = "Create a FastAPI backend for a task management application with user authentication, CRUD operations, and PostgreSQL database.";
-                    document.getElementById('prompt-editor').value = simulatedTranscript;
-                    alert('Voice input processed! You can edit the text if needed.');
-                }, 2000);
-            }
+                    // Create media recorder
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    // Collect audio chunks
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                    alert('Error accessing microphone: ' + error.message);
+                });
         });
-    }
+        
+        // Stop recording
+        stopRecordingBtn.addEventListener('click', function() {
+            // Update UI
+            startRecordingBtn.disabled = false;
+            stopRecordingBtn.disabled = true;
+            recordingStatus.textContent = 'Processing...';
+            
+            // Stop recording
+            mediaRecorder.stop();
+            
+            // Process when recording is complete
+            mediaRecorder.addEventListener('stop', () => {
+                // Create audio blob
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                
+                // Create form data for upload
+                const formData = new FormData();
+                formData.append('audio_file', audioBlob, 'recording.wav');
+                
+                // Show loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('hidden');
+                }
+                
+                // Send to backend
+                fetch('/api/v1/voice', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Voice API response:', data);
+                    
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                    
+                    // Update prompt editor with transcribed text
+                    document.getElementById('prompt-editor').value = data.transcribed_text;
+                    
+                    // Remove recording container
+                    recordingContainer.remove();
+                    
+                    // Show success message
+                    alert('Voice input processed successfully!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                    
+                    // Show error message
+                    alert(`Error processing voice input: ${error.message}`);
+                    
+                    // Remove recording container
+                    recordingContainer.remove();
+                });
+            });
+        });
+    });
+}
+
     
     // Debug Section - Analyze Button
     const analyzeBtn = document.getElementById('analyze-button');
