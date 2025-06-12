@@ -238,7 +238,8 @@ async def process_voice(audio_file: UploadFile = None, options: Optional[str] = 
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Voice processing failed: {processing_result.get('message', 'Unknown error')}"
             )
-        
+        # Use the processing result
+        result = processing_result
         # Clean up temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
