@@ -110,10 +110,11 @@ def test_build_from_prompt_success(mock_get_db, mock_generate_backend_code, mock
     
     # Verify mocks were called
     mock_generate_api_contract.assert_called_once_with(sample_prompt_request["prompt"])
+    expected_options = PromptOptions(**sample_prompt_request["options"])
     mock_generate_backend_code.assert_called_once_with(
         sample_prompt_request["prompt"],
         mock_contract,
-        sample_prompt_request["options"]
+        expected_options
     )
     
     # Clean up
