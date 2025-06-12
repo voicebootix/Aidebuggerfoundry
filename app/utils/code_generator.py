@@ -1,6 +1,8 @@
 import logging
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Union
+
+from app.models.prompt import PromptOptions
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ def setup_logger():
     )
     return logging.getLogger(__name__)
 
-def generate_backend_code(prompt: str, contract: Dict[str, Any], options: Dict[str, Any]) -> Dict[str, Any]:
+def generate_backend_code(prompt: str, contract: Dict[str, Any], options: Union[Dict[str, Any], PromptOptions]) -> Dict[str, Any]:
     """
     Generate backend code based on a prompt and API contract
     
@@ -39,9 +41,13 @@ def generate_backend_code(prompt: str, contract: Dict[str, Any], options: Dict[s
     endpoints = contract.get("endpoints", [])
     schemas = contract.get("schemas", {})
     
+    # Normalize options to a dictionary
+    if hasattr(options, "dict"):
+        options = options.dict()
+
     # Determine file structure based on options
     modular_structure = options.get("modular_structure", False)
-    use_database = getattr(prompt_data.options, 'use_database', True)
+    use_database = options.get("use_database", True)
     generate_tests = options.get("generate_tests", True)
     
     # Generate files
