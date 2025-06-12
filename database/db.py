@@ -99,7 +99,7 @@ async def get_db():
         success = await init_db()
         if not success:
             # Return a fallback file-based DB handler
-            return FallbackDBHandler()
+            yield FallbackDBHandler()
     
     try:
         # Return a connection from the pool
