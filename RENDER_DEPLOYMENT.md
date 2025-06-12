@@ -52,7 +52,7 @@ This guide provides instructions for deploying the AI Debugger Factory to Render
    - `/api/v1/health` - Should return status "healthy"
    - `/api/v1/debug/status` - Should return repository status
    - `/api/v1/build` - For generating code from prompts
-   - `/api/v1/voice` - For processing voice input
+   - `/api/v1/voice` - For processing voice input via `multipart/form-data` with an `audio_file` field and optional `options` field
    - `/api/v1/debug/contract-drift` - For checking contract drift
 
 ## Configuration
