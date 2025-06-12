@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, Form, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, Form, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -193,24 +193,18 @@ async def build_from_prompt(
         )
 
 @app.post("/api/v1/voice")
-async def process_voice(audio_file: UploadFile = None, options: Optional[str] = Form(None)):
+async def process_voice(audio_file: UploadFile = File(...), options: Optional[str] = Form(None)):
     """
     Process voice input
     
     Args:
-        audio_file: Audio file with prompt
+        audio_file: Audio file with prompt (sent as form field `audio_file`)
         options: JSON string with options
         
     Returns:
         Dictionary containing processing results
     """
     try:
-        if not audio_file:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Audio file is required"
-            )
-            
         # Save audio file temporarily
         temp_file_path = f"/tmp/{audio_file.filename}"
         with open(temp_file_path, "wb") as temp_file:

@@ -196,3 +196,28 @@ def test_contract_generator():
     
     # Verify schemas
     assert isinstance(contract["schemas"], dict)
+
+
+@patch("app.main.VoiceInputProcessor")
+def test_process_voice_success(mock_voice_proc):
+    """Test voice endpoint with multipart form"""
+    mock_instance = MagicMock()
+    mock_instance.process_voice_input.return_value = {
+        "status": "success",
+        "transcribed_text": "hello world",
+        "structured_prompt": {"title": "Test", "intent": "build"},
+    }
+    mock_voice_proc.return_value = mock_instance
+
+    files = {"audio_file": ("test.wav", b"data", "audio/wav")}
+    response = client.post("/api/v1/voice", files=files)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["transcribed_text"] == "hello world"
+
+
+def test_process_voice_missing_file():
+    """Audio file is required"""
+    response = client.post("/api/v1/voice")
+    assert response.status_code == 422
