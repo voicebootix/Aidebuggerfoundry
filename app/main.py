@@ -10,6 +10,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.utils.github_uploader import upload_to_github
+import tempfile
+import shutil
 
 # Import local modules
 from app.config import settings
@@ -358,4 +360,7 @@ async def upload_to_github_api(
 from app.utils.dream_engine import router as dream_router
 app.include_router(dream_router)
 
-
+with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+    temp_file_path = temp_file.name
+    await audio_file.seek(0)
+    shutil.copyfileobj(audio_file.file, temp_file
