@@ -554,31 +554,58 @@ The application should follow RESTful API design principles and include proper e
     }
     
     // Deploy Button
-    const deployBtn = document.getElementById('deploy-button');
-    
-    if (deployBtn) {
-        deployBtn.addEventListener('click', function() {
-            // Get repository status first
-            fetch('/upload-to-github', {
-                method: 'POST',
-                body: new FormData(document.getElementById("upload-form")) // or construct your FormData here
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Repository status:', data);
-                alert(`Preparing to deploy to GitHub repository: ${data.repository.name}\n\nThis will create a new branch and push the generated code. Please check your GitHub account for the new pull request.`);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert(`Could not retrieve repository status. Deploying to default repository.\n\nError: ${error.message}`);
-            });
+    // Deploy Button (Fixed: creates FormData manually)
+const deployBtn = document.getElementById('deploy-button');
+
+if (deployBtn) {
+    deployBtn.addEventListener('click', function () {
+        // Get values dynamically from UI or hardcode for testing
+        const repo = prompt("Enter GitHub repo name (e.g. username/repo):");
+        const token = prompt("Enter your GitHub Personal Access Token:");
+        const paths = prompt("Enter comma-separated file paths (e.g. app/main.py,app/utils/github_uploader.py):");
+        const commitMessage = prompt("Enter a commit message:", "Initial Commit");
+
+        if (!repo || !token || !paths) {
+            alert("Please fill all required values.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("repo", repo);
+        formData.append("token", token);
+        formData.append("paths", paths);
+        formData.append("commit_message", commitMessage);
+
+        // Show loading
+        if (loadingOverlay) {
+            loadingOverlay.classList.remove("hidden");
+        }
+
+        fetch("/upload-to-github", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (loadingOverlay) {
+                loadingOverlay.classList.add("hidden");
+            }
+
+            if (data.status === "success") {
+                alert("✅ Upload complete: " + data.message);
+            } else {
+                alert("❌ Upload failed: " + data.message);
+            }
+        })
+        .catch(error => {
+            if (loadingOverlay) {
+                loadingOverlay.classList.add("hidden");
+            }
+            console.error("Upload error:", error);
+            alert("Upload error: " + error.message);
         });
-    }
+    });
+}
     
     //upload github
     const uploadBtn = document.getElementById('upload-github-button');
