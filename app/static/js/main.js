@@ -607,34 +607,7 @@ if (deployBtn) {
     });
 }
     
-    //upload github
-    const uploadBtn = document.getElementById('upload-github-button');
 
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', function() {
-            fetch('/upload-to-github', {
-              method: 'POST',
-              body: formData
-        });
-            body: JSON.stringify({
-                project_id: document.getElementById('project-title').value
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`GitHub upload failed with status ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            alert(`Code uploaded successfully to GitHub repo: ${data.repo_url}`);
-        })
-        .catch(error => {
-            console.error('GitHub upload error:', error);
-            alert('GitHub upload failed. Check console for details.');
-        });
-    });
-}
     // Documentation Button
     const docsBtn = document.getElementById('docs-button');
     
