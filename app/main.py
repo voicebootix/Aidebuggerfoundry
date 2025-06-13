@@ -346,3 +346,11 @@ async def upload_to_github_api(
         return {"status": "success", "message": f"Uploaded {len(file_paths)} file(s) to {repo}."}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/github-deploy")
+async def github_deploy(data: GitHubUploadRequest):
+    try:
+        # Implement deployment logic (e.g., trigger GitHub Actions or Render webhook)
+        return {"message": f"Deployment initiated for {data.repoName}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
