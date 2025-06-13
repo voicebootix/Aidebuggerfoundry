@@ -359,6 +359,6 @@ async def upload_to_github_api(
 async def github_deploy(data: GitHubUploadRequest):
     try:
         # Implement deployment logic (e.g., trigger GitHub Actions or Render webhook)
-        return {"message": f"Deployment initiated for {data.repoName}"}
+        return {"message": f"Deployment initiated for {data.repo}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
