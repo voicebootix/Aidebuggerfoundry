@@ -20,6 +20,14 @@ from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
 from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
 
+from pydantic import BaseModel
+
+class GitHubUploadRequest(BaseModel):
+    repo: str
+    token: str
+    paths: str
+    commit_message: str = "Initial Commit"
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Debugger Factory",
