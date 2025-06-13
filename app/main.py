@@ -330,3 +330,20 @@ async def check_contract_drift():
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+from app.utils.github_uploader import upload_to_github
+
+@app.post("/upload-to-github")
+async def upload_to_github_api(
+    request: Request,
+    repo: str = Form(...),
+    token: str = Form(...),
+    paths: str = Form(...),  # Comma-separated paths
+    commit_message: str = Form("Initial Commit")
+):
+    try:
+        file_paths = [path.strip() for path in paths.split(",")]
+        upload_to_github(repo, token, file_paths, commit_message)
+        return {"status": "success", "message": f"Uploaded {len(file_paths)} file(s) to {repo}."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
