@@ -559,7 +559,10 @@ The application should follow RESTful API design principles and include proper e
     if (deployBtn) {
         deployBtn.addEventListener('click', function() {
             // Get repository status first
-            fetch('/api/v1/debug/status')
+            fetch('/upload-to-github', {
+                method: 'POST',
+                body: new FormData(document.getElementById("upload-form")) // or construct your FormData here
+            })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`API request failed with status ${response.status}`);
