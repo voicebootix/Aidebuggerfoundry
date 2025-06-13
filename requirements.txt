@@ -48,3 +48,7 @@ httpx>=0.24.0
 python-dotenv>=1.0.0
 tenacity>=8.2.2
 tiktoken>=0.4.0
+
+sse-starlette>=1.6.0  # Streaming responses க்காக
+tenacity>=8.2.2       # Retry logic க்காக
+tiktoken>=0.4.0       # Token counting க்காக
