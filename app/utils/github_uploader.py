@@ -1,5 +1,6 @@
 import os
 import requests
+import base64
 
 def upload_to_github(repo_name, github_token, file_paths, commit_message="Initial Commit", branch="main"):
     headers = {
@@ -10,7 +11,7 @@ def upload_to_github(repo_name, github_token, file_paths, commit_message="Initia
     for file_path in file_paths:
         with open(file_path, "rb") as f:
             content = f.read()
-        content_b64 = content.encode("base64") if hasattr(content, "encode") else content
+        content_b64 = base64.b64encode(content).decode('utf-8')
 
         github_api_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
         response = requests.put(github_api_url, headers=headers, json={
