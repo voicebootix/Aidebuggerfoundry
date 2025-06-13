@@ -9,6 +9,7 @@ import json
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from app.utils.github_uploader import upload_to_github
 
 # Import local modules
 from app.config import settings
@@ -330,9 +331,7 @@ async def check_contract_drift():
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
-from app.utils.github_uploader import upload_to_github
-
+    
 @app.post("/upload-to-github")
 async def upload_to_github_api(
     request: Request,
