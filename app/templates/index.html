@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Debugger Factory</title>
@@ -416,7 +417,8 @@
         <div class="spinner"></div>
         <p class="loading-text">Processing your request...</p>
     </div>
-    
+      {% include 'dream_component.html' %}
+    <script src="{{ url_for('static', path='js/dream_client.js') }}"></script>
     <script src="/static/js/main.js"></script>
 </body>
 </html>
