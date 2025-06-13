@@ -14,11 +14,15 @@ def upload_to_github(repo_name, github_token, file_paths, commit_message="Initia
         content_b64 = base64.b64encode(content).decode('utf-8')
 
         github_api_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
-        response = requests.put(github_api_url, headers=headers, json={
-            "message": commit_message,
-            "branch": branch,
-            "content": content_b64.decode("utf-8")
-        })
+        response = requests.put(
+            github_api_url,
+            headers=headers,
+            json={
+                "message": commit_message,
+                "branch": branch,
+                "content": content_b64,
+            },
+        )
 
         if response.status_code not in [200, 201]:
             raise Exception(f"GitHub upload failed for {file_path}: {response.text}")
