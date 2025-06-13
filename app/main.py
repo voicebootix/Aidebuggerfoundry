@@ -357,10 +357,10 @@ async def upload_to_github_api(
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-from app.utils.dream_engine import router as dream_router
-app.include_router(dream_router)
+    from app.utils.dream_engine import router as dream_router
+    app.include_router(dream_router)
 
-with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
-    temp_file_path = temp_file.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+        temp_file_path = temp_file.name
     await audio_file.seek(0)
     shutil.copyfileobj(audio_file.file, temp_file)
