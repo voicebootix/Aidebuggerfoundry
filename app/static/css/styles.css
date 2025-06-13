@@ -1073,3 +1073,46 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+### **சரிசெய்தல் 4: Modal-க்கு CSS சேர்க்கவும்**
+
+**உங்கள் `styles.css`-ல் இதை சேர்க்கவும்:**
+
+css
+.files-preview {
+    background-color: var(--bg-dark);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.files-preview h4 {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-size-md);
+}
+
+.files-preview ul {
+    list-style: none;
+    padding: 0;
+}
+
+.files-preview li {
+    padding: var(--space-xs);
+    border-bottom: 1px solid var(--border-color);
+    font-family: monospace;
+    font-size: var(--font-size-sm);
+}
+
+.files-preview li:last-child {
+    border-bottom: none;
+}
+
+.input-group small {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-xs);
+}
+
+.input-group small a {
+    color: var(--primary);
+}
+```
