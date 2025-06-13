@@ -585,11 +585,10 @@ The application should follow RESTful API design principles and include proper e
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', function() {
-            fetch('/api/v1/github/upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            fetch('/upload-to-github', {
+              method: 'POST',
+              body: formData
+        });
             body: JSON.stringify({
                 project_id: document.getElementById('project-title').value
             })
