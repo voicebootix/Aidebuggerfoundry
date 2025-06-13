@@ -280,6 +280,7 @@ async def init_db():
       
 // Replace the entire voice input button event listener (lines 260-320) with:
 
+const voiceInputBtn = document.getElementById('voice-input-button');
 if (voiceInputBtn) {
     voiceInputBtn.addEventListener('click', function() {
         // Create audio recording elements
@@ -317,8 +318,16 @@ if (voiceInputBtn) {
                     recordingStatus.textContent = 'Recording...';
                     
                     // Create media recorder
-                    mediaRecorder = new MediaRecorder(stream);
+                    let options = {};
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        options.mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        options.mimeType = 'audio/mp4';
+                    }
+
+                    mediaRecorder = new MediaRecorder(stream, options);
                     audioChunks = [];
+
                     
                     // Collect audio chunks
                     mediaRecorder.addEventListener('dataavailable', event => {
@@ -347,7 +356,9 @@ if (voiceInputBtn) {
             // Process when recording is complete
             mediaRecorder.addEventListener('stop', () => {
                 // Create audio blob
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioBlob = new Blob(audioChunks, { 
+                    type: mediaRecorder.mimeType || 'audio/webm' 
+                });
                 
                 // Create form data for upload
                 const formData = new FormData();
