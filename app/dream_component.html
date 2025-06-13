@@ -1,0 +1,557 @@
+<!-- 
+  DreamEngine Component - AI Debugger Factory Extension
+  Converts founder conversations into deployable code through a structured AI pipeline
+-->
+
+<div id="dream-engine-container" class="container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title mb-0">DreamEngine - Founder-to-Code Generator</h3>
+          <div class="dream-status-indicator offline" title="DreamEngine Status">
+            <span class="status-dot"></span>
+            <span class="status-text">Status</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="card-text">
+            Convert your product vision into deployable code. Describe your idea in natural language, and DreamEngine will generate a complete codebase ready for deployment.
+          </p>
+          
+          <!-- Input Section -->
+          <div class="dream-input-section mb-4">
+            <div class="form-group">
+              <label for="dream-input" class="form-label">Describe Your Product Vision</label>
+              <textarea id="dream-input" class="form-control" rows="6" placeholder="Example: Create a FastAPI backend for a task management application with user authentication, CRUD operations for tasks, and PostgreSQL database."></textarea>
+            </div>
+            
+            <!-- Options Accordion -->
+            <div class="accordion mt-3" id="dreamOptionsAccordion">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOptions">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOptions" aria-expanded="false" aria-controls="collapseOptions">
+                    Generation Options
+                  </button>
+                </h2>
+                <div id="collapseOptions" class="accordion-collapse collapse" aria-labelledby="headingOptions" data-bs-parent="#dreamOptionsAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group mb-3">
+                          <label for="dream-provider-select" class="form-label">Model Provider</label>
+                          <select id="dream-provider-select" class="form-select">
+                            <option value="auto">Auto (Recommended)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="google">Google</option>
+                          </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label for="dream-project-type-select" class="form-label">Project Type</label>
+                          <select id="dream-project-type-select" class="form-select">
+                            <option value="">Auto-detect</option>
+                            <option value="web_api">Web API</option>
+                            <option value="web_app">Web Application</option>
+                            <option value="cli_tool">CLI Tool</option>
+                            <option value="mobile_app">Mobile App</option>
+                            <option value="data_pipeline">Data Pipeline</option>
+                            <option value="machine_learning">Machine Learning</option>
+                            <option value="blockchain">Blockchain</option>
+                            <option value="iot">IoT</option>
+                            <option value="game">Game</option>
+                            <option value="desktop_app">Desktop App</option>
+                            <option value="library">Library</option>
+                            <option value="microservice">Microservice</option>
+                            <option value="serverless">Serverless</option>
+                            <option value="devops">DevOps</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label for="dream-language-select" class="form-label">Programming Language</label>
+                          <select id="dream-language-select" class="form-select">
+                            <option value="">Auto-detect</option>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="java">Java</option>
+                            <option value="csharp">C#</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="php">PHP</option>
+                            <option value="swift">Swift</option>
+                            <option value="kotlin">Kotlin</option>
+                            <option value="cpp">C++</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div class="col-md-6">
+                        <div class="form-group mb-3">
+                          <label for="dream-database-select" class="form-label">Database Type</label>
+                          <select id="dream-database-select" class="form-select">
+                            <option value="">Auto-detect</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="mongodb">MongoDB</option>
+                            <option value="sqlite">SQLite</option>
+                            <option value="redis">Redis</option>
+                            <option value="dynamodb">DynamoDB</option>
+                            <option value="firestore">Firestore</option>
+                            <option value="cosmosdb">CosmosDB</option>
+                            <option value="none">None</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label for="dream-security-select" class="form-label">Security Level</label>
+                          <select id="dream-security-select" class="form-select">
+                            <option value="standard">Standard</option>
+                            <option value="basic">Basic</option>
+                            <option value="high">High</option>
+                            <option value="enterprise">Enterprise</option>
+                          </select>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                          <input class="form-check-input" type="checkbox" id="dream-include-tests-checkbox" checked>
+                          <label class="form-check-label" for="dream-include-tests-checkbox">
+                            Include Tests
+                          </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                          <input class="form-check-input" type="checkbox" id="dream-include-docs-checkbox" checked>
+                          <label class="form-check-label" for="dream-include-docs-checkbox">
+                            Include Documentation
+                          </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                          <input class="form-check-input" type="checkbox" id="dream-include-docker-checkbox">
+                          <label class="form-check-label" for="dream-include-docker-checkbox">
+                            Include Docker Configuration
+                          </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                          <input class="form-check-input" type="checkbox" id="dream-include-cicd-checkbox">
+                          <label class="form-check-label" for="dream-include-cicd-checkbox">
+                            Include CI/CD Configuration
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="dream-actions mt-3">
+              <div class="row">
+                <div class="col-md-8">
+                  <div class="btn-group" role="group">
+                    <button id="dream-validate-button" class="btn btn-outline-primary">
+                      <i class="fas fa-check-circle"></i> Validate Idea
+                    </button>
+                    <button id="dream-generate-button" class="btn btn-primary">
+                      <i class="fas fa-code"></i> Generate Code
+                    </button>
+                    <button id="dream-streaming-button" class="btn btn-outline-primary">
+                      <i class="fas fa-stream"></i> Stream Generation
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-4 text-end">
+                  <div class="btn-group" role="group">
+                    <button id="dream-save-draft-button" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-save"></i> Save Draft
+                    </button>
+                    <button id="dream-load-draft-button" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-folder-open"></i> Load Draft
+                    </button>
+                    <button id="dream-cancel-button" class="btn btn-outline-danger btn-sm">
+                      <i class="fas fa-times-circle"></i> Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+          <div class="dream-progress mb-4">
+            <div class="progress">
+              <div id="dream-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div id="dream-progress-status" class="text-center text-muted small mt-1"></div>
+          </div>
+          
+          <!-- Error Display -->
+          <div id="dream-error" class="alert alert-danger hidden" role="alert"></div>
+          
+          <!-- Validation Results -->
+          <div id="dream-validation-container" class="dream-validation-container hidden">
+            <div class="card shadow-sm mb-4">
+              <div class="card-header">
+                <h4 class="card-title mb-0">Idea Validation Results</h4>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <h5>Overall Score</h5>
+                    <div id="dream-validation-score" class="dream-score">0%</div>
+                    <p id="dream-validation-summary" class="mt-2"></p>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="row">
+                      <div class="col-6">
+                        <strong>Project Type:</strong>
+                        <div id="dream-detected-project-type"></div>
+                      </div>
+                      <div class="col-6">
+                        <strong>Language:</strong>
+                        <div id="dream-detected-language"></div>
+                      </div>
+                      <div class="col-6">
+                        <strong>Database:</strong>
+                        <div id="dream-detected-database"></div>
+                      </div>
+                      <div class="col-6">
+                        <strong>Est. Time:</strong>
+                        <div id="dream-estimated-time"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-3">
+                    <h6>Feasibility</h6>
+                    <div id="dream-feasibility-score" class="dream-score-container"></div>
+                  </div>
+                  <div class="col-md-3">
+                    <h6>Complexity</h6>
+                    <div id="dream-complexity-score" class="dream-score-container"></div>
+                  </div>
+                  <div class="col-md-3">
+                    <h6>Clarity</h6>
+                    <div id="dream-clarity-score" class="dream-score-container"></div>
+                  </div>
+                  <div class="col-md-3">
+                    <h6>Security</h6>
+                    <div id="dream-security-score" class="dream-score-container"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Generation Results -->
+          <div id="dream-result-container" class="dream-result-container hidden">
+            <div class="card shadow-sm mb-4">
+              <div class="card-header">
+                <h4 class="card-title mb-0">Generated Code</h4>
+              </div>
+              <div class="card-body">
+                <div class="form-group mb-3">
+                  <label for="dream-file-selector" class="form-label">Select File</label>
+                  <select id="dream-file-selector" class="form-select"></select>
+                </div>
+                
+                <div class="code-container">
+                  <pre><code id="dream-code-display" class="language-python"></code></pre>
+                </div>
+                
+                <div class="mt-3 text-end">
+                  <button id="dream-copy-code-button" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-copy"></i> Copy Code
+                  </button>
+                  <button id="dream-download-code-button" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-download"></i> Download File
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Explanation</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="dream-explanation" class="dream-explanation"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Architecture</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="dream-architecture" class="dream-architecture"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Deployment Steps</h5>
+              </div>
+              <div class="card-body">
+                <div id="dream-deployment-steps" class="dream-deployment-steps"></div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Dependencies</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="dream-dependencies" class="dream-dependencies"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Environment Variables</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="dream-env-vars" class="dream-env-vars"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-muted text-end small">
+              Generation time: <span id="dream-generation-time">0.00 seconds</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* DreamEngine Component Styles */
+#dream-engine-container {
+  font-family: var(--bs-font-sans-serif);
+  color: var(--bs-body-color);
+}
+
+.dream-status-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.dream-status-indicator .status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.dream-status-indicator.online .status-dot {
+  background-color: #28a745;
+}
+
+.dream-status-indicator.offline .status-dot {
+  background-color: #dc3545;
+}
+
+.dream-input-section textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.dream-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dream-progress {
+  margin-top: 1.5rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.code-container {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.code-container pre {
+  margin-bottom: 0;
+}
+
+.dream-score {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.dream-score-high {
+  color: #28a745;
+}
+
+.dream-score-medium {
+  color: #ffc107;
+}
+
+.dream-score-low {
+  color: #dc3545;
+}
+
+.dream-score-container {
+  margin-bottom: 1rem;
+}
+
+.dream-score-explanation {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.dream-recommendations {
+  font-size: 0.85rem;
+  padding-left: 1.2rem;
+}
+
+.dream-deployment-step {
+  margin-bottom: 1.5rem;
+}
+
+.dream-deployment-step h4 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.dream-command {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.dream-verification {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dream-actions .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .dream-actions .btn {
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem !important;
+  }
+  
+  .col-md-4.text-end {
+    text-align: left !important;
+    margin-top: 0.5rem;
+  }
+}
+</style>
+
+<script>
+  // This script ensures the DreamEngine client is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if dream_client.js is loaded
+    if (typeof DreamEngineClient === 'undefined') {
+      console.error('DreamEngine client not loaded. Please include dream_client.js');
+      
+      // Add error message to container
+      const container = document.getElementById('dream-engine-container');
+      if (container) {
+        const errorAlert = document.createElement('div');
+        errorAlert.className = 'alert alert-danger';
+        errorAlert.textContent = 'DreamEngine client not loaded. Please include dream_client.js';
+        container.prepend(errorAlert);
+      }
+    } else {
+      console.log('DreamEngine client loaded successfully');
+    }
+    
+    // Setup copy code button
+    const copyCodeBtn = document.getElementById('dream-copy-code-button');
+    if (copyCodeBtn) {
+      copyCodeBtn.addEventListener('click', function() {
+        const codeDisplay = document.getElementById('dream-code-display');
+        if (codeDisplay) {
+          navigator.clipboard.writeText(codeDisplay.textContent)
+            .then(() => {
+              // Show success message
+              const originalText = copyCodeBtn.innerHTML;
+              copyCodeBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+              setTimeout(() => {
+                copyCodeBtn.innerHTML = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy code:', err);
+              alert('Failed to copy code to clipboard');
+            });
+        }
+      });
+    }
+    
+    // Setup download code button
+    const downloadCodeBtn = document.getElementById('dream-download-code-button');
+    if (downloadCodeBtn) {
+      downloadCodeBtn.addEventListener('click', function() {
+        const fileSelector = document.getElementById('dream-file-selector');
+        const codeDisplay = document.getElementById('dream-code-display');
+        
+        if (fileSelector && codeDisplay && fileSelector.value) {
+          const filename = fileSelector.value.split('/').pop();
+          const content = codeDisplay.textContent;
+          
+          // Create blob and download
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      });
+    }
+  });
+</script>
