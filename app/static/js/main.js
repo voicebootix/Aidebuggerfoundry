@@ -665,3 +665,14 @@ if (deployBtn) {
         }
     });
 });
+
+if (voiceInputBtn) {
+    voiceInputBtn.addEventListener('click', function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Chrome, Firefox,Edge');
+        return;
+    }
+        if (!window.MediaRecorder) {
+            alert('');
+            return;
+    }
