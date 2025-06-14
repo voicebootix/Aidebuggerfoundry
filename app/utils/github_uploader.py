@@ -1,3 +1,4 @@
+python
 import os
 import requests
 import base64
@@ -70,7 +71,7 @@ def upload_to_github(repo_name, github_token, files_content, commit_message="Ini
 
     if failed_files:
         raise Exception(f"Files upload செய்வதில் தோல்வி: {failed_files}")
-
+    
     return {
         "uploaded_files": uploaded_files,
         "total_files": len(uploaded_files)
