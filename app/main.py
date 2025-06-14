@@ -342,6 +342,18 @@ async def check_contract_drift():
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)   
 
+app = FastAPI()
+logger = logging.getLogger(__name__)
+
+def upload_to_github(repo_name, github_token, files_content, commit_message="Initial Commit", branch="main"):
+    """
+    Dummy GitHub upload function — replace with your actual implementation
+    """
+    # For demonstration: pretend all files uploaded
+    uploaded_files = list(files_content.keys())
+    return {"total_files": len(uploaded_files), "uploaded_files": uploaded_files}
+
+
 @app.post("/upload-to-github")
 async def upload_to_github_api(
     request: Request,
@@ -351,11 +363,8 @@ async def upload_to_github_api(
     project_id: str = Form(...)  # Generated files பெற project ID சேர்க்கவும்
 ):
     try:
-        # இந்த project-க்கான மிக சமீபத்திய generated code பெறுங்கள்
-        # இது simplified version - உங்கள் storage படி adjust செய்ய வேண்டும்
-        
-        # இப்போதைக்கு sample generated files பெறுவோம்
-        # உண்மையான implementation-ல், database அல்லது session-ல் இருந்து retrieve செய்வீர்கள்
+        # இங்கு database அல்லது cache-இல் இருந்து project_id மூலம் generated files பெற வேண்டும்
+        # இப்போது sample files hardcoded செய்யப்பட்டுள்ளது
         sample_files = {
             "app/main.py": """from fastapi import FastAPI
 from pydantic import BaseModel
@@ -385,31 +394,16 @@ pydantic
 
 ## Installation
 
-bash
+```bash
 pip install -r requirements.txt
 
 
-## Run
-
-bash
-uvicorn app.main:app --reload
-
-
-“””
-}
-
-
-    # உண்மையான implementation-ல், நீங்கள் செய்வீர்கள்:
-    # 1. project_id பயன்படுத்தி database-ல் generated files query செய்வீர்கள்
-    # 2. அல்லது session/cache-ல் இருந்து files பெறுவீர்கள்
-    # 3. GeneratedFile objects-ஐ dict format-க்கு convert செய்வீர்கள்
-    
-    result = upload_to_github(repo, token, sample_files, commit_message)
+result = upload_to_github(repo, token, sample_files, commit_message)
     return {
-        "status": "success", 
+        "status": "success",
         "message": f"{result['total_files']} file(s) {repo}-க்கு upload செய்யப்பட்டது",
         "files": result['uploaded_files']
     }
 except Exception as e:
     logger.error(f"GitHub upload பிழை: {str(e)}")
-    return {"status": "error", "message": str(e)
+    return {"status": "error", "message": str(e)}
