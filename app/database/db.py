@@ -16,7 +16,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 # Connection pool
 pool = None
 
-async def get_db():
+async def get_db() -> AsyncGenerator:
     """
     Get database connection from pool
     
@@ -25,39 +25,60 @@ async def get_db():
     """
     global pool
     if pool is None:
-        # This is a simplified implementation for testing
-        # In production, we would use a proper connection pool
-        logger.info("Creating database connection pool")
+        logger.info("Initializing database connection pool")
         try:
-            # For testing purposes, we'll just return None
-            # In production, this would be a real connection
-            conn = None
+            # Initialize pool if not exists
+            await init_db()
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {str(e)}")
+            # Yield None for fallback handling
+            yield None
+            return
+    
+    try:
+        # Get connection from pool
+        async with pool.acquire() as conn:
             yield conn
-        except Exception as e:
-            logger.error(f"Error getting database connection: {str(e)}")
-            raise
-    else:
-        try:
-            async with pool.acquire() as conn:
-                yield conn
-        except Exception as e:
-            logger.error(f"Error getting database connection: {str(e)}")
-            raise
+    except Exception as e:
+        logger.error(f"Error getting database connection: {str(e)}")
+        # Yield None for fallback handling
+        yield None
 
 async def init_db():
     """
-    Initialize database
+    Initialize database connection pool
     
     This function is called on application startup
     """
     global pool
     try:
-        # For testing purposes, we'll just log a message
-        # In production, this would create a real connection pool
-        logger.info("Initializing database")
+        logger.info("Creating database connection pool")
         
-        # Simulate successful initialization
+        # Create connection pool
+        pool = await asyncpg.create_pool(
+            DATABASE_URL,
+            min_size=1,
+            max_size=10,
+            command_timeout=60
+        )
+        
+        # Test the connection
+        async with pool.acquire() as conn:
+            await conn.execute("SELECT 1")
+        
+        logger.info("Database connection pool created successfully")
         return True
+        
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
-        raise
+        # Set pool to None to trigger fallback
+        pool = None
+        return False
+
+async def close_db():
+    """Close database connection pool"""
+    global pool
+    if pool:
+        await pool.close()
+        pool = None
+        logger.info("Database connection pool closed")
