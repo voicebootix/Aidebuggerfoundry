@@ -426,3 +426,14 @@ class FallbackDBHandler:
             pass
         
         return None
+
+async def test_db_connection():
+    try:
+        async with pool.acquire() as conn:
+            result = await conn.fetchval("SELECT 1")
+            return result == 1
+    except Exception as e:
+        logger.error(f"Database test failed: {e}")
+        return False
+
+
