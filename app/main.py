@@ -197,16 +197,15 @@ async def build_from_prompt(
         )
 
 @app.post("/api/v1/voice")
-async def process_voice(audio_file: UploadFile = File(...), options: Optional[str] = Form(None)):
-    """
-    Process voice input
-    """
+async def process_voice_enhanced(audio_file: UploadFile = File(...)):
+    """Enhanced voice processing with proper error handling"""
     try:
-        # Save audio file temporarily
-        temp_file_path = f"/tmp/{audio_file.filename}"
-        with open(temp_file_path, "wb") as temp_file:
-            content = await audio_file.read()
-            temp_file.write(content)
+        from app.utils.voice_processor import process_voice_input_fixed
+        result = await process_voice_input_fixed(audio_file)
+        return result
+    except Exception as e:
+        logger.error(f"Voice processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
         
         # Parse options
         options_dict = {}
@@ -387,3 +386,7 @@ app.include_router(dream_router)
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+# Add this import to your existing main.py
+from app.utils.dream_engine import router as dream_router
+app.include_router(dream_router)
