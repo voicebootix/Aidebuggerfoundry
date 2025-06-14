@@ -1,4 +1,3 @@
-python
 import os
 import requests
 import base64
@@ -8,12 +7,12 @@ logger = logging.getLogger(__name__)
 
 def upload_to_github(repo_name, github_token, files_content, commit_message="Initial Commit", branch="main"):
     """
-    GitHub repository-க்கு files upload செய்யவும்
+    Upload files to GitHub repository
     
     Args:
         repo_name: GitHub repository name (e.g., "username/repo")
         github_token: GitHub personal access token
-        files_content: {file_path: content} Dict அல்லது {filename, content} List
+        files_content: {file_path: content} Dict or {filename, content} List
         commit_message: Commit message
         branch: Target branch
     """
@@ -22,7 +21,7 @@ def upload_to_github(repo_name, github_token, files_content, commit_message="Ini
         "Accept": "application/vnd.github.v3+json"
     }
 
-    # files_content list ஆக இருந்தால் dict format-க்கு convert செய்யவும்
+    # Convert files_content list to dict format if needed
     if isinstance(files_content, list):
         files_dict = {}
         for file_obj in files_content:
@@ -37,13 +36,13 @@ def upload_to_github(repo_name, github_token, files_content, commit_message="Ini
 
     for file_path, content in files_content.items():
         try:
-            # Content string ஆக இருந்தால் bytes-க்கு convert செய்யவும்
+            # Convert content to bytes if it's a string
             if isinstance(content, str):
                 content_bytes = content.encode('utf-8')
             else:
                 content_bytes = content
             
-            # Content-ஐ base64-ஆக encode செய்யவும்
+            # Encode content as base64
             content_b64 = base64.b64encode(content_bytes).decode('utf-8')
 
             github_api_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
@@ -60,17 +59,17 @@ def upload_to_github(repo_name, github_token, files_content, commit_message="Ini
 
             if response.status_code in [200, 201]:
                 uploaded_files.append(file_path)
-                logger.info(f"வெற்றிகரமாக upload செய்யப்பட்டது {file_path}")
+                logger.info(f"Successfully uploaded {file_path}")
             else:
                 failed_files.append({"file": file_path, "error": response.text})
-                logger.error(f"{file_path} upload செய்வதில் தோல்வி: {response.text}")
+                logger.error(f"Failed to upload {file_path}: {response.text}")
 
         except Exception as e:
             failed_files.append({"file": file_path, "error": str(e)})
-            logger.error(f"{file_path} upload செய்வதில் exception: {str(e)}")
+            logger.error(f"Exception uploading {file_path}: {str(e)}")
 
     if failed_files:
-        raise Exception(f"Files upload செய்வதில் தோல்வி: {failed_files}")
+        raise Exception(f"Failed to upload files: {failed_files}")
     
     return {
         "uploaded_files": uploaded_files,
