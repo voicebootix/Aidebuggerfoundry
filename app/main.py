@@ -340,30 +340,7 @@ async def check_contract_drift():
     }
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-    
-@app.post("/upload-to-github")
-async def upload_to_github_api(
-    request: Request,
-    repo: str = Form(...),
-    token: str = Form(...),
-    paths: str = Form(...),  # Comma-separated paths
-    commit_message: str = Form("Initial Commit")
-):
-    try:
-        file_paths = [path.strip() for path in paths.split(",")]
-        upload_to_github(repo, token, file_paths, commit_message)
-        return {"status": "success", "message": f"Uploaded {len(file_paths)} file(s) to {repo}."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-    from app.utils.dream_engine import router as dream_router
-    app.include_router(dream_router)
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
-        temp_file_path = temp_file.name
-    await audio_file.seek(0)
-    shutil.copyfileobj(audio_file.file, temp_file)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)   
 
 @app.post("/upload-to-github")
 async def upload_to_github_api(
