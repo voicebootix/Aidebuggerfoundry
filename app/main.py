@@ -406,11 +406,6 @@ pip install -r requirements.txt
 bash
 uvicorn app.main:app --reload
 
-
-“””
-}
-
-
     # உண்மையான implementation-ல், நீங்கள் செய்வீர்கள்:
     # 1. project_id பயன்படுத்தி database-ல் generated files query செய்வீர்கள்
     # 2. அல்லது session/cache-ல் இருந்து files பெறுவீர்கள்
@@ -427,4 +422,5 @@ except Exception as e:
     return {"status": "error", "message": str(e)}
 
 
-"""
+“””
+}
