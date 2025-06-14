@@ -399,11 +399,6 @@ pydantic
 
 ---bash
 pip install -r requirements.txt
-
-
-## Run
-
-bash
 uvicorn app.main:app --reload
 
     # உண்மையான implementation-ல், நீங்கள் செய்வீர்கள்:
