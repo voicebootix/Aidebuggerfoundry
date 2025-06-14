@@ -363,8 +363,6 @@ async def upload_to_github_api(
     project_id: str = Form(...)  # Generated files பெற project ID சேர்க்கவும்
 ):
     try:
-        # இங்கு database அல்லது cache-இல் இருந்து project_id மூலம் generated files பெற வேண்டும்
-        # இப்போது sample files hardcoded செய்யப்பட்டுள்ளது
         sample_files = {
             "app/main.py": """from fastapi import FastAPI
 from pydantic import BaseModel
@@ -394,11 +392,16 @@ pydantic
 
 ## Installation
 
-```bash
+bash
 pip install -r requirements.txt
 
+##run
+uvicorn app.main:app --reload
 
-result = upload_to_github(repo, token, sample_files, commit_message)
+“””
+}
+
+    result = upload_to_github(repo, token, sample_files, commit_message)
     return {
         "status": "success",
         "message": f"{result['total_files']} file(s) {repo}-க்கு upload செய்யப்பட்டது",
