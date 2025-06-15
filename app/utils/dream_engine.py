@@ -762,6 +762,16 @@ async def stream_generation_post(request_data: DreamRequest, http_request: Reque
     return EventSourceResponse(event_generator())
 
 
+# In dream_engine.py - add better error handling
+async def generate_with_openai(self, prompt: str, options: Dict) -> Dict:
+    if not self.openai_api_key:
+        raise HTTPException(
+            status_code=500, 
+            detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+        )
+    # ... rest of implementation
+
+
 @router.get("/health", response_model=HealthCheckResponse)
 async def dream_health_check():
     """Health check matching existing pattern."""
