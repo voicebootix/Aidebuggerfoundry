@@ -12,6 +12,9 @@ from typing import Dict, List, Optional, Any
 import tempfile
 import shutil
 import logging
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi.responses import StreamingResponse
+import time
 
 # Import local modules
 from app.config import settings
@@ -394,3 +397,702 @@ uvicorn app.main:app --reload
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+# Add these Pydantic models
+class GenerationOptions(BaseModel):
+    model_provider: str = "auto"
+    project_type: Optional[str] = None
+    programming_language: Optional[str] = None
+    database_type: Optional[str] = None
+    security_level: str = "standard"
+    include_tests: bool = True
+    include_documentation: bool = True
+    include_docker: bool = False
+    include_ci_cd: bool = False
+    temperature: float = 0.7
+
+class DreamProcessRequest(BaseModel):
+    id: str
+    user_id: str
+    input_text: str
+    options: Optional[GenerationOptions] = None
+
+# Add this router to your existing main.py
+from fastapi import APIRouter
+dream_router = APIRouter(prefix="/api/v1/dreamengine", tags=["dreamengine"])
+
+@dream_router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "service": "DreamEngine",
+        "version": "1.0.0"
+    }
+
+@dream_router.post("/validate")
+async def validate_idea(request: DreamProcessRequest):
+    """Validate a founder's idea"""
+    try:
+        # Simple validation logic for now
+        input_length = len(request.input_text.strip())
+        word_count = len(request.input_text.split())
+        
+        # Calculate a validation score
+        score = min(10, max(1, (input_length / 50) + (word_count / 10)))
+        
+        return {
+            "id": request.id,
+            "user_id": request.user_id,
+            "status": "success",
+            "validation_result": {
+                "overall_score": round(score, 1),
+                "feasibility": "High" if score > 7 else "Medium" if score > 4 else "Low",
+                "market_potential": "Good" if word_count > 20 else "Needs more detail",
+                "technical_complexity": "Medium",
+                "recommendations": [
+                    "Consider adding more specific requirements",
+                    "Define your target audience clearly",
+                    "Think about monetization strategy"
+                ]
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+@dream_router.post("/process")
+async def generate_code(request: DreamProcessRequest):
+    """Main code generation endpoint"""
+    try:
+        # Simulate processing time
+        await asyncio.sleep(2)
+        
+        # Generate sample code based on the request
+        generated_files = generate_sample_code(request.input_text, request.options)
+        
+        return {
+            "id": request.id,
+            "request_id": request.id,
+            "user_id": request.user_id,
+            "status": "success",
+            "message": "Code generated successfully",
+            "files": generated_files,
+            "main_file": generated_files[0]["filename"] if generated_files else None,
+            "explanation": generate_explanation(request.input_text),
+            "architecture": generate_architecture_description(request.input_text),
+            "project_type": request.options.project_type if request.options else "web_api",
+            "programming_language": request.options.programming_language if request.options else "python",
+            "generation_time_seconds": 2.0,
+            "model_provider": "gpt-4",
+            "security_issues": [],
+            "quality_issues": [],
+            "deployment_steps": generate_deployment_steps(),
+            "dependencies": ["fastapi", "uvicorn", "pydantic"],
+            "environment_variables": ["DATABASE_URL", "SECRET_KEY"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
+
+@dream_router.post("/stream")
+async def stream_generation(request: DreamProcessRequest):
+    """Streaming code generation"""
+    
+    async def generate_stream():
+        try:
+            # Send initial chunk
+            yield f"data: {json.dumps({'content_type': 'status', 'content': 'Starting generation...', 'progress': 0})}\n\n"
+            await asyncio.sleep(0.5)
+            
+            # Generate code in chunks
+            files = generate_sample_code(request.input_text, request.options)
+            
+            for i, file in enumerate(files):
+                # File start
+                yield f"data: {json.dumps({'content_type': 'file_start', 'file_path': file['filename'], 'progress': (i/len(files))*80})}\n\n"
+                await asyncio.sleep(0.3)
+                
+                # File content in chunks
+                content_chunks = [file['content'][j:j+200] for j in range(0, len(file['content']), 200)]
+                for chunk in content_chunks:
+                    yield f"data: {json.dumps({'content_type': 'file_content', 'content': chunk})}\n\n"
+                    await asyncio.sleep(0.1)
+                
+                # File end
+                yield f"data: {json.dumps({'content_type': 'file_end', 'progress': ((i+1)/len(files))*80})}\n\n"
+            
+            # Send explanation
+            yield f"data: {json.dumps({'content_type': 'explanation', 'content': generate_explanation(request.input_text), 'progress': 90})}\n\n"
+            await asyncio.sleep(0.3)
+            
+            # Send final chunk
+            yield f"data: {json.dumps({'content_type': 'status', 'content': 'Generation complete!', 'progress': 100, 'is_final': True})}\n\n"
+            yield "data: [DONE]\n\n"
+            
+        except Exception as e:
+            error_chunk = {
+                "content_type": "error",
+                "content": f"Generation failed: {str(e)}",
+                "is_final": True,
+                "error": True
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+            yield "data: [DONE]\n\n"
+    
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+        }
+    )
+
+# Voice processing endpoint
+from fastapi import UploadFile, File
+
+@dream_router.post("/voice")
+async def process_voice(audio_file: UploadFile = File(...)):
+    """Process voice input"""
+    try:
+        # For now, return a sample transcription
+        # In production, you'd use OpenAI Whisper API
+        
+        sample_transcriptions = [
+            "Create a FastAPI backend for a task management application with user authentication and CRUD operations.",
+            "Build a React frontend with a clean dashboard for managing projects and teams.",
+            "I want to create an e-commerce platform with product catalog and payment integration.",
+            "Develop a blog platform with content management and user commenting system."
+        ]
+        
+        import random
+        transcribed_text = random.choice(sample_transcriptions)
+        
+        return {
+            "status": "success",
+            "transcribed_text": transcribed_text,
+            "processing_time": 2.5,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Voice processing failed: {str(e)}")
+
+# Helper functions
+def generate_sample_code(input_text: str, options: Optional[GenerationOptions]) -> list:
+    """Generate sample code files based on input"""
+    
+    # Determine if it's a to-do app or other type
+    is_todo_app = "todo" in input_text.lower() or "task" in input_text.lower()
+    
+    if is_todo_app:
+        return [
+            {
+                "filename": "main.py",
+                "content": '''from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
+import uuid
+from datetime import datetime
+
+app = FastAPI(title="Todo API", version="1.0.0")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Pydantic models
+class Task(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    completed: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+class TaskCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = None
+
+# In-memory storage (use database in production)
+tasks: List[Task] = []
+
+@app.get("/")
+async def root():
+    return {"message": "Todo API is running!"}
+
+@app.get("/tasks", response_model=List[Task])
+async def get_tasks():
+    return tasks
+
+@app.post("/tasks", response_model=Task)
+async def create_task(task_data: TaskCreate):
+    task = Task(
+        id=str(uuid.uuid4()),
+        title=task_data.title,
+        description=task_data.description,
+        completed=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+    tasks.append(task)
+    return task
+
+@app.get("/tasks/{task_id}", response_model=Task)
+async def get_task(task_id: str):
+    task = next((t for t in tasks if t.id == task_id), None)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+@app.put("/tasks/{task_id}", response_model=Task)
+async def update_task(task_id: str, task_update: TaskUpdate):
+    task = next((t for t in tasks if t.id == task_id), None)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    update_data = task_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(task, field, value)
+    
+    task.updated_at = datetime.now()
+    return task
+
+@app.delete("/tasks/{task_id}")
+async def delete_task(task_id: str):
+    global tasks
+    tasks = [t for t in tasks if t.id != task_id]
+    return {"message": "Task deleted successfully"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+''',
+                "language": "python",
+                "purpose": "FastAPI backend with CRUD operations"
+            },
+            {
+                "filename": "index.html",
+                "content": '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My To-Do List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .input-section {
+            padding: 30px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .task-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .task-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .add-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .tasks-section {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .task-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .task-text.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #ff3742;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #888;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .status-section {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>My To-Do List</h1>
+            <p>Stay organized and productive</p>
+        </div>
+        
+        <div class="input-section">
+            <input type="text" id="taskInput" class="task-input" placeholder="What needs to be done?" maxlength="100">
+            <button onclick="addTask()" class="add-btn">Add Task</button>
+        </div>
+        
+        <div class="tasks-section" id="tasksContainer">
+            <div class="empty-state" id="emptyState">
+                <h3>🎯 Ready to be productive?</h3>
+                <p>Add your first task above to get started!</p>
+            </div>
+        </div>
+        
+        <div class="status-section">
+            <span id="taskStats">0 tasks</span>
+            <button onclick="clearCompleted()" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 14px;">Clear Completed</button>
+        </div>
+    </div>
+    
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let taskIdCounter = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+        
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = emptyState.outerHTML;
+                updateStats();
+                return;
+            }
+            
+            container.innerHTML = tasks.map(task => `
+                <div class="task-item">
+                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
+                           onchange="toggleTask(${task.id})">
+                    <span class="task-text ${task.completed ? 'completed' : ''}">${task.text}</span>
+                    <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+                </div>
+            `).join('');
+            
+            updateStats();
+        }
+        
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            
+            if (text === '') return;
+            
+            tasks.push({
+                id: taskIdCounter++,
+                text: text,
+                completed: false,
+                createdAt: new Date().toISOString()
+            });
+            
+            input.value = '';
+            saveTasks();
+            renderTasks();
+        }
+        
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                saveTasks();
+                renderTasks();
+            }
+        }
+        
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+        
+        function clearCompleted() {
+            tasks = tasks.filter(t => !t.completed);
+            saveTasks();
+            renderTasks();
+        }
+        
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+        
+        function updateStats() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
+            
+            document.getElementById('taskStats').textContent = 
+                `${total} task${total !== 1 ? 's' : ''} • ${pending} pending`;
+        }
+        
+        // Add task on Enter key press
+        document.getElementById('taskInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+        
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>
+''',
+                "language": "html",
+                "purpose": "Frontend to-do application"
+            },
+            {
+                "filename": "requirements.txt",
+                "content": '''fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+''',
+                "language": "text",
+                "purpose": "Python dependencies"
+            }
+        ]
+    else:
+        # Generic web app
+        return [
+            {
+                "filename": "main.py",
+                "content": '''from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+
+app = FastAPI(title="Generated Application")
+
+@app.get("/")
+async def root():
+    return {"message": "Your application is running!"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+''',
+                "language": "python",
+                "purpose": "Basic FastAPI application"
+            }
+        ]
+
+def generate_explanation(input_text: str) -> str:
+    """Generate explanation based on input"""
+    if "todo" in input_text.lower() or "task" in input_text.lower():
+        return """
+## Generated To-Do Application
+
+I've created a complete full-stack to-do application based on your requirements:
+
+### Backend (main.py)
+- **FastAPI** framework for high-performance API
+- **CRUD operations** for tasks (Create, Read, Update, Delete)
+- **RESTful endpoints** following best practices
+- **Pydantic models** for data validation
+- **CORS middleware** for frontend integration
+- **UUID-based task IDs** for uniqueness
+- **Datetime tracking** for created/updated timestamps
+
+### Frontend (index.html)
+- **Modern, responsive design** with gradient styling
+- **Real-time task management** with instant updates
+- **Local storage** for data persistence
+- **Interactive features**: add, toggle, delete tasks
+- **Task statistics** showing total and pending counts
+- **Clean completed tasks** functionality
+- **Mobile-friendly** responsive layout
+
+### Key Features Implemented:
+✅ Add new tasks with Enter key or button click
+✅ Mark tasks as completed with checkboxes
+✅ Delete individual tasks
+✅ Clear all completed tasks at once
+✅ Persistent storage using localStorage
+✅ Real-time task counter and statistics
+✅ Beautiful, modern UI with smooth animations
+
+### Next Steps:
+1. Run `pip install -r requirements.txt`
+2. Start the backend: `uvicorn main:app --reload`
+3. Open `index.html` in your browser
+4. Start managing your tasks!
+
+The application is production-ready and can be easily extended with user authentication, database integration, and cloud deployment.
+        """
+    else:
+        return "I've generated a basic web application structure based on your requirements. The code includes a FastAPI backend with essential endpoints and can be extended based on your specific needs."
+
+def generate_architecture_description(input_text: str) -> str:
+    """Generate architecture description"""
+    return """
+## Application Architecture
+
+### Frontend Layer
+- **Technology**: HTML5, CSS3, Vanilla JavaScript
+- **Storage**: Browser localStorage for data persistence
+- **Design**: Mobile-first responsive design
+- **Interactions**: Real-time updates without page reloads
+
+### Backend Layer
+- **Framework**: FastAPI (Python)
+- **API Design**: RESTful architecture
+- **Data Models**: Pydantic for validation
+- **CORS**: Enabled for cross-origin requests
+
+### Data Flow
+1. User interactions trigger JavaScript functions
+2. Data is validated and stored in localStorage
+3. UI updates immediately reflect changes
+4. Backend API ready for database integration
+
+### Scalability Considerations
+- **Database Ready**: Easy to integrate PostgreSQL/MongoDB
+- **Authentication**: JWT token structure prepared
+- **Caching**: Redis integration possible
+- **Deployment**: Docker containerization ready
+    """
+
+def generate_deployment_steps() -> list:
+    """Generate deployment steps"""
+    return [
+        {
+            "step_number": 1,
+            "description": "Install Dependencies",
+            "command": "pip install -r requirements.txt",
+            "verification": "Check that all packages install without errors"
+        },
+        {
+            "step_number": 2,
+            "description": "Start the Backend Server",
+            "command": "uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+            "verification": "Visit http://localhost:8000/docs to see the API documentation"
+        },
+        {
+            "step_number": 3,
+            "description": "Test the Frontend",
+            "command": "Open index.html in your web browser",
+            "verification": "You should see the to-do application interface"
+        },
+        {
+            "step_number": 4,
+            "description": "Test Full Functionality",
+            "command": "Add, complete, and delete tasks to verify everything works",
+            "verification": "All task operations should work smoothly"
+        }
+    ]
+
+# Add the router to your main app
+# In your main.py, add this line:
+# app.include_router(dream_router)
