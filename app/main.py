@@ -20,7 +20,7 @@ from app.utils.contract_generator import generate_api_contract
 from app.utils.code_generator import generate_backend_code
 from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
-from app.utils.voice_processor import process_voice_input_fixed as process_voice_input
+from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
 from pydantic import BaseModel
 from app.utils.dream_engine import router as dream_router
 app.include_router(dream_router)
