@@ -22,9 +22,6 @@ from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
 from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
 from pydantic import BaseModel
-from app.utils.dream_engine import router as dream_router
-app.include_router(dream_router)
-
 
 class GitHubUploadRequest(BaseModel):
     repo: str
@@ -32,16 +29,19 @@ class GitHubUploadRequest(BaseModel):
     paths: str
     commit_message: str = "Initial Commit"
 
-# Check the router is included in main.py
-echo "app.include_router(dream_router)"
-
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Debugger Factory",
     description="An AI-powered SaaS platform for generating, debugging, and evolving codebases",
     version="1.0.0"
 )
-
+# Include DreamEngine router
+try:
+    from app.routes.dream import router as dream_router
+    app.include_router(dream_router)
+except ImportError:
+    pass  # DreamEngine not available yet
+    
 # Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
