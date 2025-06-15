@@ -23,7 +23,7 @@ from app.utils.contract_generator import generate_api_contract
 from app.utils.code_generator import generate_backend_code
 from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
-from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
+#from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
 from pydantic import BaseModel
 
 class GitHubUploadRequest(BaseModel):
