@@ -1,1085 +1,1033 @@
 /**
- * DreamEngine - Main UI Controller (Fixed Version with Working Buttons)
- * No ES6 modules, fully compatible with standard HTML
+ * DreamEngine Frontend - Working Implementation
+ * This ensures all buttons and functions work properly
  */
 
-(function() {
-    'use strict';
+console.log('🚀 DreamEngine JavaScript Loading...');
 
-    class DreamEngineUI {
-        constructor() {
-            this.activeSection = 'build';
-            this.optionsExpanded = false;
-            this.charCount = 0;
-            this.isGenerating = false;
-            this.client = null;
-           
-            this.init();
-        }
+// Global state
+let dreamEngine = {
+    isGenerating: false,
+    currentRequest: null,
+    mediaRecorder: null,
+    isRecording: false
+};
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📱 DOM loaded, initializing DreamEngine...');
+    initializeDreamEngine();
+});
+
+function initializeDreamEngine() {
+    try {
+        // Initialize all event listeners
+        setupNavigation();
+        setupInputHandlers();
+        setupActionButtons();
+        setupOptionsToggle();
+        setupVoiceInput();
+        setupTemplateButton();
+        setupFileOperations();
+        setupInfoTabs();
+        setupDraftManagement();
        
-        init() {
-            console.log('🚀 Initializing DreamEngine UI...');
-           
-            // Setup UI immediately, don't wait for client
-            this.setupEventListeners();
-            this.setupCharacterCounter();
-            this.setupKeyboardShortcuts();
-           
-            // Try to get client, but don't block UI if it fails
-            this.waitForClient(() => {
-                this.client = window.dreamEngineClient;
-                console.log('✅ DreamEngine client connected to UI');
-                this.checkSystemStatus();
-            });
-           
-            console.log('✅ DreamEngine UI initialized successfully');
-        }
+        // Check health
+        checkSystemHealth();
        
-        waitForClient(callback) {
-            if (window.dreamEngineClient) {
-                callback();
+        console.log('✅ DreamEngine initialized successfully!');
+        showNotification('DreamEngine ready!', 'success');
+       
+    } catch (error) {
+        console.error('❌ Failed to initialize DreamEngine:', error);
+        showNotification('Failed to initialize DreamEngine', 'error');
+    }
+}
+
+// Navigation Functions
+function setupNavigation() {
+    const navPills = document.querySelectorAll('.nav-pill');
+    navPills.forEach(pill => {
+        pill.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.dataset.section;
+            switchSection(section);
+        });
+    });
+   
+    // New Project button
+    const newProjectBtn = document.getElementById('new-project-button');
+    if (newProjectBtn) {
+        newProjectBtn.addEventListener('click', handleNewProject);
+    }
+}
+
+function switchSection(sectionName) {
+    console.log(`🔄 Switching to ${sectionName} section`);
+   
+    // Update nav pills
+    document.querySelectorAll('.nav-pill').forEach(pill => {
+        pill.classList.remove('active');
+    });
+   
+    const activeNav = document.querySelector(`[data-section="${sectionName}"]`);
+    if (activeNav) {
+        activeNav.classList.add('active');
+    }
+   
+    // Update sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+   
+    const activeSection = document.getElementById(`${sectionName}-section`);
+    if (activeSection) {
+        activeSection.classList.add('active');
+    }
+   
+    showNotification(`Switched to ${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}`, 'info');
+}
+
+// Input Handlers
+function setupInputHandlers() {
+    const dreamInput = document.getElementById('dream-input');
+    if (dreamInput) {
+        dreamInput.addEventListener('input', function() {
+            updateCharacterCount();
+            autoResizeTextarea(this);
+        });
+       
+        // Initialize character count
+        updateCharacterCount();
+    }
+}
+
+function updateCharacterCount() {
+    const dreamInput = document.getElementById('dream-input');
+    const charCount = document.getElementById('char-count');
+   
+    if (dreamInput && charCount) {
+        const count = dreamInput.value.length;
+        charCount.textContent = count;
+       
+        // Update color based on length
+        const inputMeta = document.querySelector('.input-meta');
+        if (inputMeta) {
+            if (count < 50) {
+                inputMeta.style.color = '#ff9500'; // Warning orange
+            } else if (count > 5000) {
+                inputMeta.style.color = '#ff3b30'; // Error red
             } else {
-                console.log('⏳ Waiting for DreamEngine client...');
-                setTimeout(() => this.waitForClient(callback), 100);
+                inputMeta.style.color = '#8e8e93'; // Normal gray
             }
         }
+    }
+}
+
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(textarea.scrollHeight, 300);
+    textarea.style.height = newHeight + 'px';
+}
+
+// Action Buttons
+function setupActionButtons() {
+    // Validate Idea button
+    const validateBtn = document.getElementById('dream-validate-button');
+    if (validateBtn) {
+        validateBtn.addEventListener('click', handleValidateIdea);
+    }
+   
+    // Generate Code button  
+    const generateBtn = document.getElementById('dream-generate-button');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', handleGenerateCode);
+    }
+   
+    // Stream Generation button
+    const streamBtn = document.getElementById('dream-streaming-button');
+    if (streamBtn) {
+        streamBtn.addEventListener('click', handleStreamGeneration);
+    }
+}
+
+async function handleValidateIdea() {
+    console.log('🔍 Validating idea...');
+   
+    const inputText = getInputText();
+    if (!validateInput(inputText)) {
+        return;
+    }
+   
+    showLoading('Validating your idea...');
+   
+    try {
+        const requestData = {
+            id: generateUUID(),
+            user_id: generateUserId(),
+            input_text: inputText,
+            options: getGenerationOptions()
+        };
        
-        setupEventListeners() {
-            console.log('🔧 Setting up event listeners...');
-           
-            // Navigation
-            this.setupNavigation();
-           
-            // Input interactions
-            this.setupInputInteractions();
-           
-            // Options panel
-            this.setupOptionsPanel();
-           
-            // Action buttons - FIXED: Add null checks
-            this.setupActionButtons();
-           
-            // File operations
-            this.setupFileOperations();
-           
-            // Info tabs
-            this.setupInfoTabs();
-           
-            // Voice input
-            this.setupVoiceInput();
-           
-            // Template functionality
-            this.setupTemplates();
-           
-            console.log('✅ All event listeners setup complete');
+        const response = await fetch('/api/v1/dreamengine/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+       
+        if (!response.ok) {
+            throw new Error(`Validation failed: ${response.statusText}`);
         }
        
-        setupNavigation() {
-            const navPills = document.querySelectorAll('.nav-pill');
-           
-            navPills.forEach(pill => {
-                pill.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const section = pill.dataset.section;
-                    this.switchSection(section);
-                });
-            });
+        const result = await response.json();
+        hideLoading();
+        showValidationResults(result);
+        showNotification('Idea validated successfully!', 'success');
+       
+    } catch (error) {
+        console.error('❌ Validation error:', error);
+        hideLoading();
+        showNotification(`Validation failed: ${error.message}`, 'error');
+    }
+}
+
+async function handleGenerateCode() {
+    console.log('⚡ Generating code...');
+   
+    const inputText = getInputText();
+    if (!validateInput(inputText)) {
+        return;
+    }
+   
+    startGeneration();
+   
+    try {
+        const requestData = {
+            id: generateUUID(),
+            user_id: generateUserId(),
+            input_text: inputText,
+            options: getGenerationOptions()
+        };
+       
+        const response = await fetch('/api/v1/dreamengine/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+       
+        if (!response.ok) {
+            throw new Error(`Generation failed: ${response.statusText}`);
         }
        
-        switchSection(sectionName) {
-            // Update active nav pill
-            document.querySelectorAll('.nav-pill').forEach(pill => {
-                pill.classList.remove('active');
-            });
-            const targetPill = document.querySelector(`[data-section="${sectionName}"]`);
-            if (targetPill) {
-                targetPill.classList.add('active');
-            }
-           
-            // Update active section
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            const targetSection = document.getElementById(`${sectionName}-section`);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
-           
-            this.activeSection = sectionName;
-           
-            // Smooth scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-           
-            console.log(`🔄 Switched to section: ${sectionName}`);
+        const result = await response.json();
+        stopGeneration();
+        showGenerationResults(result);
+        showNotification('Code generated successfully!', 'success');
+       
+    } catch (error) {
+        console.error('❌ Generation error:', error);
+        stopGeneration();
+        showNotification(`Generation failed: ${error.message}`, 'error');
+    }
+}
+
+async function handleStreamGeneration() {
+    console.log('🌊 Starting stream generation...');
+   
+    const inputText = getInputText();
+    if (!validateInput(inputText)) {
+        return;
+    }
+   
+    startGeneration();
+   
+    try {
+        const requestData = {
+            id: generateUUID(),
+            user_id: generateUserId(),
+            input_text: inputText,
+            options: getGenerationOptions()
+        };
+       
+        const response = await fetch('/api/v1/dreamengine/stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+       
+        if (!response.ok) {
+            throw new Error(`Streaming failed: ${response.statusText}`);
         }
        
-        setupInputInteractions() {
-            const dreamInput = document.getElementById('dream-input');
-            const inputArea = document.querySelector('.input-area');
-           
-            if (dreamInput && inputArea) {
-                // Focus effects
-                dreamInput.addEventListener('focus', () => {
-                    inputArea.style.transform = 'scale(1.01)';
-                    inputArea.style.transition = 'all 0.3s ease';
-                });
-               
-                dreamInput.addEventListener('blur', () => {
-                    inputArea.style.transform = 'scale(1)';
-                });
-               
-                // Auto-resize textarea
-                dreamInput.addEventListener('input', () => {
-                    this.autoResizeTextarea(dreamInput);
-                    this.updateCharacterCount();
-                });
-               
-                console.log('✅ Input interactions setup complete');
-            } else {
-                console.warn('⚠️ Dream input or input area not found');
-            }
-        }
+        handleStreamResponse(response);
        
-        autoResizeTextarea(textarea) {
-            textarea.style.height = 'auto';
-            const newHeight = Math.min(textarea.scrollHeight, 300); // Max height
-            textarea.style.height = newHeight + 'px';
+    } catch (error) {
+        console.error('❌ Streaming error:', error);
+        stopGeneration();
+        showNotification(`Streaming failed: ${error.message}`, 'error');
+    }
+}
+
+async function handleStreamResponse(response) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulatedCode = '';
+   
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
            
-            // Smooth height transition
-            textarea.style.transition = 'height 0.2s ease-out';
-        }
-       
-        setupCharacterCounter() {
-            const dreamInput = document.getElementById('dream-input');
-            const charCountElement = document.getElementById('char-count');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line
            
-            if (dreamInput && charCountElement) {
-                dreamInput.addEventListener('input', () => {
-                    this.updateCharacterCount();
-                });
-                console.log('✅ Character counter setup complete');
-            }
-        }
-       
-        updateCharacterCount() {
-            const dreamInput = document.getElementById('dream-input');
-            const charCountElement = document.getElementById('char-count');
-           
-            if (dreamInput && charCountElement) {
-                this.charCount = dreamInput.value.length;
-                charCountElement.textContent = this.charCount;
-               
-                // Add color coding
-                const inputMeta = document.querySelector('.input-meta');
-                if (inputMeta) {
-                    if (this.charCount < 50) {
-                        inputMeta.style.color = '#ff9500'; // warning
-                    } else if (this.charCount > 5000) {
-                        inputMeta.style.color = '#ff3b30'; // danger
-                    } else {
-                        inputMeta.style.color = ''; // reset
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        stopGeneration();
+                        showNotification('Streaming completed!', 'success');
+                        return;
+                    }
+                   
+                    try {
+                        const chunk = JSON.parse(data);
+                        handleStreamChunk(chunk);
+                    } catch (e) {
+                        console.warn('Failed to parse chunk:', data);
                     }
                 }
             }
         }
-       
-        setupOptionsPanel() {
-            const optionsToggle = document.getElementById('options-toggle');
-            const optionsPanel = document.getElementById('options-panel');
-           
-            if (optionsToggle && optionsPanel) {
-                optionsToggle.addEventListener('click', () => {
-                    this.toggleOptionsPanel();
-                });
-                console.log('✅ Options panel setup complete');
-            }
-        }
-       
-        toggleOptionsPanel() {
-            const optionsToggle = document.getElementById('options-toggle');
-            const optionsPanel = document.getElementById('options-panel');
-            const chevron = document.querySelector('.options-chevron');
-           
-            this.optionsExpanded = !this.optionsExpanded;
-           
-            if (this.optionsExpanded) {
-                optionsPanel.style.display = 'block';
-                optionsPanel.classList.add('active');
-                optionsToggle.setAttribute('aria-expanded', 'true');
-               
-                // Smooth expand animation
-                optionsPanel.style.maxHeight = '0px';
-                optionsPanel.style.opacity = '0';
-               
-                requestAnimationFrame(() => {
-                    optionsPanel.style.transition = 'all 0.3s ease';
-                    optionsPanel.style.maxHeight = '500px';
-                    optionsPanel.style.opacity = '1';
-                });
-            } else {
-                optionsPanel.style.transition = 'all 0.3s ease';
-                optionsPanel.style.maxHeight = '0px';
-                optionsPanel.style.opacity = '0';
-                optionsToggle.setAttribute('aria-expanded', 'false');
-               
-                setTimeout(() => {
-                    optionsPanel.style.display = 'none';
-                    optionsPanel.classList.remove('active');
-                }, 300);
-            }
-           
-            // Animate chevron
-            if (chevron) {
-                chevron.style.transform = this.optionsExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-            }
-        }
-       
-        setupActionButtons() {
-            console.log('🔧 Setting up action buttons...');
-           
-            // Validate button
-            const validateBtn = document.getElementById('dream-validate-button');
-            if (validateBtn) {
-                validateBtn.addEventListener('click', () => this.handleValidate());
-                console.log('✅ Validate button connected');
-            } else {
-                console.warn('⚠️ Validate button not found');
-            }
-           
-            // Generate button
-            const generateBtn = document.getElementById('dream-generate-button');
-            if (generateBtn) {
-                generateBtn.addEventListener('click', () => this.handleGenerate());
-                console.log('✅ Generate button connected');
-            } else {
-                console.warn('⚠️ Generate button not found');
-            }
-           
-            // Streaming button
-            const streamBtn = document.getElementById('dream-streaming-button');
-            if (streamBtn) {
-                streamBtn.addEventListener('click', () => this.handleStreaming());
-                console.log('✅ Streaming button connected');
-            } else {
-                console.warn('⚠️ Streaming button not found');
-            }
-           
-            // Draft buttons
-            const saveDraftBtn = document.getElementById('dream-save-draft-button');
-            if (saveDraftBtn) {
-                saveDraftBtn.addEventListener('click', () => this.handleSaveDraft());
-                console.log('✅ Save draft button connected');
-            }
-           
-            const loadDraftBtn = document.getElementById('dream-load-draft-button');
-            if (loadDraftBtn) {
-                loadDraftBtn.addEventListener('click', () => this.handleLoadDraft());
-                console.log('✅ Load draft button connected');
-            }
-           
-            console.log('✅ Action buttons setup complete');
-        }
-       
-        async handleValidate() {
-            console.log('🔍 Validate button clicked');
-           
-            const input = this.getInputText();
-            if (!this.validateInput(input)) {
-                console.log('❌ Input validation failed');
-                return;
-            }
-           
-            this.showLoading('Validating your idea...');
-           
-            try {
-                console.log('🔍 Starting validation...');
-               
-                if (!this.client) {
-                    throw new Error('DreamEngine client not available');
-                }
-               
-                const response = await this.client.validateIdea(input, this.getGenerationOptions());
-               
-                this.hideLoading();
-                this.showValidationResults(response);
-                this.showNotification('Idea validated successfully!', 'success');
-               
-                console.log('✅ Validation completed successfully');
-            } catch (error) {
-                console.error('❌ Validation failed:', error);
-                this.hideLoading();
-                this.showNotification('Validation failed: ' + error.message, 'error');
-            }
-        }
-       
-        async handleGenerate() {
-            console.log('🚀 Generate button clicked');
-           
-            const input = this.getInputText();
-            if (!this.validateInput(input)) {
-                console.log('❌ Input validation failed');
-                return;
-            }
-           
-            this.startGeneration();
-           
-            try {
-                console.log('🚀 Starting generation...');
-               
-                if (!this.client) {
-                    throw new Error('DreamEngine client not available');
-                }
-               
-                const response = await this.client.processDream(input, this.getGenerationOptions());
-               
-                this.stopGeneration();
-                this.showGenerationResults(response);
-                this.showNotification('Code generated successfully!', 'success');
-               
-                console.log('✅ Generation completed successfully');
-            } catch (error) {
-                console.error('❌ Generation failed:', error);
-                this.stopGeneration();
-                this.showNotification('Generation failed: ' + error.message, 'error');
-            }
-        }
-       
-        async handleStreaming() {
-            console.log('🌊 Streaming button clicked');
-           
-            const input = this.getInputText();
-            if (!this.validateInput(input)) {
-                console.log('❌ Input validation failed');
-                return;
-            }
-           
-            this.startGeneration();
-           
-            try {
-                console.log('🌊 Starting streaming generation...');
-               
-                if (!this.client) {
-                    throw new Error('DreamEngine client not available');
-                }
-               
-                await this.client.streamDreamGeneration(
-                    input,
-                    (progress) => {
-                        console.log('📈 Progress:', progress);
-                        this.updateProgress(progress.progress || 0);
-                        this.updateProgressStatus(`Processing... ${Math.round(progress.progress || 0)}%`);
-                        this.appendStreamContent(progress.content || '');
-                    },
-                    (result) => {
-                        console.log('✅ Streaming completed:', result);
-                        this.stopGeneration();
-                        this.showGenerationResults(result);
-                        this.showNotification('Streaming completed!', 'success');
-                    },
-                    (error) => {
-                        console.error('❌ Streaming failed:', error);
-                        this.stopGeneration();
-                        this.showNotification('Streaming failed: ' + error.message, 'error');
-                    },
-                    this.getGenerationOptions()
-                );
-            } catch (error) {
-                console.error('❌ Streaming setup failed:', error);
-                this.stopGeneration();
-                this.showNotification('Streaming failed: ' + error.message, 'error');
-            }
-        }
-       
-        getInputText() {
-            const dreamInput = document.getElementById('dream-input');
-            return dreamInput ? dreamInput.value.trim() : '';
-        }
-       
-        validateInput(input) {
-            if (!input) {
-                this.showNotification('Please enter your project description', 'error');
-                const dreamInput = document.getElementById('dream-input');
-                if (dreamInput) dreamInput.focus();
-                return false;
-            }
-           
-            if (input.length < 50) {
-                this.showNotification('Please provide more details (minimum 50 characters)', 'error');
-                const dreamInput = document.getElementById('dream-input');
-                if (dreamInput) dreamInput.focus();
-                return false;
-            }
-           
-            return true;
-        }
-       
-        getGenerationOptions() {
-            return {
-                model_provider: 'auto',
-                project_type: this.getSelectValue('dream-project-type-select'),
-                programming_language: this.getSelectValue('dream-language-select'),
-                database_type: this.getSelectValue('dream-database-select'),
-                security_level: this.getSelectValue('dream-security-select') || 'standard',
-                include_tests: this.getCheckboxValue('dream-include-tests-checkbox') !== false,
-                include_documentation: this.getCheckboxValue('dream-include-docs-checkbox') !== false,
-                include_docker: this.getCheckboxValue('dream-include-docker-checkbox') === true,
-                include_ci_cd: this.getCheckboxValue('dream-include-cicd-checkbox') === true,
-                streaming: false,
-                temperature: 0.7
-            };
-        }
-       
-        getSelectValue(id) {
-            const element = document.getElementById(id);
-            return element ? element.value || null : null;
-        }
-       
-        getCheckboxValue(id) {
-            const element = document.getElementById(id);
-            return element ? element.checked : false;
-        }
-       
-        startGeneration() {
-            this.isGenerating = true;
-            this.showProgress();
-            this.updateProgress(0);
-            this.updateProgressStatus('Initializing generation...');
-           
-            // Disable action buttons
-            const buttons = document.querySelectorAll('#dream-validate-button, #dream-generate-button, #dream-streaming-button');
-            buttons.forEach(btn => {
-                btn.disabled = true;
-                btn.style.opacity = '0.6';
-            });
-           
-            console.log('🚀 Generation started');
-        }
-       
-        stopGeneration() {
-            this.isGenerating = false;
-            this.hideProgress();
-           
-            // Re-enable action buttons
-            const buttons = document.querySelectorAll('#dream-validate-button, #dream-generate-button, #dream-streaming-button');
-            buttons.forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            });
-           
-            console.log('🛑 Generation stopped');
-        }
-       
-        showProgress() {
-            const progressSection = document.getElementById('progress-section');
-            if (progressSection) {
-                progressSection.classList.add('active');
-                progressSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
-       
-        hideProgress() {
-            const progressSection = document.getElementById('progress-section');
-            if (progressSection) {
-                progressSection.classList.remove('active');
-            }
-        }
-       
-        updateProgress(percentage) {
-            const progressFill = document.getElementById('dream-progress-bar');
-            if (progressFill) {
-                progressFill.style.width = `${Math.min(percentage, 100)}%`;
-            }
-        }
-       
-        updateProgressStatus(status) {
-            const progressStatus = document.getElementById('dream-progress-status');
-            if (progressStatus) {
-                progressStatus.textContent = status;
-            }
-        }
-       
-        appendStreamContent(content) {
-            if (!content) return;
-           
-            const codeDisplay = document.getElementById('dream-code-display');
-            if (codeDisplay) {
-                codeDisplay.textContent += content;
-                this.showResults();
-            }
-        }
-       
-        showResults() {
-            const resultsSection = document.getElementById('dream-result-container');
-            if (resultsSection) {
-                resultsSection.classList.add('active');
-                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-       
-        showValidationResults(data) {
-            console.log('📊 Validation results:', data);
-            this.showNotification('Validation completed successfully!', 'success');
-           
-            // You can expand this to show detailed validation results
-            if (data.overall_score !== undefined) {
-                this.showNotification(`Validation score: ${Math.round(data.overall_score * 100)}%`, 'info');
-            }
-        }
-       
-        showGenerationResults(data) {
-            this.showResults();
-           
-            // Update generation time
-            const timeElement = document.getElementById('dream-generation-time');
-            if (timeElement && data.generation_time_seconds) {
-                timeElement.textContent = data.generation_time_seconds.toFixed(2);
-            }
-           
-            // Populate file selector
-            this.populateFileSelector(data.files || []);
-           
-            // Show first file
-            if (data.files && data.files.length > 0) {
-                this.displayFile(data.files[0]);
-            }
-           
-            // Update explanation and architecture
-            this.updateInfoPanels(data);
-           
-            console.log('📁 Results displayed successfully');
-        }
-       
-        populateFileSelector(files) {
-            const fileSelector = document.getElementById('dream-file-selector');
-            if (fileSelector) {
-                fileSelector.innerHTML = '<option value="">Select a file...</option>';
-               
-                files.forEach((file, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = file.filename;
-                    fileSelector.appendChild(option);
-                });
-               
-                fileSelector.addEventListener('change', (e) => {
-                    const fileIndex = parseInt(e.target.value);
-                    if (!isNaN(fileIndex) && files[fileIndex]) {
-                        this.displayFile(files[fileIndex]);
-                    }
-                });
-            }
-        }
-       
-        displayFile(file) {
-            const codeDisplay = document.getElementById('dream-code-display');
-            const languageElement = document.getElementById('code-language');
-           
-            if (codeDisplay) {
-                codeDisplay.textContent = file.content;
-            }
-           
-            if (languageElement) {
-                languageElement.textContent = file.language || 'Text';
-            }
-        }
-       
-        updateInfoPanels(data) {
-            const explanationPanel = document.getElementById('dream-explanation');
-            const architecturePanel = document.getElementById('dream-architecture');
-            const deploymentPanel = document.getElementById('dream-deployment-steps');
-           
-            if (explanationPanel && data.explanation) {
-                explanationPanel.innerHTML = this.markdownToHtml(data.explanation);
-            }
-           
-            if (architecturePanel && data.architecture) {
-                architecturePanel.innerHTML = this.markdownToHtml(data.architecture);
-            }
-           
-            if (deploymentPanel && data.deployment_steps) {
-                this.renderDeploymentSteps(data.deployment_steps);
-            }
-        }
-       
-        markdownToHtml(markdown) {
-            // Simple markdown conversion
-            return markdown
-                .replace(/\n/g, '<br>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>');
-        }
-       
-        renderDeploymentSteps(steps) {
-            const container = document.getElementById('dream-deployment-steps');
-            if (!container) return;
-           
-            container.innerHTML = '';
-           
-            steps.forEach(step => {
-                const stepElement = document.createElement('div');
-                stepElement.className = 'deployment-step';
-                stepElement.innerHTML = `
-                    <h4>Step ${step.step_number}: ${step.description}</h4>
-                    ${step.command ? `<code class="deployment-command">${step.command}</code>` : ''}
-                    ${step.verification ? `<p class="deployment-verification">${step.verification}</p>` : ''}
-                `;
-                container.appendChild(stepElement);
-            });
-        }
-       
-        setupFileOperations() {
-            // Copy code button
-            const copyBtn = document.getElementById('dream-copy-code-button');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', () => this.copyCode());
-            }
-           
-            // Download code button
-            const downloadBtn = document.getElementById('dream-download-code-button');
-            if (downloadBtn) {
-                downloadBtn.addEventListener('click', () => this.downloadCode());
-            }
-           
-            console.log('✅ File operations setup complete');
-        }
-       
-        async copyCode() {
-            const codeDisplay = document.getElementById('dream-code-display');
-            if (!codeDisplay) return;
-           
-            try {
-                await navigator.clipboard.writeText(codeDisplay.textContent);
-                this.showNotification('Code copied to clipboard!', 'success');
-               
-                // Visual feedback
-                const copyBtn = document.getElementById('dream-copy-code-button');
-                if (copyBtn) {
-                    const originalContent = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '✓';
-                    copyBtn.style.color = '#34c759';
-                   
-                    setTimeout(() => {
-                        copyBtn.innerHTML = originalContent;
-                        copyBtn.style.color = '';
-                    }, 2000);
-                }
-            } catch (error) {
-                console.error('Failed to copy code:', error);
-                this.showNotification('Failed to copy code', 'error');
-            }
-        }
-       
-        downloadCode() {
-            const codeDisplay = document.getElementById('dream-code-display');
-            const fileSelector = document.getElementById('dream-file-selector');
-           
-            if (!codeDisplay) return;
-           
-            const content = codeDisplay.textContent;
-            const filename = fileSelector?.selectedOptions[0]?.textContent || 'generated-code.txt';
-           
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-           
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-           
-            this.showNotification(`Downloaded ${filename}`, 'success');
-        }
-       
-        setupInfoTabs() {
-            const tabs = document.querySelectorAll('.info-tab');
-            const panels = document.querySelectorAll('.info-panel');
-           
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const targetTab = tab.dataset.tab;
-                   
-                    // Update active tab
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                   
-                    // Update active panel
-                    panels.forEach(p => p.classList.remove('active'));
-                    const targetPanel = document.getElementById(`${targetTab}-panel`);
-                    if (targetPanel) {
-                        targetPanel.classList.add('active');
-                    }
-                });
-            });
-           
-            console.log('✅ Info tabs setup complete');
-        }
-       
-        setupVoiceInput() {
-            const voiceBtn = document.getElementById('voice-input-button');
-            if (voiceBtn) {
-                voiceBtn.addEventListener('click', () => this.handleVoiceInput());
-            }
-           
-            console.log('✅ Voice input setup complete');
-        }
-       
-        handleVoiceInput() {
-            this.showNotification('Voice input feature coming soon!', 'info');
-        }
-       
-        setupTemplates() {
-            const templateBtn = document.getElementById('template-button');
-            if (templateBtn) {
-                templateBtn.addEventListener('click', () => this.showTemplateModal());
-            }
-           
-            console.log('✅ Templates setup complete');
-        }
-       
-        showTemplateModal() {
-            const templates = [
-                {
-                    name: 'Task Management API',
-                    description: 'FastAPI backend with user auth and CRUD operations',
-                    content: `Create a FastAPI backend for a task management application with the following features:
+    } finally {
+        reader.releaseLock();
+        stopGeneration();
+    }
+}
 
-1. User authentication with JWT tokens
-2. CRUD operations for tasks with the following fields:
-   - Title (required)
-   - Description
-   - Due date
-   - Priority (low, medium, high)
-   - Status (todo, in_progress, completed)
-3. Task categories and tags
-4. User-specific task filtering
-5. PostgreSQL database with proper relationships
-6. Input validation and error handling
-7. API documentation with OpenAPI/Swagger
+function handleStreamChunk(chunk) {
+    // Update progress
+    if (chunk.progress !== undefined) {
+        updateProgress(chunk.progress);
+    }
+   
+    // Update status
+    if (chunk.content_type === 'status') {
+        updateProgressStatus(chunk.content);
+    }
+   
+    // Accumulate code content
+    if (chunk.content_type === 'file_content') {
+        appendCodeContent(chunk.content);
+    }
+   
+    // Handle final chunk
+    if (chunk.is_final) {
+        stopGeneration();
+        showNotification('Streaming completed!', 'success');
+    }
+}
 
-Include comprehensive unit tests and proper logging.`
-                },
-                {
-                    name: 'E-commerce API',
-                    description: 'Complete e-commerce backend with payments',
-                    content: `Build a comprehensive e-commerce API with:
+// Helper Functions
+function getInputText() {
+    const dreamInput = document.getElementById('dream-input');
+    return dreamInput ? dreamInput.value.trim() : '';
+}
 
-1. Product catalog management
-2. User management with authentication
-3. Shopping cart and checkout
-4. Order processing
-5. Payment integration (Stripe)
-6. PostgreSQL database with optimized queries
-7. Redis caching for performance`
-                },
-                {
-                    name: 'Blog Platform API',
-                    description: 'Content management system with social features',
-                    content: `Create a modern blog platform API featuring:
+function validateInput(inputText) {
+    if (!inputText) {
+        showNotification('Please enter your project description', 'error');
+        const dreamInput = document.getElementById('dream-input');
+        if (dreamInput) dreamInput.focus();
+        return false;
+    }
+   
+    if (inputText.length < 50) {
+        showNotification('Please provide more details (minimum 50 characters)', 'error');
+        const dreamInput = document.getElementById('dream-input');
+        if (dreamInput) dreamInput.focus();
+        return false;
+    }
+   
+    return true;
+}
 
-1. Content Management
-2. User System with role-based permissions
-3. Social Features (comments, likes, follows)
-4. Advanced Features (search, analytics, RSS)
+function getGenerationOptions() {
+    return {
+        model_provider: 'auto',
+        project_type: getSelectValue('dream-project-type-select'),
+        programming_language: getSelectValue('dream-language-select'),
+        database_type: getSelectValue('dream-database-select'),
+        security_level: getSelectValue('dream-security-select') || 'standard',
+        include_tests: getCheckboxValue('dream-include-tests-checkbox'),
+        include_documentation: getCheckboxValue('dream-include-docs-checkbox'),
+        include_docker: getCheckboxValue('dream-include-docker-checkbox'),
+        include_ci_cd: getCheckboxValue('dream-include-cicd-checkbox'),
+        temperature: 0.7
+    };
+}
 
-Use FastAPI with PostgreSQL and implement proper caching strategies.`
-                }
-            ];
-           
-            const modal = this.createTemplateModal(templates);
-            document.body.appendChild(modal);
+function getSelectValue(id) {
+    const element = document.getElementById(id);
+    return element ? element.value : null;
+}
+
+function getCheckboxValue(id) {
+    const element = document.getElementById(id);
+    return element ? element.checked : false;
+}
+
+// Generation State Management
+function startGeneration() {
+    dreamEngine.isGenerating = true;
+    showProgress();
+    updateProgress(0);
+    updateProgressStatus('Starting generation...');
+   
+    // Disable buttons
+    const buttons = ['dream-validate-button', 'dream-generate-button', 'dream-streaming-button'];
+    buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+        }
+    });
+}
+
+function stopGeneration() {
+    dreamEngine.isGenerating = false;
+    hideProgress();
+   
+    // Re-enable buttons
+    const buttons = ['dream-validate-button', 'dream-generate-button', 'dream-streaming-button'];
+    buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
+    });
+}
+
+function showProgress() {
+    const progressSection = document.getElementById('progress-section');
+    if (progressSection) {
+        progressSection.classList.add('active');
+        progressSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function hideProgress() {
+    const progressSection = document.getElementById('progress-section');
+    if (progressSection) {
+        progressSection.classList.remove('active');
+    }
+}
+
+function updateProgress(percentage) {
+    const progressBar = document.getElementById('dream-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${Math.min(percentage, 100)}%`;
+    }
+}
+
+function updateProgressStatus(status) {
+    const progressStatus = document.getElementById('dream-progress-status');
+    if (progressStatus) {
+        progressStatus.textContent = status;
+    }
+}
+
+// Results Display
+function showValidationResults(data) {
+    console.log('📊 Validation results:', data);
+   
+    if (data.validation_result && data.validation_result.overall_score) {
+        const score = data.validation_result.overall_score;
+        const feasibility = data.validation_result.feasibility;
+        showNotification(`Validation Score: ${score}/10 (${feasibility} feasibility)`, 'success');
+    } else {
+        showNotification('Idea validation completed', 'success');
+    }
+}
+
+function showGenerationResults(data) {
+    console.log('📁 Generation results:', data);
+   
+    // Show results section
+    const resultsSection = document.getElementById('dream-result-container');
+    if (resultsSection) {
+        resultsSection.classList.add('active');
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+   
+    // Update generation time
+    const timeElement = document.getElementById('dream-generation-time');
+    if (timeElement && data.generation_time_seconds) {
+        timeElement.textContent = data.generation_time_seconds.toFixed(2);
+    }
+   
+    // Display files
+    if (data.files && data.files.length > 0) {
+        populateFileSelector(data.files);
+        displayFile(data.files[0]);
+    }
+   
+    // Display explanation
+    if (data.explanation) {
+        const explanationPanel = document.getElementById('dream-explanation');
+        if (explanationPanel) {
+            explanationPanel.innerHTML = formatText(data.explanation);
+        }
+    }
+   
+    // Display architecture
+    if (data.architecture) {
+        const architecturePanel = document.getElementById('dream-architecture');
+        if (architecturePanel) {
+            architecturePanel.innerHTML = formatText(data.architecture);
+        }
+    }
+   
+    // Display deployment steps
+    if (data.deployment_steps) {
+        displayDeploymentSteps(data.deployment_steps);
+    }
+}
+
+function populateFileSelector(files) {
+    const fileSelector = document.getElementById('dream-file-selector');
+    if (!fileSelector) return;
+   
+    fileSelector.innerHTML = '<option value="">Select a file...</option>';
+   
+    files.forEach((file, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = file.filename;
+        fileSelector.appendChild(option);
+    });
+   
+    // Add change listener
+    fileSelector.addEventListener('change', function(e) {
+        const index = parseInt(e.target.value);
+        if (!isNaN(index) && files[index]) {
+            displayFile(files[index]);
+        }
+    });
+}
+
+function displayFile(file) {
+    const codeDisplay = document.getElementById('dream-code-display');
+    const languageElement = document.getElementById('code-language');
+   
+    if (codeDisplay) {
+        codeDisplay.textContent = file.content;
+    }
+   
+    if (languageElement) {
+        languageElement.textContent = file.language || 'Text';
+    }
+}
+
+function appendCodeContent(content) {
+    const codeDisplay = document.getElementById('dream-code-display');
+    if (codeDisplay) {
+        codeDisplay.textContent += content;
+        showResults();
+    }
+}
+
+function showResults() {
+    const resultsSection = document.getElementById('dream-result-container');
+    if (resultsSection) {
+        resultsSection.classList.add('active');
+    }
+}
+
+function displayDeploymentSteps(steps) {
+    const container = document.getElementById('dream-deployment-steps');
+    if (!container) return;
+   
+    container.innerHTML = steps.map(step => `
+        <div class="deployment-step">
+            <h4>Step ${step.step_number}: ${step.description}</h4>
+            ${step.command ? `<code class="deployment-command">${step.command}</code>` : ''}
+            ${step.verification ? `<p class="deployment-verification">${step.verification}</p>` : ''}
+        </div>
+    `).join('');
+}
+
+// Options Toggle
+function setupOptionsToggle() {
+    const optionsToggle = document.getElementById('options-toggle');
+    if (optionsToggle) {
+        optionsToggle.addEventListener('click', toggleOptions);
+    }
+}
+
+function toggleOptions() {
+    const optionsPanel = document.getElementById('options-panel');
+    const optionsToggle = document.getElementById('options-toggle');
+   
+    if (!optionsPanel || !optionsToggle) return;
+   
+    const isExpanded = optionsPanel.classList.contains('active');
+   
+    if (isExpanded) {
+        optionsPanel.classList.remove('active');
+        optionsPanel.style.display = 'none';
+        optionsToggle.setAttribute('aria-expanded', 'false');
+    } else {
+        optionsPanel.classList.add('active');
+        optionsPanel.style.display = 'block';
+        optionsToggle.setAttribute('aria-expanded', 'true');
+    }
+   
+    showNotification(`Options ${isExpanded ? 'collapsed' : 'expanded'}`, 'info');
+}
+
+// Voice Input
+function setupVoiceInput() {
+    const voiceBtn = document.getElementById('voice-input-button');
+    if (voiceBtn) {
+        voiceBtn.addEventListener('click', handleVoiceInput);
+    }
+}
+
+async function handleVoiceInput() {
+    console.log('🎤 Voice input requested');
+   
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showNotification('Voice input not supported in this browser', 'error');
+        return;
+    }
+   
+    if (dreamEngine.isRecording) {
+        stopRecording();
+        return;
+    }
+   
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        startRecording(stream);
+    } catch (error) {
+        console.error('Microphone access denied:', error);
+        showNotification('Microphone access denied', 'error');
+    }
+}
+
+function startRecording(stream) {
+    dreamEngine.mediaRecorder = new MediaRecorder(stream);
+    const chunks = [];
+   
+    dreamEngine.mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    dreamEngine.mediaRecorder.onstop = () => processVoiceRecording(chunks);
+   
+    dreamEngine.mediaRecorder.start();
+    dreamEngine.isRecording = true;
+   
+    // Update UI
+    const voiceBtn = document.getElementById('voice-input-button');
+    if (voiceBtn) {
+        voiceBtn.style.backgroundColor = '#ff3b30';
+        voiceBtn.title = 'Stop Recording';
+    }
+   
+    showNotification('Recording... Click again to stop', 'info');
+   
+    // Auto-stop after 30 seconds
+    setTimeout(() => {
+        if (dreamEngine.isRecording) {
+            stopRecording();
+        }
+    }, 30000);
+}
+
+function stopRecording() {
+    if (dreamEngine.mediaRecorder && dreamEngine.isRecording) {
+        dreamEngine.mediaRecorder.stop();
+        dreamEngine.isRecording = false;
+       
+        // Reset UI
+        const voiceBtn = document.getElementById('voice-input-button');
+        if (voiceBtn) {
+            voiceBtn.style.backgroundColor = '';
+            voiceBtn.title = 'Voice Input';
+        }
+    }
+}
+
+async function processVoiceRecording(chunks) {
+    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+   
+    showLoading('Processing voice input...');
+   
+    try {
+        const formData = new FormData();
+        formData.append('audio_file', audioBlob);
+       
+        const response = await fetch('/api/v1/dreamengine/voice', {
+            method: 'POST',
+            body: formData
+        });
+       
+        if (!response.ok) {
+            throw new Error(`Voice processing failed: ${response.statusText}`);
         }
        
-        createTemplateModal(templates) {
-            const modal = document.createElement('div');
-            modal.className = 'template-modal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-            `;
-           
-            const modalContent = document.createElement('div');
-            modalContent.className = 'template-modal-content';
-            modalContent.style.cssText = `
-                background-color: white;
-                border-radius: 16px;
-                padding: 32px;
-                max-width: 600px;
-                max-height: 80vh;
-                overflow: auto;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            `;
-           
-            modalContent.innerHTML = `
-                <div class="template-modal-header">
-                    <h2>Choose a Template</h2>
-                    <button class="template-close-btn" style="float: right; background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
-                </div>
-                <div class="template-modal-body">
-                    ${templates.map((template, index) => `
-                        <div class="template-card" data-template="${index}" style="
-                            padding: 20px;
-                            border: 1px solid #ddd;
-                            border-radius: 8px;
-                            margin-bottom: 16px;
-                            cursor: pointer;
-                            transition: all 0.2s ease;
-                        ">
-                            <h3>${template.name}</h3>
-                            <p style="color: #666; margin: 8px 0;">${template.description}</p>
-                            <button class="btn-primary template-select-btn" style="
-                                background: #007aff;
-                                color: white;
-                                border: none;
-                                padding: 8px 16px;
-                                border-radius: 6px;
-                                cursor: pointer;
-                            ">Use Template</button>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-           
-            modal.appendChild(modalContent);
-           
-            // Event handlers
-            modal.querySelector('.template-close-btn').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-           
-            modal.querySelectorAll('.template-select-btn').forEach((btn, index) => {
-                btn.addEventListener('click', () => {
-                    this.useTemplate(templates[index]);
-                    document.body.removeChild(modal);
-                });
-            });
-           
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
-           
-            return modal;
-        }
+        const result = await response.json();
+        hideLoading();
        
-        useTemplate(template) {
+        if (result.transcribed_text) {
             const dreamInput = document.getElementById('dream-input');
             if (dreamInput) {
-                dreamInput.value = template.content;
-                this.updateCharacterCount();
-                this.autoResizeTextarea(dreamInput);
-                dreamInput.focus();
-               
-                this.showNotification(`Template "${template.name}" loaded`, 'success');
+                dreamInput.value = result.transcribed_text;
+                updateCharacterCount();
+                autoResizeTextarea(dreamInput);
             }
+            showNotification('Voice input processed successfully!', 'success');
         }
-       
-        handleSaveDraft() {
-            const input = this.getInputText();
-            if (!input) {
-                this.showNotification('Nothing to save', 'error');
-                return;
-            }
-           
-            const title = prompt('Enter a title for this draft:') || `Draft ${new Date().toLocaleDateString()}`;
-           
-            try {
-                if (this.client) {
-                    this.client.saveDraft(title, input, this.getGenerationOptions());
-                    this.showNotification(`Draft "${title}" saved`, 'success');
-                } else {
-                    // Fallback to localStorage if client not available
-                    const drafts = JSON.parse(localStorage.getItem('simple_drafts') || '[]');
-                    drafts.push({
-                        id: Date.now(),
-                        title: title,
-                        content: input,
-                        timestamp: new Date().toISOString()
-                    });
-                    localStorage.setItem('simple_drafts', JSON.stringify(drafts));
-                    this.showNotification(`Draft "${title}" saved locally`, 'success');
-                }
-            } catch (error) {
-                this.showNotification('Failed to save draft: ' + error.message, 'error');
-            }
-        }
-       
-        handleLoadDraft() {
-            try {
-                let drafts = [];
-               
-                if (this.client) {
-                    drafts = this.client.loadDrafts();
-                } else {
-                    // Fallback to localStorage
-                    drafts = JSON.parse(localStorage.getItem('simple_drafts') || '[]');
-                }
-               
-                if (drafts.length === 0) {
-                    this.showNotification('No drafts found', 'error');
-                    return;
-                }
-               
-                // Simple draft selection (you can enhance this with a modal)
-                const draftTitles = drafts.map(d => d.title);
-                const selection = prompt('Available drafts:\n' + draftTitles.map((title, i) => `${i + 1}. ${title}`).join('\n') + '\n\nEnter number:');
-               
-                if (selection) {
-                    const index = parseInt(selection) - 1;
-                    if (index >= 0 && index < drafts.length) {
-                        const draft = drafts[index];
-                        const dreamInput = document.getElementById('dream-input');
-                        if (dreamInput) {
-                            dreamInput.value = draft.content;
-                            this.updateCharacterCount();
-                            this.autoResizeTextarea(dreamInput);
-                            this.showNotification(`Draft "${draft.title}" loaded`, 'success');
-                        }
-                    }
-                }
-            } catch (error) {
-                this.showNotification('Failed to load drafts: ' + error.message, 'error');
-            }
-        }
-       
-        setupKeyboardShortcuts() {
-            document.addEventListener('keydown', (e) => {
-                // Command/Ctrl + Enter to generate
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    if (!this.isGenerating) {
-                        this.handleGenerate();
-                    }
-                }
-               
-                // Command/Ctrl + S to save draft
-                if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                    e.preventDefault();
-                    this.handleSaveDraft();
-                }
-               
-                // Escape to close modals
-                if (e.key === 'Escape') {
-                    const modals = document.querySelectorAll('.template-modal');
-                    modals.forEach(modal => {
-                        if (modal.parentNode) {
-                            modal.parentNode.removeChild(modal);
-                        }
-                    });
-                }
-            });
-           
-            console.log('✅ Keyboard shortcuts setup complete');
-        }
-       
-        async checkSystemStatus() {
-            try {
-                if (!this.client) {
-                    this.updateStatusIndicator('offline', 'Client Not Available');
-                    return;
-                }
-               
-                const response = await this.client.checkHealth();
-               
-                if (response.status === 'healthy') {
-                    this.updateStatusIndicator('online', 'System Online');
-                } else {
-                    this.updateStatusIndicator('offline', 'System Offline');
-                }
-            } catch (error) {
-                console.error('Health check failed:', error);
-                this.updateStatusIndicator('offline', 'Connection Error');
-            }
-           
-            // Check again in 30 seconds
-            setTimeout(() => this.checkSystemStatus(), 30000);
-        }
-       
-        updateStatusIndicator(status, text) {
-            const indicator = document.getElementById('status-indicator');
-            const statusText = indicator?.querySelector('.status-text');
-            const statusDot = indicator?.querySelector('.status-dot');
-           
-            if (statusText) statusText.textContent = text;
-            if (statusDot) {
-                statusDot.style.backgroundColor = status === 'online' ? '#34c759' : '#ff3b30';
-            }
-        }
-       
-        showLoading(text = 'Processing...') {
-            const overlay = document.getElementById('loading-overlay');
-            const loadingText = overlay?.querySelector('.loading-text');
-           
-            if (loadingText) loadingText.textContent = text;
-            if (overlay) overlay.classList.add('active');
-        }
-       
-        hideLoading() {
-            const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.classList.remove('active');
-        }
-       
-        showNotification(message, type = 'info') {
-            console.log(`📢 ${type.toUpperCase()}: ${message}`);
-           
-            const toast = document.getElementById('dream-error');
-            if (!toast) {
-                // Create a simple notification if toast doesn't exist
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${type === 'error' ? '#ff3b30' : type === 'success' ? '#34c759' : '#007aff'};
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    z-index: 10000;
-                    animation: slideIn 0.3s ease;
-                `;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-               
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 5000);
-                return;
-            }
-           
-            toast.textContent = message;
-            toast.className = `error-toast ${type}`;
-            toast.classList.add('show');
-           
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 5000);
-        }
+    } catch (error) {
+        console.error('❌ Voice processing error:', error);
+        hideLoading();
+        showNotification(`Voice processing failed: ${error.message}`, 'error');
     }
+}
 
-    // Initialize the UI when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeUI);
-    } else {
-        initializeUI();
+// Template Button
+function setupTemplateButton() {
+    const templateBtn = document.getElementById('template-button');
+    if (templateBtn) {
+        templateBtn.addEventListener('click', showTemplateModal);
     }
+}
 
-    function initializeUI() {
-        window.dreamEngineUI = new DreamEngineUI();
-        console.log('🎯 DreamEngine UI initialized and ready!');
+function showTemplateModal() {
+    const templates = [
+        {
+            name: 'Task Management App',
+            content: `Build a to-do list web app with the following features: Users can add tasks, mark them as completed, and delete them. Display tasks in two sections: "Pending" and "Completed". Use HTML, CSS, and JavaScript. Data should be stored locally in the browser using localStorage. Include basic styling so it's mobile-friendly. Each task should have a checkbox and a delete button. Add a title at the top that says "My To-Do List". The input field and add button should be fixed at the top. No backend or authentication needed. Keep the code clean and well-commented.`
+        },
+        {
+            name: 'E-commerce API',
+            content: `Create a FastAPI backend for an e-commerce platform with user authentication, product catalog management, shopping cart functionality, order processing, and payment integration using Stripe. Include PostgreSQL database integration, comprehensive API documentation, and proper error handling.`
+        },
+        {
+            name: 'Blog Platform',
+            content: `Build a full-stack blog platform with user registration, content management system, comment functionality, and admin dashboard. Include features like post creation, editing, publishing, and social sharing capabilities.`
+        }
+    ];
+   
+    // Create modal
+    const modal = createModal('Choose a Template',
+        templates.map((template, index) => `
+            <div class="template-item" data-index="${index}" style="padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 16px; cursor: pointer;">
+                <h3 style="margin: 0 0 8px 0;">${template.name}</h3>
+                <p style="margin: 0; color: #666; font-size: 14px;">${template.content.substring(0, 100)}...</p>
+            </div>
+        `).join('')
+    );
+   
+    // Add click handlers
+    modal.querySelectorAll('.template-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+            useTemplate(templates[index]);
+            document.body.removeChild(modal);
+        });
+    });
+}
+
+function useTemplate(template) {
+    const dreamInput = document.getElementById('dream-input');
+    if (dreamInput) {
+        dreamInput.value = template.content;
+        updateCharacterCount();
+        autoResizeTextarea(dreamInput);
+        dreamInput.focus();
     }
+   
+    showNotification(`Template "${template.name}" loaded`, 'success');
+}
 
-})();
+// File Operations
+function setupFileOperations() {
+    const copyBtn = document.getElementById('dream-copy-code-button');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyCode);
+    }
+   
+    const downloadBtn = document.getElementById('dream-download-code-button');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadCode);
+    }
+}
+
+async function copyCode() {
+    const codeDisplay = document.getElementById('dream-code-display');
+    if (!codeDisplay) return;
+   
+    try {
+        await navigator.clipboard.writeText(codeDisplay.textContent);
+        showNotification('Code copied to clipboard!', 'success');
+    } catch (error) {
+        showNotification('Failed to copy code', 'error');
+    }
+}
+
+function downloadCode() {
+    const codeDisplay = document.getElementById('dream-code-display');
+    if (!codeDisplay) return;
+   
+    const content = codeDisplay.textContent;
+    const filename = 'generated_code.py';
+   
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+   
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+   
+    showNotification(`Downloaded ${filename}`, 'success');
+}
+
+// Info Tabs
+function setupInfoTabs() {
+    const tabs = document.querySelectorAll('.info-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+           
+            // Update active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+           
+            // Update active panel
+            const panels = document.querySelectorAll('.info-panel');
+            panels.forEach(p => p.classList.remove('active'));
+           
+            const targetPanel = document.getElementById(`${targetTab}-panel`);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
+        });
+    });
+}
+
+// Draft Management
+function setupDraftManagement() {
+    const saveDraftBtn = document.getElementById('dream-save-draft-button');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', saveDraft);
+    }
+   
+    const loadDraftBtn = document.getElementById('dream-load-draft-button');
+    if (loadDraftBtn) {
+        loadDraftBtn.addEventListener('click', loadDraft);
+    }
+}
+
+function saveDraft() {
+    const input = getInputText();
+    if (!input) {
+        showNotification('Nothing to save', 'error');
+        return;
+    }
+   
+    const title = prompt('Enter a title for this draft:') || `Draft ${new Date().toLocaleDateString()}`;
+    const draft = {
+        id: generateUUID(),
+        title,
+        content: input,
+        options: getGenerationOptions(),
+        timestamp: new Date().toISOString()
+    };
+   
+    const drafts = JSON.parse(localStorage.getItem('dreamengine_drafts') || '[]');
+    drafts.push(draft);
+   
+    // Limit to 10 drafts
+    if (drafts.length > 10) {
+        drafts.shift();
+    }
+   
+    localStorage.setItem('dreamengine_drafts', JSON.stringify(drafts));
+    showNotification(`Draft "${title}" saved`, 'success');
+}
+
+function loadDraft() {
+    const drafts = JSON.parse(localStorage.getItem('dreamengine_drafts') || '[]');
+   
+    if (drafts.length === 0) {
+        showNotification('No drafts found', 'error');
+        return;
+    }
+   
+    // Show draft selection modal
+    const modal = createModal('Load Draft',
+        drafts.map((draft, index) => `
+            <div class="draft-item" data-index="${index}" style="padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; cursor: pointer;">
+                <h4 style="margin: 0 0 4px 0;">${draft.title}</h4>
+                <p style="margin: 0 0 4px 0; color: #666; font-size: 13px;">${draft.content.substring(0, 80)}...</p>
+                <small style="color: #999;">${new Date(draft.timestamp).toLocaleString()}</small>
+            </div>
+        `).join('')
+    );
+   
+    // Add click handlers
+    modal.querySelectorAll('.draft-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+            const draft = drafts[index];
+            const dreamInput = document.getElementById('dream-input');
+            if (dreamInput) {
+                dreamInput.value = draft.content;
+                updateCharacterCount();
+                autoResizeTextarea(dreamInput);
+            }
+            showNotification(`Draft "${draft.title}" loaded`, 'success');
+            document.body.removeChild(modal);
+        });
+    });
+}
+
+// Other Functions
+function handleNewProject() {
+    const dreamInput = document.getElementById('dream-input');
+    if (dreamInput) {
+        dreamInput.value = '';
+        updateCharacterCount();
+        autoResizeTextarea(dreamInput);
+    }
+   
+    // Hide results
+    const resultsSection = document.getElementById('dream-result-container');
+    if (resultsSection) {
+        resultsSection.classList.remove('active');
+    }
+   
+    showNotification('New project started', 'success');
+}
+
+async function checkSystemHealth() {
+    try {
+        const response = await fetch('/api/v1/dreamengine/health');
+        const data = await response.json();
+       
+        if (data.status === 'healthy') {
+            updateStatusIndicator('online', 'System Online');
+        } else {
+            updateStatusIndicator('offline', 'System Issues');
+        }
+    } catch (error) {
+        updateStatusIndicator('offline', 'API Unavailable');
+        console.warn('Health check failed:', error.message);
+    }
+}
+
+function updateStatusIndicator(status, text) {
+    const indicator = document.getElementById('status-indicator');
+    const statusText = indicator?.querySelector('.status-text');
+    const statusDot = indicator?.querySelector('.status-dot');
+   
+    if (statusText) statusText.textContent = text;
+    if (statusDot) {
+        statusDot.style.backgroundColor = status === 'online' ? '#34c759' : '#ff3b30';
+    }
+}
+
+// Utility Functions
+function showLoading(text = 'Processing...') {
+    const overlay = document.getElementById('loading-overlay');
+    const loadingText = overlay?.querySelector('.loading-text');
+   
+    if (loadingText) loadingText.textContent = text;
+    if (overlay) overlay.classList.add('active');
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+function showNotification(message, type = 'info') {
+    console.log(`📢 ${type.toUpperCase()}: ${message}`);
+   
+    const toast = document.getElementById('dream-error');
+    if (!toast) return;
+   
+    // Set message and type
+    toast.textContent = message;
+    toast.className = `error-toast ${type} show`;
+   
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function formatText(text) {
+    return text
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>');
+}
+
+function createModal(title, content) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 10000;
+    `;
+   
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 16px; padding: 24px; max-width: 500px; max-height: 80vh; overflow: auto; margin: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">${title}</h2>
+                <button class="close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+            </div>
+            <div>${content}</div>
+        </div>
+    `;
+   
+    // Close handlers
+    modal.querySelector('.close-btn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+   
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+   
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function generateUUID() {
+    return 'xxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function generateUserId() {
+    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
