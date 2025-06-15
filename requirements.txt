@@ -61,4 +61,4 @@ sse-starlette>=1.6.0
 tenacity>=8.2.0
 
 # Update requirements.txt
-echo "openai>=1.0.0" >> requirements.txt
+openai>=1.0.0" 
