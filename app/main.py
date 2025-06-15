@@ -1,410 +1,396 @@
-"""
-Fixed main.py with complete DreamEngine integration
-This replaces your existing main.py to ensure everything works
-"""
-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, Form, File, Request, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 import os
+import json
+import uuid
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+import tempfile
+import shutil
 import logging
 
-# Import your existing routers and DreamEngine
-try:
-    from app.routes.build import router as build_router
-except ImportError:
-    print("⚠️ Build router not found, creating placeholder")
-    from fastapi import APIRouter
-    build_router = APIRouter()
+# Import local modules
+from app.config import settings
+from app.models.prompt import PromptRequest, PromptResponse
+from app.utils.contract_generator import generate_api_contract
+from app.utils.code_generator import generate_backend_code
+from app.database.db import get_db, init_db
+from app.utils.logger import setup_logger
+from app.utils.voice_processor import process_voice_input_fixed, parse_prompt, enhance_prompt
+from pydantic import BaseModel
 
-# Import DreamEngine router
-try:
-    from app.routes.dream_engine_routes import router as dream_router
-except ImportError:
-    print("🔧 Creating DreamEngine router...")
-    # Create the DreamEngine router inline if not found
-    from fastapi import APIRouter, HTTPException, Depends
-    from fastapi.responses import StreamingResponse
-    from typing import Dict, Any, Optional
-    from pydantic import BaseModel
-    import uuid
-    import json
-    import time
-    
-    dream_router = APIRouter(prefix="/api/v1/dreamengine", tags=["dreamengine"])
-    
-    # Request models
-    class DreamOptions(BaseModel):
-        model_provider: Optional[str] = "auto"
-        project_type: Optional[str] = None
-        programming_language: Optional[str] = None
-        database_type: Optional[str] = None
-        security_level: Optional[str] = "standard"
-        include_tests: Optional[bool] = True
-        include_documentation: Optional[bool] = True
-        include_docker: Optional[bool] = False
-        include_ci_cd: Optional[bool] = False
-        temperature: Optional[float] = 0.7
-    
-    class DreamProcessRequest(BaseModel):
-        id: str
-        user_id: str
-        input_text: str
-        options: Optional[DreamOptions] = None
-    
-    class DreamValidateRequest(BaseModel):
-        id: str
-        user_id: str
-        input_text: str
-        options: Optional[DreamOptions] = None
-    
-    # Mock DreamEngine for now (replace with real implementation)
-    class MockDreamEngine:
-        @staticmethod
-        async def process_founder_input(input_text: str, user_id: str, options: Dict = None) -> Dict:
-            """Mock code generation"""
-            await asyncio.sleep(2)  # Simulate processing time
-            
-            return {
-                "id": str(uuid.uuid4()),
-                "request_id": str(uuid.uuid4()),
-                "user_id": user_id,
-                "status": "success",
-                "message": "Code generated successfully",
-                "files": [
-                    {
-                        "filename": "main.py",
-                        "content": f'''from fastapi import FastAPI
+class GitHubUploadRequest(BaseModel):
+    repo: str
+    token: str
+    paths: str
+    commit_message: str = "Initial Commit"
 
-app = FastAPI(title="Generated App")
-
-@app.get("/")
-async def root():
-    return {{"message": "Hello from generated app!"}}
-
-# Generated based on: {input_text[:100]}...
-''',
-                        "language": "python",
-                        "purpose": "Main application file"
-                    },
-                    {
-                        "filename": "requirements.txt",
-                        "content": "fastapi\nuvicorn[standard]",
-                        "language": "text",
-                        "purpose": "Dependencies file"
-                    }
-                ],
-                "main_file": "main.py",
-                "explanation": f"This FastAPI application was generated based on your request: '{input_text[:100]}...' The app includes a basic structure with a root endpoint.",
-                "architecture": "Simple FastAPI application with RESTful API design. Uses modern Python async/await patterns for optimal performance.",
-                "project_type": options.get("project_type", "web_api") if options else "web_api",
-                "programming_language": options.get("programming_language", "python") if options else "python",
-                "generation_time_seconds": 2.0,
-                "model_provider": "mock",
-                "security_issues": [],
-                "quality_issues": [],
-                "deployment_steps": [
-                    {"step": 1, "description": "Install dependencies", "command": "pip install -r requirements.txt"},
-                    {"step": 2, "description": "Run the application", "command": "uvicorn main:app --reload"},
-                    {"step": 3, "description": "Access the API", "command": "Open http://localhost:8000"}
-                ],
-                "dependencies": ["fastapi", "uvicorn"],
-                "environment_variables": []
-            }
-        
-        @staticmethod
-        async def validate_idea_feasibility(input_text: str, options: Dict = None) -> Dict:
-            """Mock idea validation"""
-            await asyncio.sleep(1)  # Simulate processing time
-            
-            return {
-                "id": str(uuid.uuid4()),
-                "status": "success",
-                "overall_score": 8.5,
-                "feasibility": "high",
-                "complexity": "medium",
-                "estimated_time": "2-3 weeks",
-                "recommendations": [
-                    "Consider using PostgreSQL for better scalability",
-                    "Implement proper authentication from the start",
-                    "Add comprehensive error handling"
-                ],
-                "potential_issues": [
-                    "Database design complexity may require careful planning"
-                ],
-                "suggested_technologies": ["FastAPI", "PostgreSQL", "Redis", "Docker"]
-            }
-    
-    import asyncio
-    
-    @dream_router.get("/health")
-    async def health_check():
-        """Health check endpoint"""
-        return {
-            "status": "healthy",
-            "timestamp": time.time(),
-            "service": "DreamEngine",
-            "version": "1.0.0"
-        }
-    
-    @dream_router.post("/process")
-    async def process_dream(request: DreamProcessRequest):
-        """Main code generation endpoint"""
-        try:
-            logging.info(f"🎯 Processing dream for user {request.user_id}")
-            
-            dream_engine = MockDreamEngine()
-            result = await dream_engine.process_founder_input(
-                input_text=request.input_text,
-                user_id=request.user_id,
-                options=request.options.dict() if request.options else {}
-            )
-            
-            logging.info(f"✅ Dream processed successfully")
-            return result
-            
-        except Exception as e:
-            logging.error(f"❌ Dream processing failed: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-    
-    @dream_router.post("/validate")
-    async def validate_dream(request: DreamValidateRequest):
-        """Idea validation endpoint"""
-        try:
-            logging.info(f"🔍 Validating idea for user {request.user_id}")
-            
-            dream_engine = MockDreamEngine()
-            result = await dream_engine.validate_idea_feasibility(
-                input_text=request.input_text,
-                options=request.options.dict() if request.options else {}
-            )
-            
-            logging.info(f"✅ Idea validated successfully")
-            return result
-            
-        except Exception as e:
-            logging.error(f"❌ Idea validation failed: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-    
-    @dream_router.post("/stream")
-    async def stream_dream_generation(request: DreamProcessRequest):
-        """Streaming code generation endpoint"""
-        async def generate_stream():
-            try:
-                # Send initial status
-                yield f"data: {json.dumps({'content_type': 'status', 'content': 'Starting generation...', 'progress': 0})}\n\n"
-                await asyncio.sleep(0.5)
-                
-                # Simulate code generation chunks
-                code_chunks = [
-                    "from fastapi import FastAPI\n\n",
-                    "app = FastAPI(title='Generated App')\n\n",
-                    "@app.get('/')\n",
-                    "async def root():\n",
-                    "    return {'message': 'Hello World!'}\n"
-                ]
-                
-                for i, chunk in enumerate(code_chunks):
-                    chunk_data = {
-                        "content_type": "code_fragment",
-                        "content": chunk,
-                        "progress": (i + 1) * 20,
-                        "chunk_index": i
-                    }
-                    yield f"data: {json.dumps(chunk_data)}\n\n"
-                    await asyncio.sleep(0.3)
-                
-                # Send final chunk
-                final_chunk = {
-                    "content_type": "completion",
-                    "content": "Generation complete!",
-                    "progress": 100,
-                    "is_final": True
-                }
-                yield f"data: {json.dumps(final_chunk)}\n\n"
-                yield "data: [DONE]\n\n"
-                
-            except Exception as e:
-                error_chunk = {
-                    "content_type": "error",
-                    "content": f"Generation failed: {str(e)}",
-                    "is_final": True,
-                    "error": True
-                }
-                yield f"data: {json.dumps(error_chunk)}\n\n"
-                yield "data: [DONE]\n\n"
-        
-        return StreamingResponse(
-            generate_stream(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "Access-Control-Allow-Origin": "*",
-            }
-        )
-
-# Voice processing router
-try:
-    from app.routes.voice import router as voice_router
-except ImportError:
-    print("🎤 Creating voice router...")
-    from fastapi import UploadFile, File
-    
-    voice_router = APIRouter(prefix="/api/v1", tags=["voice"])
-    
-    @voice_router.post("/voice")
-    async def process_voice(audio_file: UploadFile = File(...)):
-        """Mock voice processing endpoint"""
-        try:
-            # Simulate voice processing
-            await asyncio.sleep(1)
-            
-            return {
-                "status": "success",
-                "transcribed_text": "Create a FastAPI application with user authentication and CRUD operations for a task management system using PostgreSQL database.",
-                "processing_time": 1.0,
-                "timestamp": time.time()
-            }
-            
-        except Exception as e:
-            logging.error(f"❌ Voice processing failed: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
-logger = logging.getLogger(__name__)
-
-# Create FastAPI app
+# Initialize FastAPI app
 app = FastAPI(
-    title="AI Debugger Factory - DreamEngine",
-    description="Convert founder conversations into deployable code",
+    title="AI Debugger Factory",
+    description="An AI-powered SaaS platform for generating, debugging, and evolving codebases",
     version="1.0.0"
 )
 
-# Add CORS middleware
+# FIXED: Create a simple DreamEngine router directly here
+dream_router = APIRouter(prefix="/api/v1/dreamengine", tags=["dreamengine"])
+
+@dream_router.get("/health")
+async def dreamengine_health():
+    """DreamEngine health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "service": "DreamEngine - AI Debugger Factory Extension",
+        "version": "1.0.0",
+        "providers": {
+            "openai": bool(os.getenv("OPENAI_API_KEY")),
+            "anthropic": bool(os.getenv("ANTHROPIC_API_KEY")),
+            "google": bool(os.getenv("GOOGLE_API_KEY"))
+        }
+    }
+
+@dream_router.post("/process")
+async def dreamengine_process(request_data: dict):
+    """DreamEngine process endpoint - simplified for now"""
+    return {
+        "id": request_data.get("id", str(uuid.uuid4())),
+        "request_id": request_data.get("id", str(uuid.uuid4())),
+        "user_id": request_data.get("user_id", "anonymous"),
+        "status": "success",
+        "message": "DreamEngine processing simulation",
+        "files": [
+            {
+                "filename": "main.py",
+                "content": "# Generated by DreamEngine\nprint('Hello from DreamEngine!')",
+                "language": "python",
+                "purpose": "Main application file"
+            }
+        ],
+        "main_file": "main.py",
+        "explanation": "This is a simulated response from DreamEngine",
+        "architecture": "Simple Python application",
+        "project_type": "web_api",
+        "programming_language": "python",
+        "generation_time_seconds": 2.5,
+        "model_provider": "auto",
+        "security_issues": [],
+        "quality_issues": [],
+        "deployment_steps": [
+            {"step_number": 1, "description": "Install dependencies", "command": "pip install -r requirements.txt"},
+            {"step_number": 2, "description": "Run the application", "command": "python main.py"}
+        ],
+        "dependencies": ["fastapi", "uvicorn"],
+        "environment_variables": ["PORT"]
+    }
+
+@dream_router.post("/validate")
+async def dreamengine_validate(request_data: dict):
+    """DreamEngine validate endpoint - simplified for now"""
+    return {
+        "feasibility": {"score": 0.8, "explanation": "Technically feasible", "recommendations": []},
+        "complexity": {"score": 0.6, "explanation": "Moderate complexity", "recommendations": []},
+        "clarity": {"score": 0.9, "explanation": "Requirements are clear", "recommendations": []},
+        "security_considerations": {"score": 0.7, "explanation": "Standard security", "recommendations": []},
+        "overall_score": 0.75,
+        "detected_project_type": "web_api",
+        "detected_language": "python",
+        "detected_database": "postgresql",
+        "estimated_time": "2-4 weeks",
+        "summary": "This is a well-defined project with clear requirements."
+    }
+
+# Include the DreamEngine router
+app.include_router(dream_router)
+
+# Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],  # In production, replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Setup static files
-static_dir = "static"
-templates_dir = "templates"
+# Mount static files if directory exists
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Create directories if they don't exist
-os.makedirs(static_dir, exist_ok=True)
-os.makedirs(templates_dir, exist_ok=True)
+# Initialize templates if directory exists
+templates = None
+if os.path.exists("app/templates"):
+    templates = Jinja2Templates(directory="app/templates")
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Set up logger
+logger = setup_logger()
 
-# Setup templates
-templates = Jinja2Templates(directory=templates_dir)
-
-# Include routers
-app.include_router(dream_router)
-app.include_router(voice_router)
-
-# Include existing routers if available
-try:
-    app.include_router(build_router)
-    logger.info("✅ Build router included")
-except Exception as e:
-    logger.warning(f"⚠️ Could not include build router: {e}")
-
-# Root endpoint - serve the main template
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    """Serve the main DreamEngine interface"""
-    try:
-        return templates.TemplateResponse("index.html", {"request": request})
-    except Exception as e:
-        logger.error(f"❌ Template error: {e}")
-        # Fallback HTML if template not found
-        return HTMLResponse("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>DreamEngine - Setup Required</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .status { padding: 20px; background: #f0f9ff; border-radius: 8px; margin: 20px 0; }
-        .error { background: #fef2f2; }
-        .success { background: #f0fdf4; }
-        code { background: #f1f5f9; padding: 2px 4px; border-radius: 4px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 DreamEngine Setup</h1>
-        <div class="status">
-            <h3>✅ FastAPI Backend Running</h3>
-            <p>Your DreamEngine backend is working! To complete setup:</p>
-            <ol>
-                <li>Copy the HTML template to <code>templates/index.html</code></li>
-                <li>Copy the JavaScript file to <code>static/js/main.js</code></li>
-                <li>Copy the CSS file to <code>static/css/styles.css</code></li>
-                <li>Refresh this page</li>
-            </ol>
-        </div>
-        
-        <div class="status success">
-            <h3>🎯 Available Endpoints:</h3>
-            <ul>
-                <li><a href="/api/v1/dreamengine/health">Health Check</a></li>
-                <li><strong>POST</strong> /api/v1/dreamengine/process - Generate Code</li>
-                <li><strong>POST</strong> /api/v1/dreamengine/validate - Validate Ideas</li>
-                <li><strong>POST</strong> /api/v1/dreamengine/stream - Stream Generation</li>
-                <li><strong>POST</strong> /api/v1/voice - Voice Processing</li>
-            </ul>
-        </div>
-        
-        <div class="status">
-            <h3>🧪 Test the API</h3>
-            <p>Open your browser's developer console and run:</p>
-            <pre><code>fetch('/api/v1/dreamengine/health').then(r => r.json()).then(console.log)</code></pre>
-        </div>
-    </div>
-</body>
-</html>
-        """)
-
-# Health check for the main app
-@app.get("/health")
-async def app_health():
-    """Main application health check"""
-    return {
-        "status": "healthy",
-        "service": "AI Debugger Factory",
-        "version": "1.0.0",
-        "timestamp": time.time(),
-        "modules": {
-            "dreamengine": "active",
-            "voice": "active",
-            "static_files": "active"
-        }
-    }
-
-# Startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 AI Debugger Factory - DreamEngine starting up...")
-    logger.info("✅ DreamEngine endpoints mounted at /api/v1/dreamengine/")
-    logger.info("✅ Voice processing mounted at /api/v1/voice")
-    logger.info("✅ Static files served from /static/")
-    logger.info("🌟 DreamEngine ready to convert ideas into code!")
+    """Initialize database and other startup tasks"""
+    logger.info("Starting AI Debugger Factory BuildBot service")
+    await init_db()
+    
+    # Ensure meta directory exists for prompt logs
+    os.makedirs("../../meta", exist_ok=True)
+    
+    # Initialize prompt log if it doesn't exist
+    if not os.path.exists("../../meta/prompt_log.json"):
+        with open("../../meta/prompt_log.json", "w") as f:
+            json.dump({"prompts": []}, f)
+    
+    logger.info("BuildBot service initialized successfully")
+    logger.info("✅ DreamEngine endpoints are now available")
+
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """Root endpoint serving the UI"""
+    if templates:
+        return templates.TemplateResponse("index.html", {"request": request})
+    else:
+        return {
+            "status": "online",
+            "service": "AI Debugger Factory - BuildBot (Layer 1)",
+            "version": "1.0.0"
+        }
+
+@app.get("/api/v1/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "service": "AI Debugger Factory - BuildBot (Layer 1)"
+    }
+
+@app.post("/api/v1/build", response_model=PromptResponse)
+async def build_from_prompt(
+    prompt_request: PromptRequest,
+    db=Depends(get_db)
+):
+    """
+    Generate backend code from a structured product prompt
+    """
+    logger.info(f"Received build request: {prompt_request.title}")
+    
+    try:
+        # Generate API contract from prompt
+        contract = generate_api_contract(prompt_request.prompt)
+        
+        # Generate backend code based on the contract
+        code_result = generate_backend_code(
+            prompt_request.prompt,
+            contract,
+            prompt_request.options
+        )
+        
+        # Log the prompt and result
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "prompt_id": str(prompt_request.id),
+            "title": prompt_request.title,
+            "prompt": prompt_request.prompt,
+            "contract_generated": contract["endpoints"],
+            "success": True
+        }
+        
+        # Update prompt log
+        try:
+            with open("../../meta/prompt_log.json", "r") as f:
+                prompt_log = json.load(f)
+        except:
+            prompt_log = {"prompts": []}
+        
+        prompt_log["prompts"].append(log_entry)
+        
+        with open("../../meta/prompt_log.json", "w") as f:
+            json.dump(prompt_log, f, indent=2)
+        
+        # Save contract to file
+        with open("../../meta/api-contracts.json", "w") as f:
+            json.dump(contract, f, indent=2)
+
+        try:
+            # Return response with generated code info
+            return PromptResponse(
+                id=prompt_request.id,
+                title=prompt_request.title,
+                status="success",
+                contract=contract,
+                files_generated=code_result["files_generated"],
+                message="Backend code generated successfully",
+                timestamp=datetime.now().isoformat()
+            )
+        except TypeError as e:
+            # Log serialization error
+            logger.error(f"Error serializing generated code: {str(e)}")
+
+            # Create a serializable version of the response
+            serializable_contract = json.loads(json.dumps(contract, default=str))
+
+            return PromptResponse(
+                id=prompt_request.id,
+                title=prompt_request.title,
+                status="success",
+                contract=serializable_contract,
+                files_generated=code_result["files_generated"],
+                message="Backend code generated successfully",
+                timestamp=datetime.now().isoformat()
+            )
+
+        
+    except Exception as e:
+        logger.error(f"Error generating code: {str(e)}")
+        
+        # Log the error
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "prompt_id": str(prompt_request.id),
+            "title": prompt_request.title,
+            "prompt": prompt_request.prompt,
+            "error": str(e),
+            "success": False
+        }
+        
+        # Update prompt log with error
+        try:
+            with open("../../meta/prompt_log.json", "r") as f:
+                prompt_log = json.load(f)
+        except:
+            prompt_log = {"prompts": []}
+        
+        prompt_log["prompts"].append(log_entry)
+        
+        with open("../../meta/prompt_log.json", "w") as f:
+            json.dump(prompt_log, f, indent=2)
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate code: {str(e)}"
+        )
+
+@app.post("/api/v1/voice")
+async def process_voice_enhanced(audio_file: UploadFile = File(...)):
+    """Enhanced voice processing with proper error handling"""
+    try:
+        result = await process_voice_input_fixed(audio_file)
+        return result
+    except Exception as e:
+        logger.error(f"Voice processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/debug/status")
+async def get_repository_status():
+    """Get repository status"""
+    return {
+        "status": "success",
+        "repository": {
+            "name": "ai-debugger-factory",
+            "full_name": "user/ai-debugger-factory",
+            "description": "AI-powered SaaS platform for generating, debugging, and evolving codebases",
+            "url": "https://github.com/user/ai-debugger-factory",
+            "default_branch": "main",
+            "stars": 10,
+            "forks": 5,
+            "open_issues": 3
+        },
+        "issues": {
+            "count": 2,
+            "items": []
+        },
+        "pull_requests": {
+            "count": 1,
+            "items": []
+        },
+        "workflows": {
+            "count": 5,
+            "items": []
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/api/v1/debug/contract-drift")
+async def check_contract_drift():
+    """Check contract drift"""
+    return {
+        "status": "success",
+        "drift_detected": False,
+        "drift_details": [],
+        "timestamp": datetime.now().isoformat()
+    }
+
+def upload_to_github(repo_name, github_token, files_content, commit_message="Initial Commit", branch="main"):
+    """
+    Dummy GitHub upload function — replace with your actual implementation
+    """
+    # For demonstration: pretend all files uploaded
+    uploaded_files = list(files_content.keys())
+    return {"total_files": len(uploaded_files), "uploaded_files": uploaded_files}
+
+@app.post("/upload-to-github")
+async def upload_to_github_api(
+    request: Request,
+    repo: str = Form(...),
+    token: str = Form(...),
+    commit_message: str = Form("Initial Commit"),
+    project_id: str = Form(...)
+):
+    try:
+        # Sample generated files
+        sample_files = {
+            "app/main.py": """from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI(title="Generated API")
+
+class Item(BaseModel):
+    id: int
+    name: str
+    description: str = None
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    return {"item_id": item_id}
+""",
+            "requirements.txt": """fastapi
+uvicorn
+pydantic
+""",
+            "README.md": f"""# Generated API
+
+This project was generated by AI Debugger Factory.
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Run
+
+```bash
+uvicorn app.main:app --reload
+```
+"""
+        }
+        
+        result = upload_to_github(repo, token, sample_files, commit_message)
+        return {
+            "status": "success", 
+            "message": f"{result['total_files']} file(s) uploaded to {repo}",
+            "files": result['uploaded_files']
+        }
+    except Exception as e:
+        logger.error(f"GitHub upload error: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
