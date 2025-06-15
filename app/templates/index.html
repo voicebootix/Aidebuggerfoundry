@@ -393,18 +393,5 @@
 <script src="{{ url_for('static', path='js/dream_client.js') }}"></script>
 <script src="{{ url_for('static', path='js/main.js') }}"></script>
 
-<!-- Ensure correct script loading order in HTML -->
-<script src="{{ url_for('static', path='js/dream_client.js') }}"></script>
-<script src="{{ url_for('static', path='js/main.js') }}"></script>
-
-<!-- Or use the fixed version without ES6 modules -->
-<script>
-// Check if client is loaded
-if (typeof DreamEngineClient === 'undefined') {
-    console.error('DreamEngineClient not loaded - check script path');
-}
-</script>
-
-
 </body>
 </html>
