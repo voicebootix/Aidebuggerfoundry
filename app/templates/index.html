@@ -1406,83 +1406,9 @@
         <div class="loading-spinner"></div>
         <p class="loading-text">Processing your request...</p>
     </div>
-
-    <!-- Scripts - Load in correct order -->
-    <script>
-        // Debug function to check if scripts are loading
-        function debugLog(message) {
-            console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`);
-        }
-        
-        debugLog('HTML loaded, starting script initialization...');
-    </script>
     
-    <!-- Load DreamEngine Client first -->
-    <script src="/static/js/dream_client.js"></script>
-    
-    <!-- Then load Main UI -->
-    <script src="/static/js/main.js"></script>
-    
-    <script src="static/js/diagnostic_script.js"></script>
-
-    <!-- Additional initialization script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            debugLog('DOM fully loaded');
-            
-            // Check if our scripts loaded correctly
-            if (typeof DreamEngineClient !== 'undefined') {
-                debugLog('✅ DreamEngineClient loaded successfully');
-            } else {
-                console.error('❌ DreamEngineClient failed to load');
-            }
-            
-            if (typeof window.dreamEngineUI !== 'undefined') {
-                debugLog('✅ DreamEngine UI loaded successfully');
-            } else {
-                console.warn('⚠️ DreamEngine UI not yet loaded, will retry...');
-                
-                // Retry mechanism
-                let retries = 0;
-                const maxRetries = 10;
-                const retryInterval = setInterval(() => {
-                    retries++;
-                    if (typeof window.dreamEngineUI !== 'undefined') {
-                        debugLog('✅ DreamEngine UI loaded after retry');
-                        clearInterval(retryInterval);
-                    } else if (retries >= maxRetries) {
-                        console.error('❌ DreamEngine UI failed to load after maximum retries');
-                        clearInterval(retryInterval);
-                    }
-                }, 500);
-            }
-            
-            // Test API connectivity
-            setTimeout(() => {
-                if (window.dreamEngineClient) {
-                    window.dreamEngineClient.checkHealth()
-                        .then(response => {
-                            debugLog('✅ API connection successful');
-                            console.log('API Response:', response);
-                        })
-                        .catch(error => {
-                            console.error('❌ API connection failed:', error);
-                        });
-                }
-            }, 1000);
-        });
-        
-        // Global error handler
-        window.addEventListener('error', function(e) {
-            console.error('❌ JavaScript Error:', e.error);
-            console.error('File:', e.filename, 'Line:', e.lineno, 'Column:', e.colno);
-        });
-        
-        // Unhandled promise rejection handler
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('❌ Unhandled Promise Rejection:', e.reason);
-        });
-</script>
+<script src="{{ url_for('static', path='js/main.js') }}"></script>
+   
 </body>
 </html>0 20 20" fill="currentColor">
                                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
