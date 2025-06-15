@@ -59,4 +59,4 @@ anthropic>=0.5.0
 google-generativeai>=0.3.0
 sse-starlette>=1.6.0
 tenacity>=8.2.0
-
+echo "openai>=1.0.0" >> requirements.txt
