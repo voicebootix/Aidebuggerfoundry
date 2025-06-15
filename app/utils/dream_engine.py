@@ -19,6 +19,7 @@ import google.generativeai as genai
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sse_starlette.sse import EventSourceResponse
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from app.utils.llm_fallback import get_llm_provider
 
 # REQUIRED: Use existing utility imports
 from app.config import settings
@@ -48,7 +49,223 @@ RATE_LIMIT_PERIOD_SECONDS = int(os.getenv("DREAMENGINE_RATE_LIMIT_PERIOD", "3600
 user_request_counts: Dict[str, List[datetime]] = {}
 
 # --- LLM Client Implementations ---
+class DreamEngine:
+    def __init__(self):
+        # Replace the existing LLM initialization with this:
+        self.llm_provider = get_llm_provider()
+        
+        # Keep all your existing initialization code
+        self.security_validator = SecurityValidator()
+        self.rate_limiter = RateLimiter()
+        self.performance_monitor = PerformanceMonitor()
+        # ... rest of your existing __init__ code
+    
+    async def process_founder_input(self, input_text: str, user_id: str, options: Dict = None) -> Dict:
+        """
+        Updated method to use the fallback LLM provider
+        """
+        if options is None:
+            options = {}
+        
+        try:
+            # Your existing validation and preprocessing code here
+            request_id = str(uuid.uuid4())
+            start_time = time.time()
+            
+            # Sanitize input
+            sanitized_input = self.security_validator.sanitize_input(input_text)
+            
+            # Validate idea
+            validation_result = await self._validate_idea_feasibility(sanitized_input)
+            
+            # Generate code using the smart fallback provider
+            logger.info(f"🎯 Starting code generation for request {request_id}")
+            
+            generation_result = await self.llm_provider.generate_code(
+                prompt=sanitized_input,
+                options=options
+            )
+            
+            # Post-process the result
+            processed_result = await self._post_process_generation(generation_result, options)
+            
+            # Calculate metrics
+            generation_time = time.time() - start_time
+            
+            return {
+                "id": request_id,
+                "request_id": request_id,
+                "user_id": user_id,
+                "status": "success",
+                "message": "Code generated successfully",
+                "files": processed_result.get("files", []),
+                "main_file": processed_result.get("main_file"),
+                "explanation": processed_result.get("explanation", ""),
+                "architecture": processed_result.get("architecture", ""),
+                "project_type": options.get("project_type", "web_api"),
+                "programming_language": options.get("programming_language", "python"),
+                "generation_time_seconds": round(generation_time, 2),
+                "model_provider": self.llm_provider.get_provider_for_request(options.get("model_provider", "auto")),
+                "security_issues": [],
+                "quality_issues": [],
+                "deployment_steps": processed_result.get("deployment_steps", []),
+                "dependencies": self._extract_dependencies(processed_result.get("files", [])),
+                "environment_variables": self._extract_env_vars(processed_result.get("files", []))
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Code generation failed: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Code generation failed: {str(e)}"
+            )
+    
+    async def generate_code_streaming(self, prompt: str, user_id: str, options: Dict = None) -> AsyncGenerator:
+        """
+        Updated streaming method to use the fallback LLM provider
+        """
+        if options is None:
+            options = {}
+        
+        try:
+            request_id = str(uuid.uuid4())
+            logger.info(f"🎯 Starting streaming generation for request {request_id}")
+            
+            # Send initial status
+            yield self._create_stream_chunk("status", "Starting code generation...", 0)
+            
+            # Sanitize input
+            sanitized_input = self.security_validator.sanitize_input(prompt)
+            
+            yield self._create_stream_chunk("status", "Input validated, generating code...", 10)
+            
+            # Stream from the LLM provider
+            chunk_count = 0
+            async for chunk in self.llm_provider.generate_streaming(sanitized_input, options):
+                chunk_count += 1
+                
+                # Forward the chunk with additional metadata
+                enhanced_chunk = {
+                    **chunk,
+                    "request_id": request_id,
+                    "user_id": user_id,
+                    "chunk_count": chunk_count
+                }
+                
+                yield f"data: {json.dumps(enhanced_chunk)}\n\n"
+                
+                # Handle final chunk
+                if chunk.get("is_final", False):
+                    logger.info(f"✅ Streaming completed for request {request_id}")
+                    yield "data: [DONE]\n\n"
+                    break
+                    
+        except Exception as e:
+            logger.error(f"❌ Streaming generation failed: {str(e)}")
+            error_chunk = {
+                "content_type": "error",
+                "content": f"Generation failed: {str(e)}",
+                "is_final": True,
+                "error": True
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+            yield "data: [DONE]\n\n"
+    
+    def _create_stream_chunk(self, content_type: str, content: str, progress: int) -> str:
+        """Helper to create consistent stream chunks"""
+        chunk = {
+            "content_type": content_type,
+            "content": content,
+            "progress": progress,
+            "timestamp": datetime.now().isoformat(),
+            "is_final": False
+        }
+        return f"data: {json.dumps(chunk)}\n\n"
+    
+    # Keep all your existing helper methods like:
+    # - _validate_idea_feasibility
+    # - _post_process_generation  
+    # - _extract_dependencies
+    # - _extract_env_vars
+    # etc.
 
+
+# Updated router endpoints
+@router.post("/process")
+async def process_dream(
+    request: DreamProcessRequest,
+    db: AsyncConnection = Depends(get_db)
+):
+    """
+    Main code generation endpoint with smart LLM fallback
+    """
+    try:
+        dream_engine = DreamEngine()
+        
+        # Show which provider will be used
+        actual_provider = dream_engine.llm_provider.get_provider_for_request(
+            request.options.model_provider if request.options else "auto"
+        )
+        logger.info(f"🎯 Processing request with {actual_provider.title()} provider")
+        
+        result = await dream_engine.process_founder_input(
+            input_text=request.input_text,
+            user_id=request.user_id,
+            options=request.options.dict() if request.options else {}
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Dream processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/stream")
+async def stream_dream_generation(
+    request: DreamProcessRequest
+):
+    """
+    Streaming code generation endpoint with smart LLM fallback
+    """
+    
+    async def generate_stream():
+        try:
+            dream_engine = DreamEngine()
+            
+            # Show which provider will be used
+            actual_provider = dream_engine.llm_provider.get_provider_for_request(
+                request.options.model_provider if request.options else "auto"
+            )
+            logger.info(f"🎯 Streaming with {actual_provider.title()} provider")
+            
+            async for chunk in dream_engine.generate_code_streaming(
+                prompt=request.input_text,
+                user_id=request.user_id,
+                options=request.options.dict() if request.options else {}
+            ):
+                yield chunk
+                
+        except Exception as e:
+            logger.error(f"❌ Stream generation failed: {str(e)}")
+            error_chunk = {
+                "content_type": "error",
+                "content": f"Streaming failed: {str(e)}",
+                "is_final": True,
+                "error": True
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+            yield "data: [DONE]\n\n"
+    
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+        }
+    )
 class OpenAIClient:
     """Client for OpenAI GPT-4 API"""
     def __init__(self, api_key: str):
