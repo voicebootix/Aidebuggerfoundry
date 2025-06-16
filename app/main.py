@@ -1142,3 +1142,22 @@ async def get_db():
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
         yield None
+
+@app.post("/api/v1/voice/process")
+async def process_voice_real(file: UploadFile = File(...), language: str = "en"):
+    """Real voice processing endpoint"""
+    
+    try:
+        if not file.filename.endswith(('.webm', '.mp3', '.wav', '.m4a')):
+            raise HTTPException(status_code=400, detail="Unsupported audio format")
+        
+        audio_data = await file.read()
+        
+        from app.utils.voice_processor_production import voice_processor
+        result = await voice_processor.process_voice_input(audio_data, language)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Voice processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Voice processing error: {str(e)}")
