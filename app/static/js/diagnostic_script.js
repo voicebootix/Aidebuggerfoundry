@@ -60,13 +60,6 @@ function generateDiagnosticReport() {
         }, 3000);
     }
    
-   / REMOVE THIS AUTO-RUN CODE (lines ~380-385):
-// Auto-run when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runAllDiagnostics);
-} else {
-    runAllDiagnostics();
-}
 
 // DIAGNOSTIC AUTO-RUN DISABLED - Manual trigger only
 console.log('🔧 Diagnostics loaded but NOT auto-running');
