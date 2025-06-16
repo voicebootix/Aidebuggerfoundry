@@ -68,10 +68,9 @@ if (document.readyState === 'loading') {
     runAllDiagnostics();
 }
 
-// REPLACE WITH MANUAL TRIGGER ONLY:
-// Manual diagnostic trigger only - no auto-run
-console.log('🔧 Diagnostic functions loaded but not auto-running');
-console.log('Run window.dreamEngineDiagnostics.runAll() to start diagnostics manually');
+// DIAGNOSTIC AUTO-RUN DISABLED - Manual trigger only
+console.log('🔧 Diagnostics loaded but NOT auto-running');
+console.log('💡 To run diagnostics manually: window.dreamEngineDiagnostics.runAll()');
    
-})();
+
 
