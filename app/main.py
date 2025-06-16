@@ -139,9 +139,11 @@ async def startup_event():
     logger.info("BuildBot service initialized successfully")
     logger.info("✅ DreamEngine endpoints are now available")
 
-@app.get("/")
-async def root(request: Request):
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
     """Root endpoint serving the UI"""
+    if templates:
+        return templates.TemplateResponse("index.html", {"request": request})
     return {
         "status": "online",
         "service": "AI Debugger Factory - BuildBot (Layer 1)",
