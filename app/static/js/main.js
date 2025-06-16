@@ -3,7 +3,16 @@
  * This ensures all buttons and functions work properly
  */
 
-console.log('🚀 DreamEngine JavaScript Loading...');
+/ CRITICAL: Prevent diagnostic auto-run interference
+console.log('🚀 DreamEngine Main JS Loading - Preventing diagnostic interference...');
+
+// Override any diagnostic auto-run
+if (window.dreamEngineDiagnostics) {
+    console.log('⚠️ Diagnostics detected - ensuring normal interface loads');
+}
+
+// Force normal interface mode
+window.FORCE_NORMAL_INTERFACE = true;
 
 // Global state
 let dreamEngine = {
