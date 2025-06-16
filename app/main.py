@@ -1161,3 +1161,17 @@ async def process_voice_real(file: UploadFile = File(...), language: str = "en")
     except Exception as e:
         logger.error(f"Voice processing failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Voice processing error: {str(e)}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize production systems"""
+    from app.database.db_production import db_manager
+    await db_manager.initialize_pool()
+    logger.info("DreamEngine production systems initialized")
+
+@app.on_event("shutdown") 
+async def shutdown_event():
+    """Cleanup production systems"""
+    from app.database.db_production import db_manager
+    await db_manager.close()
+    logger.info("DreamEngine production systems shutdown")
