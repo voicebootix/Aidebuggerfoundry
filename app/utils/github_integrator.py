@@ -292,7 +292,6 @@ class GitHubAutoDeployer:
         return "\n".join(sorted(requirements))
     
     def _generate_readme(self, request: GitHubDeployRequest) -> str:
-    """Generate comprehensive README.md"""
     return f"""# {request.repo_name}
 
     {request.description}
