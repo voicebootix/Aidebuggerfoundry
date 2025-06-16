@@ -47,11 +47,11 @@ def mock_db():
     return mock
 
 def test_root_endpoint():
-    """Test the root endpoint"""
+    """Test the root endpoint serves HTML"""
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["status"] == "online"
-    assert "AI Debugger Factory" in response.json()["service"]
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "DreamEngine" in response.text
 
 @patch("app.main.generate_api_contract")
 @patch("app.main.generate_backend_code")
