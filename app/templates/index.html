@@ -1407,11 +1407,10 @@
         <p class="loading-text">Processing your request...</p>
     </div>
     
+<!-- CRITICAL: Load main.js BEFORE diagnostic script -->
 <script src="{{ url_for('static', path='js/main.js') }}"></script>
-    <!-- CRITICAL: Load interface controller before other scripts -->
-<script src="{{ url_for('static', path='js/interface_controller.js') }}"></script>
-<script src="{{ url_for('static', path='js/main.js') }}"></script>
-<!-- Keep diagnostic script loaded but don't auto-run -->
+<script src="{{ url_for('static', path='js/dream_client.js') }}"></script>
+<!-- Load diagnostic script LAST and don't auto-run -->
 <script src="{{ url_for('static', path='js/diagnostic_script.js') }}"></script>
    
 </body>
