@@ -23,9 +23,10 @@ from app.utils.contract_generator import generate_api_contract
 from app.utils.code_generator import generate_backend_code
 from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
-#from app.utils.voice_processor import process_voice_input, parse_prompt, enhance_prompt
+from app.utils.voice_processor import VoiceInputProcessor
 from pydantic import BaseModel
-
+# Voice processing endpoint
+from fastapi import UploadFile, File
 class GitHubUploadRequest(BaseModel):
     repo: str
     token: str
@@ -550,33 +551,29 @@ async def stream_generation(request: DreamProcessRequest):
         }
     )
 
-# Voice processing endpoint
-from fastapi import UploadFile, File
+
 
 @dream_router.post("/voice")
-async def process_voice(audio_file: UploadFile = File(...)):
-    """Process voice input"""
+async def process_voice_input(audio_file: UploadFile = File(...)):
+    """Process voice input and return transcription"""
     try:
-        # For now, return a sample transcription
-        # In production, you'd use OpenAI Whisper API
+        processor = VoiceInputProcessor()
+        result = await processor.process_voice_file(audio_file)
         
-        sample_transcriptions = [
-            "Create a FastAPI backend for a task management application with user authentication and CRUD operations.",
-            "Build a React frontend with a clean dashboard for managing projects and teams.",
-            "I want to create an e-commerce platform with product catalog and payment integration.",
-            "Develop a blog platform with content management and user commenting system."
-        ]
-        
-        import random
-        transcribed_text = random.choice(sample_transcriptions)
-        
-        return {
-            "status": "success",
-            "transcribed_text": transcribed_text,
-            "processing_time": 2.5,
-            "timestamp": datetime.now().isoformat()
-        }
+        if result["status"] == "success":
+            logger.info(f"✅ Voice transcription successful: {len(result['transcribed_text'])} chars")
+            return {
+                "status": "success",
+                "transcribed_text": result["transcribed_text"],
+                "structured_prompt": result.get("structured_prompt", {}),
+                "timestamp": result["timestamp"]
+            }
+        else:
+            logger.error(f"❌ Voice transcription failed: {result['message']}")
+            raise HTTPException(status_code=400, detail=result["message"])
+            
     except Exception as e:
+        logger.error(f"❌ Voice processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Voice processing failed: {str(e)}")
 
 # Helper functions
