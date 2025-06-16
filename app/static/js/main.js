@@ -3,8 +3,38 @@
  * This ensures all buttons and functions work properly
  */
 
-/ CRITICAL: Prevent diagnostic auto-run interference
-console.log('🚀 DreamEngine Main JS Loading - Preventing diagnostic interference...');
+// NUCLEAR OPTION: Prevent diagnostic hijacking
+console.log('🚀 MAIN.JS LOADING - Preventing diagnostic interference...');
+
+// Override diagnostic functions before they can run
+window.DISABLE_DIAGNOSTICS = true;
+window.FORCE_NORMAL_INTERFACE = true;
+
+// If diagnostics try to run, block them
+window.addEventListener('DOMContentLoaded', function(e) {
+    console.log('🛡️ DOM loaded - ensuring normal interface...');
+    
+    // Hide any diagnostic displays
+    const diagnosticElements = document.querySelectorAll('[class*="diagnostic"], [id*="diagnostic"]');
+    diagnosticElements.forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Show the normal interface
+    const buildSection = document.getElementById('build-section');
+    if (buildSection) {
+        buildSection.classList.add('active');
+        buildSection.style.display = 'block';
+    }
+    
+    // Show main content
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.style.display = 'block';
+    }
+    
+    console.log('✅ Normal interface forced to load');
+});
 
 // Override any diagnostic auto-run
 if (window.dreamEngineDiagnostics) {
