@@ -1096,3 +1096,22 @@ def generate_deployment_steps() -> list:
 # Add the router to your main app
 # In your main.py, add this line:
 # app.include_router(dream_router)
+
+async def get_db():
+    """Get database connection - Fixed for production"""
+    try:
+        database_url = os.getenv("DATABASE_URL") or os.getenv("AI_DEBUGGER_FACTORY")
+        if not database_url:
+            logger.warning("No database URL configured")
+            yield None
+            return
+            
+        conn = await asyncpg.connect(database_url)
+        try:
+            yield conn
+        finally:
+            await conn.close()
+            
+    except Exception as e:
+        logger.error(f"Database connection failed: {str(e)}")
+        yield None
