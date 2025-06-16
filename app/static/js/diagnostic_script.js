@@ -60,25 +60,18 @@ function generateDiagnosticReport() {
         }, 3000);
     }
    
-    // Auto-run when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', runAllDiagnostics);
-    } else {
-        runAllDiagnostics();
-    }
-   
-    // Expose diagnostic functions globally for manual testing
-    window.dreamEngineDiagnostics = {
-        checkFileStructure,
-        checkAPIEndpoints,
-        checkEnvironment,
-        testBasicFunctionality,
-        testAPICall,
-        generateDiagnosticReport,
-        runAll: runAllDiagnostics
-    };
-   
-    console.log('🔧 Diagnostic functions available at: window.dreamEngineDiagnostics');
+   / REMOVE THIS AUTO-RUN CODE (lines ~380-385):
+// Auto-run when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runAllDiagnostics);
+} else {
+    runAllDiagnostics();
+}
+
+// REPLACE WITH MANUAL TRIGGER ONLY:
+// Manual diagnostic trigger only - no auto-run
+console.log('🔧 Diagnostic functions loaded but not auto-running');
+console.log('Run window.dreamEngineDiagnostics.runAll() to start diagnostics manually');
    
 })();
 
