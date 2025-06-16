@@ -25,6 +25,7 @@ from app.database.db import get_db, init_db
 from app.utils.logger import setup_logger
 from app.utils.voice_processor import VoiceInputProcessor
 from pydantic import BaseModel
+from app.utils.github_integrator import GitHubAutoDeployer, GitHubDeployRequest, GitHubDeployResponse
 # Voice processing endpoint
 from fastapi import UploadFile, File
 class GitHubUploadRequest(BaseModel):
@@ -495,6 +496,53 @@ async def generate_code(request: DreamProcessRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
+
+# ADD these endpoints to the existing dream_router
+@dream_router.post("/deploy", response_model=GitHubDeployResponse)
+async def deploy_to_github(request: GitHubDeployRequest):
+    """Deploy generated code to GitHub with auto-deployment setup"""
+    try:
+        deployer = GitHubAutoDeployer()
+        result = await deployer.create_and_deploy(request)
+        
+        logger.info(f"✅ Deployment successful: {result.repo_url}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Deployment failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Deployment failed: {str(e)}")
+
+@dream_router.get("/deploy/platforms")
+async def get_deployment_platforms():
+    """Get available deployment platforms"""
+    return {
+        "platforms": [
+            {
+                "id": "render",
+                "name": "Render", 
+                "description": "Easy full-stack deployment",
+                "auto_deploy": True
+            },
+            {
+                "id": "railway", 
+                "name": "Railway",
+                "description": "Infrastructure, simplified",
+                "auto_deploy": True
+            },
+            {
+                "id": "vercel",
+                "name": "Vercel",
+                "description": "Frontend deployment platform",
+                "auto_deploy": True
+            },
+            {
+                "id": "heroku",
+                "name": "Heroku",
+                "description": "Cloud application platform", 
+                "auto_deploy": False
+            }
+        ]
+    }
 
 @dream_router.post("/stream")
 async def stream_generation(request: DreamProcessRequest):
