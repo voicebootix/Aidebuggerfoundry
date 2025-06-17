@@ -344,7 +344,7 @@ def create_autonomous_enforcement_system():
     return enhanced_generator
             
             # GET by ID
-            endpoints.append({
+    endpoints.append({
                 "path": f"/api/{entity_plural}/{{id}}",
                 "method": "GET",
                 "description": f"Get {entity_name} by ID",
@@ -376,7 +376,7 @@ def create_autonomous_enforcement_system():
             })
             
             # POST
-            endpoints.append({
+endpoints.append({
                 "path": f"/api/{entity_plural}",
                 "method": "POST",
                 "description": f"Create a new {entity_name}",
@@ -408,7 +408,7 @@ def create_autonomous_enforcement_system():
             })
             
             # PUT
-            endpoints.append({
+endpoints.append({
                 "path": f"/api/{entity_plural}/{{id}}",
                 "method": "PUT",
                 "description": f"Update {entity_name} by ID",
@@ -453,7 +453,7 @@ def create_autonomous_enforcement_system():
             })
             
             # DELETE
-            endpoints.append({
+endpoints.append({
                 "path": f"/api/{entity_plural}/{{id}}",
                 "method": "DELETE",
                 "description": f"Delete {entity_name} by ID",
@@ -478,10 +478,10 @@ def create_autonomous_enforcement_system():
             })
         
         # Add custom endpoints from requirements
-        for endpoint_desc in requirements.get("endpoints", []):
+for endpoint_desc in requirements.get("endpoints", []):
             # This would be replaced with actual LLM-based parsing in a production environment
             # For now, just add a placeholder endpoint
-            endpoints.append({
+                endpoints.append({
                 "path": f"/api/custom/{len(endpoints)}",
                 "method": "GET",
                 "description": endpoint_desc,
@@ -499,10 +499,9 @@ def create_autonomous_enforcement_system():
                     }
                 }
             })
-        
-        return endpoints
+            return endpoints
     
-    def _generate_schemas(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_schemas(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate API schemas based on requirements
         
@@ -557,7 +556,7 @@ def create_autonomous_enforcement_system():
         
         return schemas
     
-    def _save_contract(self, contract: Dict[str, Any]) -> None:
+def _save_contract(self, contract: Dict[str, Any]) -> None:
         """
         Save the API contract to file
         
@@ -573,7 +572,7 @@ def create_autonomous_enforcement_system():
         
         logger.info(f"API contract saved to {self.contract_file_path}")
     
-    def _file_implements_endpoint(self, file_path: str, content: str, path: str, method: str) -> bool:
+def _file_implements_endpoint(self, file_path: str, content: str, path: str, method: str) -> bool:
         """
         Check if a file implements a specific endpoint
         
@@ -606,7 +605,7 @@ def create_autonomous_enforcement_system():
         
         return False
     
-    def _file_implements_schema(self, file_path: str, content: str, schema_name: str) -> bool:
+def _file_implements_schema(self, file_path: str, content: str, schema_name: str) -> bool:
         """
         Check if a file implements a specific schema
         
@@ -674,3 +673,4 @@ def verify_contract_compliance(contract: Dict[str, Any], code_files: Dict[str, s
         Verification results
     """
     return contract_generator.verify_contract_compliance(contract, code_files)
+
