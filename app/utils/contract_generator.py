@@ -1,618 +1,355 @@
 import json
 import logging
 import os
-from typing import Dict, List, Any, Optional  # ✅ ADD THIS LINE
+import re
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 from dataclasses import dataclass
 
-class ContractGenerator:  # ✅ Now Dict is defined
-    def create_formal_contract(self, strategy_analysis: Dict, founder_clarifications: Dict) -> Dict[str, Any]:
+logger = logging.getLogger(__name__)
 
+@dataclass
+class TechnicalSpecification:
+    """Technical specification that AI must follow"""
+    name: str
+    description: str
+    acceptance_criteria: List[str]
+    testing_method: str
+    priority: str  # HIGH, MEDIUM, LOW
+    auto_testable: bool
+
+class ContractGenerator:
+    """
+    API Contract Generator for AI Debugger Factory
+    
+    This class is responsible for generating API contracts from structured product prompts.
+    It follows the contract-first design philosophy, ensuring that all generated code
+    adheres to the contract derived from the original prompt intent.
+    """
     
     def __init__(self):
-        # Keep existing init
-        self.contract_violations = []
-        self.enforcement_level = "STRICT"  # STRICT, MODERATE, FLEXIBLE
-        self.violation_handlers = {
-            "missing_endpoint": self._handle_missing_endpoint,
-            "missing_schema": self._handle_missing_schema,
-            "contract_drift": self._handle_contract_drift,
-            "placeholder_violation": self._handle_placeholder_violation
-        }
+        """Initialize the contract generator"""
+        self.contract_file_path = "contracts/"
+        self.prompt_log_path = "logs/"
+        
+        # Ensure directories exist
+        os.makedirs(self.contract_file_path, exist_ok=True)
+        os.makedirs(self.prompt_log_path, exist_ok=True)
     
-    def create_formal_contract(self, strategy_analysis: Dict, founder_clarifications: Dict) -> Dict[str, Any]:
+    def generate_api_contract(self, prompt: str) -> Dict[str, Any]:
         """
-        Create formal, legally-binding contract from strategy and clarifications
-        
-        This is the core patentable innovation - formal contracts for AI generation
-        """
-        
-        contract_id = f"CONTRACT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
-        # Extract guaranteed deliverables
-        guaranteed_features = self._extract_guaranteed_features(strategy_analysis, founder_clarifications)
-        
-        # Define technical specifications
-        technical_specs = self._generate_technical_specifications(strategy_analysis)
-        
-        # Create legal framework
-        legal_terms = self._generate_legal_terms(guaranteed_features)
-        
-        # Generate compliance checkpoints
-        compliance_checkpoints = self._generate_compliance_checkpoints(guaranteed_features, technical_specs)
-        
-        formal_contract = {
-            "contract_id": contract_id,
-            "created_at": datetime.now().isoformat(),
-            "parties": {
-                "founder": founder_clarifications.get("founder_info", {}),
-                "platform": {
-                    "name": "AI Debugger Factory",
-                    "legal_entity": "AI Debugger Factory, Inc.",
-                    "liability_insurance": "Professional liability covered up to $1M"
-                }
-            },
-            
-            # CORE PATENTABLE INNOVATION
-            "guaranteed_deliverables": guaranteed_features,
-            "technical_specifications": technical_specs,
-            "legal_obligations": legal_terms,
-            "compliance_framework": compliance_checkpoints,
-            
-            # AUTONOMOUS ENFORCEMENT
-            "enforcement_rules": {
-                "deviation_tolerance": 0,  # Zero tolerance for contract violations
-                "automatic_correction": True,
-                "violation_penalties": {
-                    "minor": "Automatic fix + notification",
-                    "major": "Full regeneration + founder approval",
-                    "critical": "Contract void + full refund"
-                },
-                "compliance_validation": "Real-time during generation"
-            },
-            
-            # LEGAL GUARANTEES
-            "platform_guarantees": [
-                "All specified features will be functional",
-                "No placeholder code in final delivery",
-                "All API endpoints will return valid responses",
-                "Database schema will match specifications exactly",
-                "Deployment will be successful on first attempt"
-            ],
-            
-            "founder_obligations": [
-                "Provide required API keys within 24 hours",
-                "Review and approve contract before generation starts",
-                "Test delivered system within 48 hours",
-                "Provide feedback within specified timeframes"
-            ],
-            
-            # ENFORCEMENT MECHANISMS
-            "violation_detection": {
-                "automated_scanning": True,
-                "real_time_validation": True,
-                "third_party_audit": True,
-                "founder_verification": True
-            },
-            
-            "dispute_resolution": {
-                "automated_mediation": True,
-                "third_party_arbitration": True,
-                "refund_mechanism": "Automatic for critical violations",
-                "reputation_system": "Violations affect platform rating"
-            }
-        }
-        
-        # Save contract to blockchain for immutability (future enhancement)
-        self._save_immutable_contract(formal_contract)
-        
-        return formal_contract
-    
-    def enforce_contract_during_generation(self, contract: Dict, generated_code: Dict) -> Dict[str, Any]:
-        """
-        CORE PATENTABLE METHOD: Real-time contract enforcement during code generation
-        
-        This ensures the AI cannot deviate from the contract specifications
-        """
-        
-        enforcement_results = {
-            "contract_id": contract["contract_id"],
-            "enforcement_timestamp": datetime.now().isoformat(),
-            "violations_detected": [],
-            "corrections_made": [],
-            "compliance_score": 0.0,
-            "generation_approved": False
-        }
-        
-        # Check each guaranteed deliverable
-        for deliverable in contract["guaranteed_deliverables"]:
-            compliance = self._check_deliverable_compliance(deliverable, generated_code)
-            
-            if not compliance["compliant"]:
-                violation = {
-                    "type": "deliverable_violation",
-                    "deliverable": deliverable["name"],
-                    "expected": deliverable["specification"],
-                    "actual": compliance["actual_implementation"],
-                    "severity": compliance["severity"],
-                    "auto_correctable": compliance["auto_correctable"]
-                }
-                
-                enforcement_results["violations_detected"].append(violation)
-                
-                # Autonomous correction if possible
-                if compliance["auto_correctable"] and self.enforcement_level == "STRICT":
-                    correction = self._auto_correct_violation(violation, generated_code)
-                    enforcement_results["corrections_made"].append(correction)
-        
-        # Check technical specifications compliance
-        tech_compliance = self._validate_technical_specifications(
-            contract["technical_specifications"], 
-            generated_code
-        )
-        
-        enforcement_results["compliance_score"] = tech_compliance["overall_score"]
-        
-        # Determine if generation meets contract standards
-        if enforcement_results["compliance_score"] >= 0.95 and len(enforcement_results["violations_detected"]) == 0:
-            enforcement_results["generation_approved"] = True
-        else:
-            enforcement_results["generation_approved"] = False
-            enforcement_results["required_actions"] = self._generate_required_actions(enforcement_results)
-        
-        return enforcement_results
-    
-    def _extract_guaranteed_features(self, strategy_analysis: Dict, clarifications: Dict) -> List[Dict]:
-        """Extract specific, measurable features that will be guaranteed"""
-        
-        guaranteed_features = []
-        
-        # From strategy analysis
-        if "core_features" in strategy_analysis:
-            for feature in strategy_analysis["core_features"]:
-                guaranteed_features.append({
-                    "name": feature["name"],
-                    "specification": feature["detailed_spec"],
-                    "acceptance_criteria": feature["acceptance_criteria"],
-                    "testing_method": feature["testing_method"],
-                    "guarantee_level": "FULL"  # FULL, PARTIAL, BEST_EFFORT
-                })
-        
-        # From founder clarifications
-        if "must_have_features" in clarifications:
-            for feature in clarifications["must_have_features"]:
-                guaranteed_features.append({
-                    "name": feature,
-                    "specification": clarifications[f"{feature}_specification"],
-                    "acceptance_criteria": clarifications[f"{feature}_criteria"],
-                    "testing_method": "Functional testing",
-                    "guarantee_level": "FULL"
-                })
-        
-        return guaranteed_features
-    
-    def _generate_technical_specifications(self, strategy_analysis: Dict) -> Dict[str, Any]:
-        """Generate precise technical specifications for contract"""
-        
-        # Build on your existing endpoint and schema generation
-        base_specs = self._generate_endpoints(strategy_analysis)
-        schemas = self._generate_schemas(strategy_analysis)
-        
-        enhanced_specs = {
-            "api_endpoints": base_specs,
-            "database_schemas": schemas,
-            "frontend_components": self._generate_frontend_specs(strategy_analysis),
-            "integrations": self._generate_integration_specs(strategy_analysis),
-            "performance_requirements": {
-                "response_time": "< 2 seconds for 95% of requests",
-                "uptime": "99.9% availability",
-                "concurrent_users": "Minimum 100 simultaneous users",
-                "data_integrity": "100% ACID compliance"
-            },
-            "security_requirements": {
-                "authentication": "JWT with refresh tokens",
-                "authorization": "Role-based access control",
-                "data_encryption": "AES-256 for data at rest",
-                "api_security": "Rate limiting + input validation"
-            }
-        }
-        
-        return enhanced_specs
-    
-    def _generate_legal_terms(self, guaranteed_features: List[Dict]) -> Dict[str, Any]:
-        """Generate legal framework for contract enforcement"""
-        
-        return {
-            "platform_liability": {
-                "feature_non_delivery": "Full refund + 50% penalty",
-                "performance_issues": "Fix within 24 hours or partial refund",
-                "security_vulnerabilities": "Immediate fix + security audit",
-                "data_loss": "Full restoration + compensation"
-            },
-            
-            "service_level_agreements": {
-                "development_timeline": "As specified in project timeline",
-                "bug_fix_response": "Critical: 2 hours, Major: 8 hours, Minor: 48 hours",
-                "support_availability": "24/7 for critical issues",
-                "documentation_delivery": "Complete docs within 48 hours"
-            },
-            
-            "intellectual_property": {
-                "code_ownership": "Founder owns 100% of generated code",
-                "platform_usage_rights": "Right to use as case study (anonymized)",
-                "third_party_licenses": "All properly attributed and compatible",
-                "patent_protection": "Platform will defend against IP claims"
-            },
-            
-            "termination_clauses": {
-                "founder_termination": "72-hour notice with partial refund",
-                "platform_termination": "Only for material breach by founder",
-                "data_retention": "30 days after termination",
-                "transition_assistance": "Full code export + documentation"
-            }
-        }
-    
-    def _check_deliverable_compliance(self, deliverable: Dict, generated_code: Dict) -> Dict[str, Any]:
-        """Check if generated code meets specific deliverable requirements"""
-        
-        compliance_result = {
-            "compliant": True,
-            "actual_implementation": None,
-            "severity": "none",
-            "auto_correctable": False,
-            "compliance_details": []
-        }
-        
-        # Check if the deliverable exists in generated code
-        deliverable_found = self._find_deliverable_in_code(deliverable, generated_code)
-        
-        if not deliverable_found:
-            compliance_result["compliant"] = False
-            compliance_result["severity"] = "critical"
-            compliance_result["actual_implementation"] = "Not implemented"
-            compliance_result["auto_correctable"] = True
-            return compliance_result
-        
-        # Check implementation quality
-        implementation_quality = self._assess_implementation_quality(deliverable, deliverable_found)
-        
-        if implementation_quality["score"] < 0.9:
-            compliance_result["compliant"] = False
-            compliance_result["severity"] = "major" if implementation_quality["score"] < 0.5 else "minor"
-            compliance_result["actual_implementation"] = implementation_quality["description"]
-            compliance_result["auto_correctable"] = implementation_quality["correctable"]
-        
-        return compliance_result
-    
-    def _auto_correct_violation(self, violation: Dict, generated_code: Dict) -> Dict[str, Any]:
-        """Automatically correct contract violations when possible"""
-        
-        correction = {
-            "violation_id": violation.get("deliverable", "unknown"),
-            "correction_type": "automatic",
-            "timestamp": datetime.now().isoformat(),
-            "success": False,
-            "details": ""
-        }
-        
-        if violation["type"] == "deliverable_violation":
-            # Attempt to regenerate the missing/incorrect deliverable
-            corrected_implementation = self._regenerate_deliverable(
-                violation["deliverable"],
-                violation["expected"]
-            )
-            
-            if corrected_implementation:
-                # Update the generated code
-                generated_code[corrected_implementation["file_path"]] = corrected_implementation["content"]
-                correction["success"] = True
-                correction["details"] = f"Regenerated {violation['deliverable']} to meet specifications"
-            else:
-                correction["details"] = f"Failed to auto-correct {violation['deliverable']}"
-        
-        return correction
-    
-    def _save_immutable_contract(self, contract: Dict):
-        """Save contract to immutable storage (blockchain simulation)"""
-        
-        # For now, save to secure file system
-        # Future: implement actual blockchain storage
-        
-        contract_hash = self._generate_contract_hash(contract)
-        contract["immutable_hash"] = contract_hash
-        
-        # Save to secure contract storage
-        contract_path = f"contracts/{contract['contract_id']}.json"
-        os.makedirs(os.path.dirname(contract_path), exist_ok=True)
-        
-        with open(contract_path, 'w') as f:
-            json.dump(contract, f, indent=2)
-        
-        logger.info(f"Contract {contract['contract_id']} saved immutably with hash {contract_hash}")
-    
-    def _generate_contract_hash(self, contract: Dict) -> str:
-        """Generate immutable hash for contract integrity"""
-        import hashlib
-        
-        # Create deterministic string representation
-        contract_string = json.dumps(contract, sort_keys=True)
-        
-        # Generate SHA-256 hash
-        return hashlib.sha256(contract_string.encode()).hexdigest()
-
-# Add this method to your existing contract_generator instance
-def create_autonomous_enforcement_system():
-    """Initialize the autonomous contract enforcement system"""
-    
-    enhanced_generator = ContractGenerator()
-    
-    # Set strict enforcement mode
-    enhanced_generator.enforcement_level = "STRICT"
-    
-    return enhanced_generator
-            
-            # GET by ID
-    endpoints.append({
-                "path": f"/api/{entity_plural}/{{id}}",
-                "method": "GET",
-                "description": f"Get {entity_name} by ID",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": True,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": f"{entity_name.capitalize()} found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": f"#/components/schemas/{entity_name.capitalize()}"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": f"{entity_name.capitalize()} not found"
-                    }
-                }
-            })
-            
-            # POST
-endpoints.append({
-                "path": f"/api/{entity_plural}",
-                "method": "POST",
-                "description": f"Create a new {entity_name}",
-                "requestBody": {
-                    "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": f"#/components/schemas/{entity_name.capitalize()}Create"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": f"{entity_name.capitalize()} created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": f"#/components/schemas/{entity_name.capitalize()}"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input"
-                    }
-                }
-            })
-            
-            # PUT
-endpoints.append({
-                "path": f"/api/{entity_plural}/{{id}}",
-                "method": "PUT",
-                "description": f"Update {entity_name} by ID",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": True,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": f"#/components/schemas/{entity_name.capitalize()}Update"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": f"{entity_name.capitalize()} updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": f"#/components/schemas/{entity_name.capitalize()}"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": f"{entity_name.capitalize()} not found"
-                    },
-                    "400": {
-                        "description": "Invalid input"
-                    }
-                }
-            })
-            
-            # DELETE
-endpoints.append({
-                "path": f"/api/{entity_plural}/{{id}}",
-                "method": "DELETE",
-                "description": f"Delete {entity_name} by ID",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": True,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": f"{entity_name.capitalize()} deleted"
-                    },
-                    "404": {
-                        "description": f"{entity_name.capitalize()} not found"
-                    }
-                }
-            })
-        
-        # Add custom endpoints from requirements
-def _generate_endpoints(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate API endpoints from requirements"""
-    
-    endpoints = {}
-    
-    # Extract features from requirements
-    features = requirements.get("features", [])
-    
-    for feature in features:
-        # Create endpoint for each feature
-        endpoint_path = f"/{feature.lower().replace(' ', '-')}"
-        endpoints[endpoint_path] = {
-            "method": "GET",
-            "description": f"Endpoint for {feature}",
-            "parameters": [],
-            "responses": {
-                "200": {"description": "Success"}
-            }
-        }
-    
-    return endpoints  # ✅ CORRECT - properly indented
-    
-def _generate_schemas(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generate API schemas based on requirements
+        Generate an API contract from a structured product prompt
         
         Args:
-            requirements: Dictionary of requirements
+            prompt: The structured product prompt
             
         Returns:
-            Dictionary of schema definitions
+            A dictionary containing the API contract
         """
-        # This is a simplified implementation that would be replaced with
-        # actual LLM-based generation in a production environment
+        logger.info("Generating API contract from prompt")
         
+        # Parse the prompt to extract key requirements
+        requirements = self._extract_requirements(prompt)
+        
+        # Generate endpoints based on requirements
+        endpoints = self._generate_endpoints(requirements)
+        
+        # Generate schemas based on requirements
+        schemas = self._generate_schemas(requirements)
+        
+        # Create the contract
+        contract = {
+            "info": {
+                "title": requirements.get("title", "Generated API"),
+                "version": "1.0.0",
+                "description": requirements.get("description", "API generated from prompt")
+            },
+            "endpoints": endpoints,
+            "schemas": schemas,
+            "requirements": requirements,
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        # Save the contract to file
+        self._save_contract(contract)
+        
+        return contract
+    
+    def sync_contract(self, contract: Dict[str, Any], code_files: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Sync the API contract with generated code files
+        
+        Args:
+            contract: The API contract
+            code_files: Dictionary of generated code files
+            
+        Returns:
+            Updated API contract with code mappings
+        """
+        logger.info("Syncing contract with generated code files")
+        
+        # Update contract with code mappings
+        contract["code_mappings"] = {}
+        
+        for file_path, content in code_files.items():
+            contract["code_mappings"][file_path] = {
+                "content_hash": self._generate_content_hash(content),
+                "endpoints_implemented": self._extract_endpoints_from_code(content),
+                "schemas_implemented": self._extract_schemas_from_code(content)
+            }
+        
+        contract["last_synced"] = datetime.now().isoformat()
+        
+        # Save updated contract
+        self._save_contract(contract)
+        
+        return contract
+    
+    def verify_contract_compliance(self, contract: Dict[str, Any], code_files: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Verify that generated code complies with the API contract
+        
+        Args:
+            contract: The API contract
+            code_files: Dictionary of generated code files
+            
+        Returns:
+            Verification results
+        """
+        logger.info("Verifying contract compliance")
+        
+        results = {
+            "compliant": True,
+            "issues": [],
+            "coverage": {
+                "endpoints": 0.0,
+                "schemas": 0.0
+            }
+        }
+        
+        # Check endpoint implementation
+        total_endpoints = len(contract["endpoints"])
+        implemented_endpoints = 0
+        
+        for endpoint_path, endpoint_spec in contract["endpoints"].items():
+            # Check if this endpoint is implemented
+            implemented = False
+            for file_path, content in code_files.items():
+                if self._file_implements_endpoint(file_path, content, endpoint_path):
+                    implemented = True
+                    break
+            
+            if implemented:
+                implemented_endpoints += 1
+            else:
+                results["compliant"] = False
+                results["issues"].append({
+                    "type": "missing_endpoint",
+                    "endpoint": endpoint_path,
+                    "description": f"Endpoint {endpoint_path} is not implemented"
+                })
+        
+        # Check schema implementation
+        total_schemas = len(contract["schemas"])
+        implemented_schemas = 0
+        
+        for schema_name, schema in contract["schemas"].items():
+            # Check if this schema is implemented
+            implemented = False
+            for file_path, content in code_files.items():
+                if self._file_implements_schema(file_path, content, schema_name):
+                    implemented = True
+                    break
+            
+            if implemented:
+                implemented_schemas += 1
+            else:
+                results["compliant"] = False
+                results["issues"].append({
+                    "type": "missing_schema",
+                    "schema": schema_name,
+                    "description": f"Schema {schema_name} is not implemented"
+                })
+        
+        # Calculate coverage
+        if total_endpoints > 0:
+            results["coverage"]["endpoints"] = implemented_endpoints / total_endpoints
+        
+        if total_schemas > 0:
+            results["coverage"]["schemas"] = implemented_schemas / total_schemas
+        
+        return results
+    
+    def _extract_requirements(self, prompt: str) -> Dict[str, Any]:
+        """
+        Extract key requirements from a structured product prompt
+        
+        Args:
+            prompt: The structured product prompt
+            
+        Returns:
+            Dictionary of requirements
+        """
+        # Extract title
+        title_match = re.search(r"(?:title|name|project):\s*([^\n]+)", prompt, re.IGNORECASE)
+        title = title_match.group(1).strip() if title_match else "Generated API"
+        
+        # Extract description
+        desc_match = re.search(r"(?:description|about):\s*([^\n]+)", prompt, re.IGNORECASE)
+        description = desc_match.group(1).strip() if desc_match else "API generated from prompt"
+        
+        # Extract entities (simplified)
+        entities = []
+        entity_matches = re.finditer(r"(?:entity|model|data):\s*([^\n]+)", prompt, re.IGNORECASE)
+        for match in entity_matches:
+            entities.append(match.group(1).strip())
+        
+        # Extract endpoints (simplified)
+        endpoints = []
+        endpoint_matches = re.finditer(r"(?:endpoint|api|route):\s*([^\n]+)", prompt, re.IGNORECASE)
+        for match in endpoint_matches:
+            endpoints.append(match.group(1).strip())
+        
+        # Extract features (simplified)
+        features = []
+        feature_matches = re.finditer(r"(?:feature|function):\s*([^\n]+)", prompt, re.IGNORECASE)
+        for match in feature_matches:
+            features.append(match.group(1).strip())
+        
+        return {
+            "title": title,
+            "description": description,
+            "entities": entities,
+            "endpoints": endpoints,
+            "features": features,
+            "raw_prompt": prompt
+        }
+    
+    def _generate_endpoints(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate API endpoints based on requirements
+        
+        Args:
+            requirements: Extracted requirements
+            
+        Returns:
+            Dictionary of API endpoints
+        """
+        endpoints = {}
+        
+        # Generate endpoints from entities
+        for entity in requirements.get("entities", []):
+            entity_name = entity.lower().replace(" ", "_")
+            
+            endpoints[f"/api/{entity_name}"] = {
+                "method": "GET",
+                "description": f"List all {entity}",
+                "parameters": [],
+                "responses": {
+                    "200": {"description": f"List of {entity} items"}
+                }
+            }
+            
+            endpoints[f"/api/{entity_name}/{{id}}"] = {
+                "method": "GET",
+                "description": f"Get a specific {entity}",
+                "parameters": ["id"],
+                "responses": {
+                    "200": {"description": f"Single {entity} item"},
+                    "404": {"description": "Item not found"}
+                }
+            }
+            
+            endpoints[f"/api/{entity_name}"] = {
+                "method": "POST",
+                "description": f"Create a new {entity}",
+                "parameters": [],
+                "responses": {
+                    "201": {"description": f"Created {entity}"},
+                    "400": {"description": "Bad request"}
+                }
+            }
+        
+        # Generate endpoints from features
+        for feature in requirements.get("features", []):
+            feature_name = feature.lower().replace(" ", "_")
+            endpoints[f"/api/{feature_name}"] = {
+                "method": "POST",
+                "description": f"Execute {feature}",
+                "parameters": [],
+                "responses": {
+                    "200": {"description": f"Feature {feature} executed successfully"}
+                }
+            }
+        
+        # Add default health endpoint
+        endpoints["/health"] = {
+            "method": "GET",
+            "description": "Health check endpoint",
+            "parameters": [],
+            "responses": {
+                "200": {"description": "Service is healthy"}
+            }
+        }
+        
+        return endpoints
+    
+    def _generate_schemas(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate data schemas based on requirements
+        
+        Args:
+            requirements: Extracted requirements
+            
+        Returns:
+            Dictionary of data schemas
+        """
         schemas = {}
         
-        # Generate schemas for each entity
+        # Generate schemas from entities
         for entity in requirements.get("entities", []):
-            # Normalize entity name
-            entity_name = entity.lower().strip()
-            entity_capitalized = entity_name.capitalize()
-            
-            # Base schema
-            schemas[entity_capitalized] = {
+            schema_name = entity.replace(" ", "")
+            schemas[schema_name] = {
                 "type": "object",
                 "properties": {
-                    "id": {"type": "integer"},
-                    "name": {"type": "string"},
-                    "description": {"type": "string"},
-                    "created_at": {"type": "string", "format": "date-time"},
-                    "updated_at": {"type": "string", "format": "date-time"}
+                    "id": {"type": "integer", "description": f"Unique identifier for {entity}"},
+                    "name": {"type": "string", "description": f"Name of the {entity}"},
+                    "created_at": {"type": "string", "format": "date-time", "description": "Creation timestamp"},
+                    "updated_at": {"type": "string", "format": "date-time", "description": "Last update timestamp"}
                 },
                 "required": ["id", "name"]
-            }
-            
-            # Create schema (without ID)
-            schemas[f"{entity_capitalized}Create"] = {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["name"]
-            }
-            
-            # Update schema (without ID)
-            schemas[f"{entity_capitalized}Update"] = {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "description": {"type": "string"}
-                }
             }
         
         return schemas
     
-def _save_contract(self, contract: Dict[str, Any]) -> None:
-        """
-        Save the API contract to file
-        
-        Args:
-            contract: The API contract
-        """
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(self.contract_file_path), exist_ok=True)
-        
-        # Save the contract
-        with open(self.contract_file_path, "w") as f:
-            json.dump(contract, f, indent=2)
-        
-        logger.info(f"API contract saved to {self.contract_file_path}")
-    
-def _file_implements_endpoint(self, file_path: str, content: str, path: str, method: str) -> bool:
+    def _file_implements_endpoint(self, file_path: str, content: str, endpoint_path: str) -> bool:
         """
         Check if a file implements a specific endpoint
         
         Args:
             file_path: Path to the file
             content: Content of the file
-            path: Endpoint path
-            method: HTTP method
+            endpoint_path: Endpoint path to check
             
         Returns:
             True if the file implements the endpoint, False otherwise
         """
-        # This is a simplified implementation that would be replaced with
-        # more sophisticated parsing in a production environment
+        # Clean the endpoint path for pattern matching
+        clean_path = endpoint_path.replace("{", "").replace("}", "").replace("/api/", "/")
         
-        # Normalize path and method for comparison
-        path = path.lower()
-        method = method.upper()
+        # Check if the file contains route definitions
+        route_patterns = [
+            f'@app.get("{endpoint_path}")',
+            f'@app.post("{endpoint_path}")',
+            f'@app.put("{endpoint_path}")',
+            f'@app.delete("{endpoint_path}")',
+            f"'{endpoint_path}'",
+            f'"{endpoint_path}"'
+        ]
         
-        # Check if the file is a route file
-        if "route" in file_path or "api" in file_path:
-            # Check if the file contains the path and method
-            path_pattern = re.escape(path).replace("\\{", "{").replace("\\}", "}")
-            method_pattern = f"{method}\\s*\\("
-            
-            path_match = re.search(path_pattern, content, re.IGNORECASE)
-            method_match = re.search(method_pattern, content, re.IGNORECASE)
-            
-            return path_match is not None and method_match is not None
-        
-        return False
+        return any(pattern in content for pattern in route_patterns)
     
-def _file_implements_schema(self, file_path: str, content: str, schema_name: str) -> bool:
+    def _file_implements_schema(self, file_path: str, content: str, schema_name: str) -> bool:
         """
         Check if a file implements a specific schema
         
@@ -624,9 +361,6 @@ def _file_implements_schema(self, file_path: str, content: str, schema_name: str
         Returns:
             True if the file implements the schema, False otherwise
         """
-        # This is a simplified implementation that would be replaced with
-        # more sophisticated parsing in a production environment
-        
         # Check if the file is a model file
         if "model" in file_path or "schema" in file_path:
             # Check if the file contains the schema name
@@ -639,6 +373,77 @@ def _file_implements_schema(self, file_path: str, content: str, schema_name: str
             return class_match is not None or pydantic_match is not None
         
         return False
+    
+    def _save_contract(self, contract: Dict[str, Any]):
+        """
+        Save contract to file
+        
+        Args:
+            contract: Contract to save
+        """
+        contract_id = contract.get("info", {}).get("title", "unknown").replace(" ", "_")
+        filename = f"{contract_id}_contract.json"
+        filepath = os.path.join(self.contract_file_path, filename)
+        
+        with open(filepath, 'w') as f:
+            json.dump(contract, f, indent=2)
+        
+        logger.info(f"Contract saved to {filepath}")
+    
+    def _generate_content_hash(self, content: str) -> str:
+        """
+        Generate hash for content
+        
+        Args:
+            content: Content to hash
+            
+        Returns:
+            Hash string
+        """
+        import hashlib
+        return hashlib.md5(content.encode()).hexdigest()
+    
+    def _extract_endpoints_from_code(self, content: str) -> List[str]:
+        """
+        Extract implemented endpoints from code content
+        
+        Args:
+            content: Code content
+            
+        Returns:
+            List of endpoint paths
+        """
+        endpoints = []
+        
+        # Simple regex to find FastAPI route decorators
+        route_pattern = r'@app\.(get|post|put|delete|patch)\(["\']([^"\']+)["\']'
+        matches = re.findall(route_pattern, content)
+        
+        for method, path in matches:
+            endpoints.append(f"{method.upper()} {path}")
+        
+        return endpoints
+    
+    def _extract_schemas_from_code(self, content: str) -> List[str]:
+        """
+        Extract implemented schemas from code content
+        
+        Args:
+            content: Code content
+            
+        Returns:
+            List of schema names
+        """
+        schemas = []
+        
+        # Simple regex to find class definitions
+        class_pattern = r'class\s+(\w+)\s*\([^)]*BaseModel[^)]*\)'
+        matches = re.findall(class_pattern, content)
+        
+        schemas.extend(matches)
+        
+        return schemas
+
 
 # Create a singleton instance
 contract_generator = ContractGenerator()
@@ -680,4 +485,3 @@ def verify_contract_compliance(contract: Dict[str, Any], code_files: Dict[str, s
         Verification results
     """
     return contract_generator.verify_contract_compliance(contract, code_files)
-
