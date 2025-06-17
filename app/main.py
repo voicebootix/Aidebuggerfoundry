@@ -122,22 +122,6 @@ if os.path.exists("app/templates"):
 # Set up logger
 logger = setup_logger()
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and other startup tasks"""
-    logger.info("Starting AI Debugger Factory BuildBot service")
-    await init_db()
-    
-    # Ensure meta directory exists for prompt logs
-    os.makedirs("../../meta", exist_ok=True)
-    
-    # Initialize prompt log if it doesn't exist
-    if not os.path.exists("../../meta/prompt_log.json"):
-        with open("../../meta/prompt_log.json", "w") as f:
-            json.dump({"prompts": []}, f)
-    
-    logger.info("BuildBot service initialized successfully")
-    logger.info("✅ DreamEngine endpoints are now available")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
