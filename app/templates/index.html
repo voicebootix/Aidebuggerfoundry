@@ -1347,26 +1347,150 @@
             </section>
 
             <!-- Debug Section -->
-            <section id="debug-section" class="content-section">
-                <div class="section-container">
-                    <div class="hero-section">
-                        <div class="hero-content">
-                            <h1 class="hero-title">
-                                Debug & Improve
-                            </h1>
-                            <p class="hero-subtitle">
-                                Analyze your codebase, identify issues, and get AI-powered fixes.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">🔧</div>
-                        <h3>Debug Module Coming Soon</h3>
-                        <p>Advanced debugging and optimization features will be available in the next release.</p>
+           <!-- Debug Section -->
+<section id="debug-section" class="content-section">
+    <div class="section-container">
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Debug & Improve</h1>
+                <p class="hero-subtitle">
+                    AI-powered code analysis, bug detection, and intelligent fixes with real-time collaboration.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Debug Interface -->
+        <div class="debug-workspace">
+            <!-- Left Panel: Chat Interface -->
+            <div class="debug-chat-panel">
+                <div class="debug-chat-header">
+                    <h3>🤖 AI Debug Assistant</h3>
+                    <div class="debug-status">
+                        <span class="status-indicator active"></span>
+                        <span>Ready to help</span>
                     </div>
                 </div>
-            </section>
+                
+                <div class="debug-messages" id="debug-messages">
+                    <div class="ai-message">
+                        <div class="message-content">
+                            <p>👋 Hi! I'm your AI debugging partner. I can:</p>
+                            <ul>
+                                <li>🔍 Analyze your code for bugs and issues</li>
+                                <li>🛠️ Suggest specific fixes and improvements</li>
+                                <li>✨ Add new features to existing code</li>
+                                <li>📝 Remember our conversation context</li>
+                            </ul>
+                            <p>Upload some code or describe what you'd like me to debug!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="debug-input-area">
+                    <div class="debug-typing-indicator" id="debug-typing-indicator" style="display: none;">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <p>AI is analyzing...</p>
+                    </div>
+                    
+                    <div class="debug-input-container">
+                        <textarea 
+                            id="debug-input" 
+                            placeholder="Describe the issue or paste your code here..."
+                            rows="3"
+                        ></textarea>
+                        <div class="debug-input-actions">
+                            <button id="debug-upload-btn" class="btn-icon" title="Upload code file">
+                                📁
+                            </button>
+                            <button id="debug-send-btn" class="btn-primary">
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Script Editor -->
+            <div class="debug-editor-panel">
+                <div class="editor-header">
+                    <h3>📝 Code Editor</h3>
+                    <div class="editor-actions">
+                        <select id="debug-file-selector" class="file-selector">
+                            <option value="">Select a file to edit...</option>
+                        </select>
+                        <button id="editor-new-file" class="btn-secondary btn-sm">
+                            + New File
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="code-editor-container">
+                    <div id="debug-code-editor" class="code-editor">
+                        <textarea 
+                            id="code-editor-textarea"
+                            placeholder="// Your code will appear here for editing
+// The AI can make suggestions and you can edit in real-time
+
+function example() {
+    console.log('Start coding or upload a file!');
+}"
+                            spellcheck="false"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="editor-footer">
+                        <div class="editor-info">
+                            <span id="editor-line-count">Lines: 0</span>
+                            <span id="editor-char-count">Characters: 0</span>
+                        </div>
+                        <div class="editor-actions-right">
+                            <button id="editor-save" class="btn-secondary btn-sm">
+                                💾 Save Changes
+                            </button>
+                            <button id="editor-apply-suggestion" class="btn-primary btn-sm" style="display: none;">
+                                ✨ Apply AI Suggestion
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analysis Results Panel -->
+                <div class="analysis-results" id="analysis-results" style="display: none;">
+                    <div class="analysis-header">
+                        <h4>🔍 Analysis Results</h4>
+                        <button id="close-analysis" class="btn-icon">✕</button>
+                    </div>
+                    <div class="analysis-content" id="analysis-content">
+                        <!-- Analysis results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Upload Modal -->
+        <div id="debug-upload-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Upload Code File</h3>
+                    <button class="modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="upload-area" id="debug-upload-area">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag & drop your code file here</p>
+                        <p class="upload-hint">Supports: .js, .py, .html, .css, .json, .md</p>
+                        <input type="file" id="debug-file-input" accept=".js,.py,.html,.css,.json,.md,.txt,.jsx,.ts,.tsx" style="display: none;">
+                        <button class="btn-secondary" onclick="document.getElementById('debug-file-input').click()">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
             <!-- Evolve Section -->
             <section id="evolve-section" class="content-section">
