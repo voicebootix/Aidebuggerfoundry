@@ -148,87 +148,93 @@ class VoiceInputProcessor:
         logger.info(f"📁 Saved temp audio file: {temp_file_path} ({len(content)} bytes)")
         return temp_file_path
     
-    async def _transcribe_audio(self, file_path: str) -> Dict[str, Any]:
-        """Transcribe audio using OpenAI Whisper API"""
+    async def _transcribe_audio(self, temp_file_path: str) -> Dict[str, Any]:
+    """Real audio transcription using OpenAI Whisper API"""
+    
+    if not self.openai_api_key:
+        return {
+            "success": False,
+            "error": "OpenAI API key not configured. Set OPENAI_API_KEY environment variable."
+        }
+    
+    try:
+        import httpx
         
+        logger.info(f"🎧 Starting transcription: {temp_file_path}")
         start_time = datetime.now()
         
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+        # Prepare the file for upload
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            
+            # Read the audio file
+            with open(temp_file_path, 'rb') as audio_file:
+                audio_data = audio_file.read()
+            
+            # Prepare headers and files for multipart upload
+            headers = {
+                'Authorization': f'Bearer {self.openai_api_key}'
+            }
+            
+            files = {
+                'file': ('audio.webm', audio_data, 'audio/webm'),
+                'model': (None, 'whisper-1'),
+                'response_format': (None, 'json')
+            }
+            
+            # Make the API request
+            logger.info("📡 Sending to OpenAI Whisper API...")
+            response = await client.post(
+                self.whisper_endpoint,
+                headers=headers,
+                files=files
+            )
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            logger.info(f"⏱️ API call completed in {processing_time:.2f}s")
+            
+            if response.status_code == 200:
+                result = response.json()
+                transcribed_text = result.get('text', '').strip()
                 
-                # Prepare request headers
-                headers = {
-                    "Authorization": f"Bearer {self.openai_api_key}"
-                }
-                
-                # Read audio file
-                async with aiofiles.open(file_path, 'rb') as f:
-                    audio_content = await f.read()
-                
-                logger.info(f"🔄 Sending {len(audio_content)} bytes to OpenAI Whisper")
-                
-                # Prepare form data for multipart upload
-                files = {
-                    'file': (os.path.basename(file_path), audio_content, 'audio/webm'),
-                }
-                
-                data = {
-                    'model': 'whisper-1',
-                    'response_format': 'json',
-                    'language': 'en'  # Can be made configurable
-                }
-                
-                # Make API request
-                response = await client.post(
-                    self.whisper_endpoint,
-                    headers=headers,
-                    files=files,
-                    data=data
-                )
-                
-                processing_time = (datetime.now() - start_time).total_seconds()
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    transcribed_text = result.get('text', '').strip()
-                    
-                    if not transcribed_text:
-                        return {
-                            "success": False,
-                            "error": "No speech detected in audio file"
-                        }
-                    
-                    logger.info(f"✅ Transcription successful: '{transcribed_text[:100]}...' ({processing_time:.2f}s)")
-                    return {
-                        "success": True,
-                        "text": transcribed_text,
-                        "processing_time": processing_time
-                    }
-                else:
-                    error_msg = f"OpenAI API error: {response.status_code}"
-                    try:
-                        error_details = response.json()
-                        error_msg += f" - {error_details.get('error', {}).get('message', 'Unknown error')}"
-                    except:
-                        error_msg += f" - {response.text}"
-                    
-                    logger.error(f"❌ {error_msg}")
+                if not transcribed_text:
+                    logger.warning("⚠️ Empty transcription received")
                     return {
                         "success": False,
-                        "error": error_msg
+                        "error": "No speech detected in audio file. Please speak clearly and try again."
                     }
-                    
-        except httpx.TimeoutException:
-            return {
-                "success": False,
-                "error": "Transcription request timed out. Please try with a shorter audio file."
-            }
-        except Exception as e:
-            logger.error(f"❌ Transcription error: {str(e)}")
-            return {
-                "success": False,
-                "error": f"Transcription failed: {str(e)}"
-            }
+                
+                logger.info(f"✅ Transcription successful: '{transcribed_text[:100]}...'")
+                return {
+                    "success": True,
+                    "text": transcribed_text,
+                    "processing_time": processing_time
+                }
+            else:
+                # Handle API errors
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('error', {}).get('message', 'Unknown API error')
+                except:
+                    error_msg = f"HTTP {response.status_code}: {response.text}"
+                
+                logger.error(f"❌ OpenAI API error: {error_msg}")
+                return {
+                    "success": False,
+                    "error": f"Transcription service error: {error_msg}"
+                }
+                
+    except httpx.TimeoutException:
+        logger.error("⏰ Transcription request timed out")
+        return {
+            "success": False,
+            "error": "Transcription request timed out. Please try with a shorter audio file."
+        }
+    except Exception as e:
+        logger.error(f"❌ Transcription failed: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Transcription failed: {str(e)}"
+        }
     
     async def _structure_transcription(self, text: str) -> Dict[str, Any]:
         """Parse transcribed text and structure it for the DreamEngine"""
