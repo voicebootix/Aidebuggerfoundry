@@ -3,7 +3,7 @@ import logging
 from typing import AsyncGenerator, Optional
 import os
 from dotenv import load_dotenv
-
+from app.database.database import get_database_connection
 # Load environment variables
 load_dotenv()
 
