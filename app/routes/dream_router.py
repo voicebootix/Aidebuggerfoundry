@@ -5,13 +5,13 @@ from typing import Dict, Any, Optional
 import json
 import logging
 
-from app.utils.enhanced_dream_engine import enhanced_dream_engine
+from app.utils.dream_engine import dream_engine
 from app.utils.smart_contract_system import smart_contract_system
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/enhanced-generation", tags=["enhanced-generation"])
 
-class EnhancedGenerationRequest(BaseModel):
+class GenerationRequest(BaseModel):
     user_prompt: str
     contract_id: Optional[str] = None
     quality_level: str = "production"  # production, prototype, minimal
@@ -78,7 +78,7 @@ async def generate_quick_prototype(request: EnhancedGenerationRequest):
         
         async def generation_stream():
             try:
-                async for chunk in enhanced_dream_engine.generate_with_contract(
+                async for chunk in dream_engine.generate_with_contract(
                     minimal_contract, 
                     request.user_prompt
                 ):
