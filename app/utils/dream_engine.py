@@ -11,7 +11,7 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger()
 
-class EnhancedDreamEngine:
+class DreamEngine:
     """
     Production-ready code generation that works with smart contracts
     Generates 90-100% working code with zero placeholders
@@ -665,4 +665,4 @@ python-multipart==0.0.6
         }
 
 # Global instance
-enhanced_dream_engine = EnhancedDreamEngine()
+dream_engine = DreamEngine()
