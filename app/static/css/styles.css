@@ -1711,5 +1711,260 @@ p {
     margin-top: 10px;
     opacity: 0.6;
 }
+/* Enhanced Generation Interface */
+.enhanced-generation-container {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 25px;
+    margin-top: 20px;
+}
+
+.generation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.contract-mode-indicator {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3B82F6;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.generation-progress {
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10B981, #3B82F6);
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+}
+
+.generation-log {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+}
+
+.log-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.log-message {
+    flex: 1;
+}
+
+.log-entry.started .log-message {
+    color: #10B981;
+}
+
+.log-entry.completed .log-message {
+    color: #3B82F6;
+}
+
+.log-entry.correction .log-message {
+    color: #F59E0B;
+}
+
+.log-entry.success .log-message {
+    color: #10B981;
+    font-weight: bold;
+}
+
+.log-entry.warning .log-message {
+    color: #F59E0B;
+}
+
+.compliance-indicator,
+.corrections-count {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.generated-files {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.files-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-icon {
+    font-size: 16px;
+}
+
+.file-name {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+}
+
+.file-status {
+    font-size: 11px;
+    color: #10B981;
+}
+
+.compliance-tracking {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.compliance-score {
+    display: inline-block;
+}
+
+.score-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #3B82F6;
+    display: block;
+}
+
+.score-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.completion-actions {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.compliance-issues {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.issues-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.issue-item {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+}
+
+.auto-correctable {
+    color: #10B981;
+    font-size: 11px;
+}
+
+.manual-review {
+    color: #F59E0B;
+    font-size: 11px;
+}
+
+.issue-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.generation-error {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .generation-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .files-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons,
+    .issue-actions {
+        flex-direction: column;
+    }
+}
 Made with
 1
