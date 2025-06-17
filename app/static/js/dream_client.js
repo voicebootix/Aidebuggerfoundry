@@ -1,4 +1,4 @@
-class EnhancedDreamClient {
+class DreamClient {
     constructor() {
         this.activeGeneration = null;
         this.generatedFiles = {};
@@ -275,17 +275,17 @@ class EnhancedDreamClient {
             <div class="completion-actions">
                 <h4>🎉 Generation Complete!</h4>
                 <div class="action-buttons">
-                    <button class="btn-primary" onclick="enhancedDreamClient.downloadFiles()">
+                    <button class="btn-primary" onclick="DreamClient.downloadFiles()">
                         📥 Download All Files
                     </button>
-                    <button class="btn-primary" onclick="enhancedDreamClient.deployToGitHub()">
+                    <button class="btn-primary" onclick="DreamClient.deployToGitHub()">
                         🚀 Deploy to GitHub
                     </button>
-                    <button class="btn-secondary" onclick="enhancedDreamClient.viewCode()">
+                    <button class="btn-secondary" onclick="DreamClient.viewCode()">
                         👁️ Preview Code
                     </button>
                     ${this.contractMode ? `
-                        <button class="btn-secondary" onclick="enhancedDreamClient.viewComplianceReport()">
+                        <button class="btn-secondary" onclick="DreamClient.viewComplianceReport()">
                             📋 View Contract Report
                         </button>
                     ` : ''}
