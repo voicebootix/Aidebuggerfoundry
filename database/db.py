@@ -13,24 +13,6 @@ logger = logging.getLogger(__name__)
 # Database connection pool
 pool = None
 
-async def get_db():
-    try:
-        # Use real database connection
-        conn = await asyncpg.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=os.getenv("DB_PORT", 5432),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME", "dreamengine")
-        )
-        yield conn
-    except Exception as e:
-        logger.error(f"Database connection failed: {e}")
-        # Fallback to None for development
-        yield None
-    finally:
-        if conn:
-            await conn.close()
 
 async def init_db():
     """Initialize database connection pool and create tables if they don't exist"""
@@ -113,24 +95,24 @@ async def init_db():
 async def get_db():
     """Get database connection from pool"""
     global pool
-    
+
     if pool is None:
         success = await init_db()
         if not success:
             # Return a fallback file-based DB handler
             yield FallbackDBHandler()
-    
+            return
+
+    conn = None
     try:
-        # Return a connection from the pool
         conn = await pool.acquire()
-        try:
-            yield DBHandler(conn)
-        finally:
-            await pool.release(conn)
+        yield DBHandler(conn)
     except Exception as e:
         logger.error(f"Database connection error: {str(e)}")
-        # Return a fallback file-based DB handler
         yield FallbackDBHandler()
+    finally:
+        if conn:
+            await pool.release(conn)
 
 class DBHandler:
     """Database handler for PostgreSQL operations"""
