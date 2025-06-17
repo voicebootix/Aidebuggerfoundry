@@ -9,6 +9,7 @@ from app.utils.debug_engine import DebugEngine, DebugRequest, DebugResponse
 from app.utils.project_memory import ProjectMemoryManager
 from app.utils.logger import setup_logger
 from app.database.db import get_db
+from typing import Dict, List, Any, Optional
 
 logger = setup_logger()
 router = APIRouter(prefix="/api/v1/debug", tags=["debug"])
