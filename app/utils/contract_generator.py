@@ -1,3 +1,15 @@
+import json
+import logging
+import os
+from typing import Dict, List, Any, Optional  # ✅ ADD THIS LINE
+from datetime import datetime
+from dataclasses import dataclass
+
+class ContractGenerator:  # ✅ Now Dict is defined
+    def create_formal_contract(self, strategy_analysis: Dict, founder_clarifications: Dict) -> Dict[str, Any]:
+
+
+
 class ContractGenerator:
     """Enhanced with autonomous enforcement capabilities"""
     
