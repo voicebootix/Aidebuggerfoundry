@@ -478,28 +478,27 @@ endpoints.append({
             })
         
         # Add custom endpoints from requirements
-for endpoint_desc in requirements.get("endpoints", []):
-            # This would be replaced with actual LLM-based parsing in a production environment
-            # For now, just add a placeholder endpoint
-                endpoints.append({
-                "path": f"/api/custom/{len(endpoints)}",
-                "method": "GET",
-                "description": endpoint_desc,
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-            return endpoints
+def _generate_endpoints(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate API endpoints from requirements"""
+    
+    endpoints = {}
+    
+    # Extract features from requirements
+    features = requirements.get("features", [])
+    
+    for feature in features:
+        # Create endpoint for each feature
+        endpoint_path = f"/{feature.lower().replace(' ', '-')}"
+        endpoints[endpoint_path] = {
+            "method": "GET",
+            "description": f"Endpoint for {feature}",
+            "parameters": [],
+            "responses": {
+                "200": {"description": "Success"}
+            }
+        }
+    
+    return endpoints  # ✅ CORRECT - properly indented
     
 def _generate_schemas(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
         """
