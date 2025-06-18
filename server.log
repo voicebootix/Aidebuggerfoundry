@@ -1,0 +1,28 @@
+nohup: ignoring input
+/home/ubuntu/ai-debugger-factory/layer1-build/venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
+* 'schema_extra' has been renamed to 'json_schema_extra'
+  warnings.warn(message, UserWarning)
+Voice API key not provided. Voice transcription may be limited.
+INFO:     Started server process [11430]
+INFO:     Waiting for application startup.
+2025-06-12 04:54:50 - ai_debugger_factory - INFO - Starting AI Debugger Factory BuildBot service
+2025-06-12 04:54:50 - ai_debugger_factory - INFO - BuildBot service initialized successfully
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     10.109.230.1:42986 - "GET / HTTP/1.1" 200 OK
+INFO:     10.109.230.1:42988 - "GET /static/css/styles.css HTTP/1.1" 200 OK
+INFO:     10.109.230.1:43004 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     10.109.230.1:56454 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.109.230.1:56466 - "GET / HTTP/1.1" 200 OK
+INFO:     10.241.37.1:39836 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.241.37.1:39852 - "GET / HTTP/1.1" 200 OK
+INFO:     10.241.37.1:34258 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.241.37.1:34268 - "GET / HTTP/1.1" 200 OK
+INFO:     10.241.37.1:45242 - "GET / HTTP/1.1" 200 OK
+INFO:     10.241.37.1:45252 - "GET /static/css/styles.css HTTP/1.1" 200 OK
+INFO:     10.241.37.1:45262 - "GET /static/js/main.js HTTP/1.1" 200 OK
+INFO:     10.241.37.1:39444 - "GET /apple-touch-icon.png HTTP/1.1" 404 Not Found
+INFO:     10.241.37.1:39450 - "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 Not Found
+INFO:     10.241.37.1:39460 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     10.241.37.1:34776 - "GET / HTTP/1.1" 200 OK
+INFO:     10.241.37.1:34780 - "GET /favicon.ico HTTP/1.1" 404 Not Found
