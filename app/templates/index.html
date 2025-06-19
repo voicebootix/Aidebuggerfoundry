@@ -1,1550 +1,864 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DreamEngine - Turn Ideas Into Code</title>
-    
-    <!-- Apple-inspired Meta Tags -->
-    <meta name="description" content="Transform your product vision into deployable code with AI-powered development">
-    <meta name="theme-color" content="#007aff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Inline CSS for immediate loading -->
+    <title>AI Debugger Factory - Revolutionary AI Development Platform</title>
     <style>
-        /* Apple-Inspired Minimalist Styles for DreamEngine */
+        /* Apple Minimal Design System */
         :root {
-          /* Apple Color Palette */
-          --primary: #007aff;
-          --primary-dark: #0056b3;
-          --secondary: #34c759;
-          --secondary-dark: #28a745;
-          --warning: #ff9500;
-          --danger: #ff3b30;
-          --purple: #af52de;
-          --indigo: #5856d6;
-          
-          /* Neutral Colors - Apple Style */
-          --gray-1: #f2f2f7;
-          --gray-2: #e5e5ea;
-          --gray-3: #d1d1d6;
-          --gray-4: #c7c7cc;
-          --gray-5: #aeaeb2;
-          --gray-6: #8e8e93;
-          --label-primary: #000000;
-          --label-secondary: #3c3c43;
-          --label-tertiary: #3c3c4399;
-          --label-quaternary: #3c3c432e;
-          
-          /* Background Colors */
-          --bg-primary: #ffffff;
-          --bg-secondary: #f2f2f7;
-          --bg-tertiary: #ffffff;
-          --bg-grouped-primary: #f2f2f7;
-          --bg-grouped-secondary: #ffffff;
-          
-          /* Typography */
-          --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', 'Courier New', monospace;
-          
-          /* Font Sizes */
-          --font-size-caption2: 11px;
-          --font-size-caption1: 12px;
-          --font-size-footnote: 13px;
-          --font-size-subheadline: 15px;
-          --font-size-callout: 16px;
-          --font-size-body: 17px;
-          --font-size-headline: 17px;
-          --font-size-title3: 20px;
-          --font-size-title2: 22px;
-          --font-size-title1: 28px;
-          --font-size-large-title: 34px;
-          
-          /* Font Weights */
-          --font-weight-ultralight: 100;
-          --font-weight-thin: 200;
-          --font-weight-light: 300;
-          --font-weight-regular: 400;
-          --font-weight-medium: 500;
-          --font-weight-semibold: 600;
-          --font-weight-bold: 700;
-          --font-weight-heavy: 800;
-          --font-weight-black: 900;
-          
-          /* Spacing */
-          --spacing-1: 2px;
-          --spacing-2: 4px;
-          --spacing-3: 8px;
-          --spacing-4: 12px;
-          --spacing-5: 16px;
-          --spacing-6: 20px;
-          --spacing-7: 24px;
-          --spacing-8: 28px;
-          --spacing-9: 32px;
-          --spacing-10: 36px;
-          --spacing-11: 40px;
-          --spacing-12: 44px;
-          
-          /* Border Radius */
-          --radius-small: 6px;
-          --radius-medium: 8px;
-          --radius-large: 12px;
-          --radius-xl: 16px;
-          --radius-2xl: 20px;
-          --radius-full: 9999px;
-          
-          /* Shadows */
-          --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.1);
-          --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.1);
-          --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.1);
-          --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.1);
-          
-          /* Transitions */
-          --transition-fast: 0.15s ease-out;
-          --transition-normal: 0.3s ease-out;
-          --transition-slow: 0.5s ease-out;
-        }
-
-        /* Base Styles */
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
-        html {
-          font-size: 100%;
-          -webkit-text-size-adjust: 100%;
-          -ms-text-size-adjust: 100%;
-        }
-
-        body {
-          font-family: var(--font-family);
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-regular);
-          line-height: 1.47059;
-          color: var(--label-primary);
-          background-color: var(--bg-primary);
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Typography */
-        h1, h2, h3, h4, h5, h6 {
-          font-weight: var(--font-weight-semibold);
-          line-height: 1.2;
-          color: var(--label-primary);
-          margin: 0;
-        }
-
-        h1 { font-size: var(--font-size-large-title); font-weight: var(--font-weight-bold); }
-        h2 { font-size: var(--font-size-title1); }
-        h3 { font-size: var(--font-size-title2); }
-        h4 { font-size: var(--font-size-title3); }
-        h5 { font-size: var(--font-size-headline); }
-        h6 { font-size: var(--font-size-callout); }
-
-        p {
-          margin: 0 0 var(--spacing-5) 0;
-          color: var(--label-secondary);
-          line-height: 1.47059;
-        }
-
-        /* Main App Layout */
-        .app {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background-color: var(--bg-primary);
-        }
-
-        /* Navigation Header */
-        .nav-header {
-          background-color: rgba(255, 255, 255, 0.8);
-          backdrop-filter: saturate(180%) blur(20px);
-          -webkit-backdrop-filter: saturate(180%) blur(20px);
-          border-bottom: 0.5px solid var(--gray-3);
-          position: sticky;
-          top: 0;
-          z-index: 1020;
-          transition: all var(--transition-normal);
-        }
-
-        .nav-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 var(--spacing-6);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          height: 52px;
-        }
-
-        .nav-brand {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-3);
-        }
-
-        .brand-logo {
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-small);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .brand-text {
-          font-size: var(--font-size-headline);
-          font-weight: var(--font-weight-semibold);
-          color: var(--label-primary);
-        }
-
-        /* Navigation Pills */
-        .nav-pills {
-          display: flex;
-          background-color: var(--gray-2);
-          border-radius: var(--radius-large);
-          padding: var(--spacing-1);
-          gap: var(--spacing-1);
-        }
-
-        .nav-pill {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-2);
-          padding: var(--spacing-2) var(--spacing-4);
-          border-radius: var(--radius-medium);
-          font-size: var(--font-size-subheadline);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-secondary);
-          background: none;
-          border: none;
-          cursor: pointer;
-          transition: all var(--transition-fast);
-          white-space: nowrap;
-        }
-
-        .nav-pill:hover {
-          color: var(--label-primary);
-          background-color: rgba(0, 0, 0, 0.04);
-        }
-
-        .nav-pill.active {
-          color: var(--label-primary);
-          background-color: var(--bg-primary);
-          box-shadow: var(--shadow-small);
-        }
-
-        .nav-icon {
-          font-size: 14px;
-        }
-
-        /* Navigation Actions */
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-3);
-        }
-
-        /* Button System */
-        .btn-primary, .btn-secondary, .btn-text, .btn-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--spacing-2);
-          font-family: var(--font-family);
-          font-weight: var(--font-weight-medium);
-          border: none;
-          border-radius: var(--radius-medium);
-          cursor: pointer;
-          transition: all var(--transition-fast);
-          text-decoration: none;
-          white-space: nowrap;
-          -webkit-user-select: none;
-          user-select: none;
-        }
-
-        .btn-primary {
-          background-color: var(--primary);
-          color: white;
-          font-size: var(--font-size-body);
-          padding: var(--spacing-3) var(--spacing-5);
-          min-height: 44px;
-        }
-
-        .btn-primary:hover {
-          background-color: var(--primary-dark);
-          transform: translateY(-1px);
-          box-shadow: var(--shadow-medium);
-        }
-
-        .btn-primary:active {
-          transform: translateY(0);
-          box-shadow: var(--shadow-small);
-        }
-
-        .btn-secondary {
-          background-color: var(--gray-2);
-          color: var(--label-primary);
-          font-size: var(--font-size-body);
-          padding: var(--spacing-3) var(--spacing-5);
-          min-height: 44px;
-        }
-
-        .btn-secondary:hover {
-          background-color: var(--gray-3);
-          transform: translateY(-1px);
-        }
-
-        .btn-text {
-          background: none;
-          color: var(--primary);
-          font-size: var(--font-size-body);
-          padding: var(--spacing-2) var(--spacing-3);
-        }
-
-        .btn-text:hover {
-          color: var(--primary-dark);
-          background-color: rgba(0, 122, 255, 0.1);
-        }
-
-        .btn-icon {
-          background: none;
-          color: var(--label-secondary);
-          padding: var(--spacing-2);
-          border-radius: var(--radius-small);
-          width: 32px;
-          height: 32px;
-        }
-
-        .btn-icon:hover {
-          color: var(--label-primary);
-          background-color: var(--gray-2);
-        }
-
-        .btn-sm {
-          font-size: var(--font-size-subheadline);
-          padding: var(--spacing-2) var(--spacing-4);
-          min-height: 36px;
-        }
-
-        /* Main Content */
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .content-section {
-          display: none;
-          flex: 1;
-        }
-
-        .content-section.active {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .section-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: var(--spacing-12) var(--spacing-6);
-          flex: 1;
-        }
-
-        /* Hero Section */
-        .hero-section {
-          text-align: center;
-          margin-bottom: var(--spacing-12);
-        }
-
-        .hero-content {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .hero-title {
-          font-size: clamp(2.5rem, 5vw, 3.5rem);
-          font-weight: var(--font-weight-bold);
-          line-height: 1.1;
-          margin-bottom: var(--spacing-6);
-          color: var(--label-primary);
-        }
-
-        .hero-accent {
-          background: linear-gradient(135deg, var(--primary), var(--purple));
-          background-clip: text;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .hero-subtitle {
-          font-size: var(--font-size-title3);
-          font-weight: var(--font-weight-regular);
-          color: var(--label-secondary);
-          line-height: 1.4;
-          margin-bottom: 0;
-        }
-
-        /* Input Section */
-        .input-section {
-          background-color: var(--bg-secondary);
-          border-radius: var(--radius-2xl);
-          padding: var(--spacing-11);
-          margin-bottom: var(--spacing-12);
-        }
-
-        .input-container {
-          margin-bottom: var(--spacing-9);
-        }
-
-        .input-header {
-          text-align: center;
-          margin-bottom: var(--spacing-8);
-        }
-
-        .input-header h2 {
-          font-size: var(--font-size-title2);
-          font-weight: var(--font-weight-semibold);
-          margin-bottom: var(--spacing-3);
-          color: var(--label-primary);
-        }
-
-        .input-header p {
-          font-size: var(--font-size-body);
-          color: var(--label-secondary);
-          margin: 0;
-        }
-
-        /* Input Area */
-        .input-area {
-          position: relative;
-          background-color: var(--bg-primary);
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--gray-3);
-          transition: all var(--transition-normal);
-        }
-
-        .input-area:focus-within {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-        }
-
-        .main-input {
-          width: 100%;
-          padding: var(--spacing-6);
-          border: none;
-          background: transparent;
-          font-family: var(--font-family);
-          font-size: var(--font-size-body);
-          color: var(--label-primary);
-          resize: none;
-          outline: none;
-          line-height: 1.5;
-        }
-
-        .main-input::placeholder {
-          color: var(--label-tertiary);
-        }
-
-        .input-actions {
-          position: absolute;
-          bottom: var(--spacing-4);
-          right: var(--spacing-4);
-          display: flex;
-          gap: var(--spacing-2);
-        }
-
-        .input-meta {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: var(--spacing-3);
-          font-size: var(--font-size-footnote);
-          color: var(--label-tertiary);
-        }
-
-        .char-counter {
-          color: var(--label-secondary);
-        }
-
-        .input-tip {
-          color: var(--label-tertiary);
-        }
-
-        /* Options Section */
-        .options-section {
-          margin-bottom: var(--spacing-9);
-        }
-
-        .options-toggle {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-          padding: var(--spacing-4) var(--spacing-6);
-          background-color: var(--bg-primary);
-          border: 1px solid var(--gray-3);
-          border-radius: var(--radius-large);
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-primary);
-          cursor: pointer;
-          transition: all var(--transition-fast);
-        }
-
-        .options-toggle:hover {
-          background-color: var(--gray-1);
-        }
-
-        .options-chevron {
-          transition: transform var(--transition-fast);
-        }
-
-        .options-toggle[aria-expanded="true"] .options-chevron {
-          transform: rotate(180deg);
-        }
-
-        .options-panel {
-          display: none;
-          background-color: var(--bg-primary);
-          border: 1px solid var(--gray-3);
-          border-top: none;
-          border-radius: 0 0 var(--radius-large) var(--radius-large);
-          padding: var(--spacing-6);
-        }
-
-        .options-panel.active {
-          display: block;
-        }
-
-        .options-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: var(--spacing-5);
-          margin-bottom: var(--spacing-6);
-        }
-
-        .option-group {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-2);
-        }
-
-        .option-label {
-          font-size: var(--font-size-subheadline);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-primary);
-        }
-
-        .option-select {
-          padding: var(--spacing-3) var(--spacing-4);
-          border: 1px solid var(--gray-3);
-          border-radius: var(--radius-medium);
-          background-color: var(--bg-primary);
-          font-family: var(--font-family);
-          font-size: var(--font-size-body);
-          color: var(--label-primary);
-          cursor: pointer;
-          transition: border-color var(--transition-fast);
-        }
-
-        .option-select:focus {
-          outline: none;
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-        }
-
-        .options-checkboxes {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: var(--spacing-4);
-        }
-
-        .checkbox-option {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-3);
-          cursor: pointer;
-        }
-
-        .checkbox-option input[type="checkbox"] {
-          width: 18px;
-          height: 18px;
-          accent-color: var(--primary);
-          cursor: pointer;
-        }
-
-        .checkbox-label {
-          font-size: var(--font-size-body);
-          color: var(--label-primary);
-          cursor: pointer;
-        }
-
-        /* Action Section */
-        .action-section {
-          text-align: center;
-        }
-
-        .action-buttons {
-          display: flex;
-          justify-content: center;
-          gap: var(--spacing-4);
-          margin-bottom: var(--spacing-5);
-          flex-wrap: wrap;
-        }
-
-        .action-meta {
-          display: flex;
-          justify-content: center;
-          gap: var(--spacing-6);
-        }
-
-        /* Progress Section */
-        .progress-section {
-          display: none;
-          margin-bottom: var(--spacing-12);
-        }
-
-        .progress-section.active {
-          display: block;
-        }
-
-        .progress-container {
-          max-width: 600px;
-          margin: 0 auto;
-          text-align: center;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 4px;
-          background-color: var(--gray-2);
-          border-radius: var(--radius-full);
-          overflow: hidden;
-          margin-bottom: var(--spacing-4);
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, var(--primary), var(--purple));
-          border-radius: var(--radius-full);
-          transition: width var(--transition-normal);
-          width: 0%;
-        }
-
-        .progress-status {
-          font-size: var(--font-size-body);
-          color: var(--label-secondary);
-        }
-
-        /* Results Section */
-        .results-section {
-          display: none;
-        }
-
-        .results-section.active {
-          display: block;
-        }
-
-        .results-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--spacing-8);
-          padding-bottom: var(--spacing-6);
-          border-bottom: 1px solid var(--gray-3);
-        }
-
-        .results-header h2 {
-          font-size: var(--font-size-title2);
-          color: var(--label-primary);
-        }
-
-        .generation-time {
-          font-size: var(--font-size-footnote);
-          color: var(--label-tertiary);
-        }
-
-        .results-content {
-          margin-bottom: var(--spacing-8);
-        }
-
-        .file-navigator {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-4);
-          margin-bottom: var(--spacing-6);
-        }
-
-        .file-label {
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-primary);
-        }
-
-        .file-select {
-          flex: 1;
-          max-width: 300px;
-          padding: var(--spacing-2) var(--spacing-4);
-          border: 1px solid var(--gray-3);
-          border-radius: var(--radius-medium);
-          background-color: var(--bg-primary);
-          font-family: var(--font-family);
-          font-size: var(--font-size-body);
-          color: var(--label-primary);
-        }
-
-        /* Code Viewer */
-        .code-viewer {
-          background-color: var(--bg-secondary);
-          border-radius: var(--radius-xl);
-          overflow: hidden;
-          border: 1px solid var(--gray-3);
-        }
-
-        .code-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: var(--spacing-4) var(--spacing-6);
-          background-color: var(--bg-primary);
-          border-bottom: 1px solid var(--gray-3);
-        }
-
-        .code-language {
-          font-size: var(--font-size-footnote);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .code-actions {
-          display: flex;
-          gap: var(--spacing-2);
-        }
-
-        .code-content {
-          padding: 0;
-          max-height: 400px;
-          overflow: auto;
-        }
-
-        .code-block {
-          font-family: var(--font-mono);
-          font-size: var(--font-size-footnote);
-          line-height: 1.5;
-          color: var(--label-primary);
-          background: none;
-          padding: var(--spacing-6);
-          margin: 0;
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
-
-        /* Info Tabs */
-        .info-tabs {
-          display: flex;
-          background-color: var(--gray-2);
-          border-radius: var(--radius-large);
-          padding: var(--spacing-1);
-          margin-bottom: var(--spacing-6);
-        }
-
-        .info-tab {
-          flex: 1;
-          padding: var(--spacing-3) var(--spacing-5);
-          border: none;
-          background: none;
-          border-radius: var(--radius-medium);
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-medium);
-          color: var(--label-secondary);
-          cursor: pointer;
-          transition: all var(--transition-fast);
-        }
-
-        .info-tab:hover {
-          color: var(--label-primary);
-          background-color: rgba(0, 0, 0, 0.04);
-        }
-
-        .info-tab.active {
-          color: var(--label-primary);
-          background-color: var(--bg-primary);
-          box-shadow: var(--shadow-small);
-        }
-
-        .info-content {
-          background-color: var(--bg-secondary);
-          border-radius: var(--radius-xl);
-          padding: var(--spacing-8);
-        }
-
-        .info-panel {
-          display: none;
-        }
-
-        .info-panel.active {
-          display: block;
-        }
-
-        .info-text {
-          font-size: var(--font-size-body);
-          line-height: 1.6;
-          color: var(--label-primary);
-        }
-
-        .deployment-steps {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-6);
-        }
-
-        /* Placeholder Content */
-        .placeholder-content {
-          text-align: center;
-          padding: var(--spacing-12);
-          color: var(--label-secondary);
-        }
-
-        .placeholder-icon {
-          font-size: 4rem;
-          margin-bottom: var(--spacing-6);
-          opacity: 0.6;
-        }
+            --apple-white: #ffffff;
+            --apple-gray-1: #f5f5f7;
+            --apple-gray-2: #e8e8ed;
+            --apple-gray-3: #d2d2d7;
+            --apple-text-primary: #1d1d1f;
+            --apple-text-secondary: #86868b;
+            --apple-blue: #007aff;
+            --apple-green: #34c759;
+            --apple-red: #ff3b30;
+            --font-primary: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+            --border-radius: 12px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --transition: 0.2s ease;
+        }
+
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: var(--font-primary);
+        background: var(--apple-gray-1);
+        color: var(--apple-text-primary);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+        background: var(--apple-white);
+        border-bottom: 1px solid var(--apple-gray-2);
+        padding: 20px 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(20px);
+    }
+
+    .nav {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--apple-text-primary);
+    }
+
+    .nav-menu {
+        display: flex;
+        list-style: none;
+        gap: 32px;
+    }
+
+    .nav-item {
+        color: var(--apple-text-secondary);
+        text-decoration: none;
+        font-weight: 400;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .nav-item:hover {
+        color: var(--apple-blue);
+    }
+
+    /* Container */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px;
+    }
+
+    /* Cards */
+    .card {
+        background: var(--apple-white);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 32px;
+        margin-bottom: 24px;
+        border: 1px solid var(--apple-gray-2);
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 24px;
+        border: none;
+        border-radius: var(--border-radius);
+        font-family: var(--font-primary);
+        font-size: 16px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: var(--transition);
+        min-height: 44px;
+    }
+
+    .btn-primary {
+        background: var(--apple-blue);
+        color: white;
+        box-shadow: var(--shadow);
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--apple-white);
+        color: var(--apple-text-primary);
+        border: 1px solid var(--apple-gray-3);
+    }
+
+    .btn-secondary:hover {
+        background: var(--apple-gray-1);
+    }
+
+    .btn-large {
+        padding: 16px 32px;
+        font-size: 18px;
+        min-height: 52px;
+    }
+
+    /* Voice Interface */
+    .voice-interface {
+        text-align: center;
+        padding: 48px 0;
+    }
+
+    .voice-button {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--apple-blue);
+        border: none;
+        color: white;
+        font-size: 32px;
+        cursor: pointer;
+        transition: var(--transition);
+        margin: 24px auto;
+        display: block;
+    }
+
+    .voice-button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+    }
+
+    .voice-button.recording {
+        background: var(--apple-red);
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    /* Grid */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        margin-top: 32px;
+    }
+
+    .project-card {
+        background: var(--apple-white);
+        border-radius: var(--border-radius);
+        padding: 24px;
+        border: 1px solid var(--apple-gray-2);
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .project-card:hover {
+        box-shadow: var(--shadow);
+        transform: translateY(-2px);
+    }
+
+    .project-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--apple-text-primary);
+    }
+
+    .project-description {
+        color: var(--apple-text-secondary);
+        margin-bottom: 16px;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .status-active {
+        background: rgba(52, 199, 89, 0.1);
+        color: var(--apple-green);
+    }
+
+    .status-completed {
+        background: rgba(0, 122, 255, 0.1);
+        color: var(--apple-blue);
+    }
+
+    /* Forms */
+    .input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--apple-gray-3);
+        border-radius: var(--border-radius);
+        font-family: var(--font-primary);
+        font-size: 16px;
+        background: var(--apple-white);
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .input:focus {
+        border-color: var(--apple-blue);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+
+    /* Conversation */
+    .conversation {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .message {
+        display: flex;
+        margin-bottom: 24px;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .message.user {
+        flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .message-avatar.ai {
+        background: var(--apple-blue);
+        color: white;
+    }
+
+    .message-avatar.user {
+        background: var(--apple-gray-3);
+        color: var(--apple-text-primary);
+    }
+
+    .message-content {
+        background: var(--apple-white);
+        padding: 16px 20px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        max-width: 70%;
+        border: 1px solid var(--apple-gray-2);
+    }
+
+    .message.user .message-content {
+        background: var(--apple-blue);
+        color: white;
+    }
+
+    /* Utilities */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .mt-sm { margin-top: 8px; }
+    .mt-md { margin-top: 16px; }
+    .mt-lg { margin-top: 24px; }
+    .mt-xl { margin-top: 32px; }
+    .mb-sm { margin-bottom: 8px; }
+    .mb-md { margin-bottom: 16px; }
+    .mb-lg { margin-bottom: 24px; }
+    .flex { display: flex; }
+    .flex-gap { gap: 16px; }
+    .flex-wrap { flex-wrap: wrap; }
+
+    /* Loading */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--apple-gray-3);
+        border-top: 2px solid var(--apple-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: var(--transition);
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: var(--apple-white);
+        border-radius: var(--border-radius);
+        padding: 32px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .nav-menu { display: none; }
+        .container { padding: 16px; }
+        .grid { grid-template-columns: 1fr; }
+        .message-content { max-width: 85%; }
+        .voice-button { width: 100px; height: 100px; font-size: 24px; }
+    }
+</style>
 
-        .placeholder-content h3 {
-          font-size: var(--font-size-title2);
-          margin-bottom: var(--spacing-4);
-          color: var(--label-primary);
-        }
-
-        .placeholder-content p {
-          font-size: var(--font-size-body);
-          max-width: 400px;
-          margin: 0 auto;
-        }
-
-        /* Status Indicator */
-        .status-indicator {
-          position: fixed;
-          bottom: var(--spacing-6);
-          right: var(--spacing-6);
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-2);
-          padding: var(--spacing-2) var(--spacing-4);
-          background-color: var(--bg-primary);
-          border: 1px solid var(--gray-3);
-          border-radius: var(--radius-full);
-          font-size: var(--font-size-footnote);
-          color: var(--label-secondary);
-          box-shadow: var(--shadow-medium);
-          backdrop-filter: saturate(180%) blur(20px);
-          z-index: 1030;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background-color: var(--secondary);
-        }
-
-        /* Error Toast */
-        .error-toast {
-          position: fixed;
-          top: var(--spacing-6);
-          left: 50%;
-          transform: translateX(-50%);
-          background-color: var(--danger);
-          color: white;
-          padding: var(--spacing-4) var(--spacing-6);
-          border-radius: var(--radius-large);
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-medium);
-          z-index: 1050;
-          display: none;
-          max-width: 90vw;
-          box-shadow: var(--shadow-large);
-        }
-
-        .error-toast.show {
-          display: block;
-          animation: slideDown 0.3s ease-out;
-        }
-
-        .error-toast.success {
-          background-color: var(--secondary);
-        }
-
-        .error-toast.info {
-          background-color: var(--primary);
-        }
 
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-
-        /* Loading Overlay */
-        .loading-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.4);
-          backdrop-filter: blur(8px);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 1050;
-          opacity: 0;
-          visibility: hidden;
-          transition: all var(--transition-normal);
-        }
-
-        .loading-overlay.active {
-          opacity: 1;
-          visibility: visible;
-        }
-
-        .loading-spinner {
-          width: 32px;
-          height: 32px;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-top: 3px solid white;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: var(--spacing-4);
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-          color: white;
-          font-size: var(--font-size-body);
-          font-weight: var(--font-weight-medium);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .nav-container {
-            padding: 0 var(--spacing-4);
-          }
-          
-          .nav-pills {
-            display: none;
-          }
-          
-          .nav-actions {
-            gap: var(--spacing-2);
-          }
-          
-          .section-container {
-            padding: var(--spacing-8) var(--spacing-4);
-          }
-          
-          .input-section {
-            padding: var(--spacing-8);
-          }
-          
-          .hero-title {
-            font-size: 2.5rem;
-          }
-          
-          .hero-subtitle {
-            font-size: var(--font-size-body);
-          }
-          
-          .action-buttons {
-            flex-direction: column;
-            align-items: center;
-          }
-          
-          .action-buttons .btn-primary,
-          .action-buttons .btn-secondary {
-            width: 100%;
-            max-width: 280px;
-          }
-          
-          .options-grid,
-          .options-checkboxes {
-            grid-template-columns: 1fr;
-          }
-          
-          .results-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: var(--spacing-3);
-          }
-          
-          .file-navigator {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: var(--spacing-3);
-          }
-          
-          .file-select {
-            width: 100%;
-            max-width: none;
-          }
-          
-          .info-tabs {
-            flex-direction: column;
-          }
-          
-          .status-indicator {
-            bottom: var(--spacing-4);
-            right: var(--spacing-4);
-            font-size: var(--font-size-caption1);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .nav-brand .brand-text {
-            display: none;
-          }
-          
-          .nav-actions .btn-secondary {
-            display: none;
-          }
-          
-          .hero-title {
-            font-size: 2rem;
-          }
-          
-          .input-actions {
-            position: static;
-            justify-content: center;
-            margin-top: var(--spacing-4);
-            padding: 0 var(--spacing-4);
-          }
-          
-          .main-input {
-            padding-bottom: var(--spacing-6);
-          }
-        }
-    </style>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
 </head>
 <body>
-    <!-- Main App Container -->
-    <div class="app">
-        <!-- Navigation Header -->
-        <header class="nav-header">
-            <div class="nav-container">
-                <div class="nav-brand">
-                    <div class="brand-logo">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                            <rect width="28" height="28" rx="6" fill="#007aff"/>
-                            <path d="M14 7L19 12L14 17L14 14L9 14L9 10L14 10L14 7Z" fill="white"/>
-                        </svg>
-                    </div>
-                    <span class="brand-text">DreamEngine</span>
-                </div>
-                
-                <nav class="nav-pills">
-                    <button class="nav-pill active" data-section="build">
-                        <span class="nav-icon">⚡</span>
-                        Build
-                    </button>
-                    <button class="nav-pill" data-section="debug">
-                        <span class="nav-icon">🔧</span>
-                        Debug
-                    </button>
-                    <button class="nav-pill" data-section="evolve">
-                        <span class="nav-icon">📈</span>
-                        Evolve
-                    </button>
-                </nav>
-                
-                <div class="nav-actions">
-                    <button class="btn-secondary btn-sm" id="docs-button">
-                        <span>Documentation</span>
-                    </button>
-                    <button class="btn-primary btn-sm" id="new-project-button">
-                        <span>New Project</span>
-                    </button>
-                </div>
-            </div>
-        </header>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">🚀 AI Debugger Factory</div>
+            <ul class="nav-menu">
+                <li><a class="nav-item" onclick="showSection('dashboard')">Dashboard</a></li>
+                <li><a class="nav-item" onclick="showSection('voice-conversation')">VoiceBotics</a></li>
+                <li><a class="nav-item" onclick="showSection('business-validation')">Business Intelligence</a></li>
+                <li><a class="nav-item" onclick="showSection('dream-engine')">Layer 1 Build</a></li>
+                <li><a class="nav-item" onclick="showSection('debug-engine')">Layer 2 Debug</a></li>
+            </ul>
+            <button class="btn btn-secondary">Sign Out</button>
+        </nav>
+    </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Build Section -->
-            <section id="build-section" class="content-section active">
-                <div class="section-container">
-                    <!-- Hero Section -->
-                    <div class="hero-section">
-                        <div class="hero-content">
-                            <h1 class="hero-title">
-                                Turn ideas into code.<br>
-                                <span class="hero-accent">Effortlessly.</span>
-                            </h1>
-                            <p class="hero-subtitle">
-                                Describe your vision in natural language. Our AI transforms it into production-ready code in minutes, not months.
-                            </p>
-                        </div>
-                    </div>
 
-                    <!-- Main Input Area -->
-                    <div class="input-section">
-                        <div class="input-container">
-                            <div class="input-header">
-                                <h2>Describe your product vision</h2>
-                                <p>Be as detailed as possible. The more context you provide, the better the results.</p>
-                            </div>
-                            
-                            <div class="input-area">
-                                <textarea 
-                                    id="dream-input" 
-                                    class="main-input" 
-                                    placeholder="Example: Create a FastAPI backend for a task management application with user authentication, CRUD operations for tasks, and PostgreSQL database."
-                                    rows="6"
-                                ></textarea>
-                                
-                                <div class="input-actions">
-                                    <button class="btn-icon" id="voice-input-button" title="Voice Input">
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Character Counter -->
-                            <div class="input-meta">
-                                <span class="char-counter">
-                                    <span id="char-count">0</span> characters
-                                </span>
-                                <span class="input-tip">
-                                    Minimum 50 characters for best results
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Generation Options -->
-                        <div class="options-section">
-                            <button class="options-toggle" id="options-toggle">
-                                <span>Generation Options</span>
-                                <svg class="options-chevron" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M4.427 9.573l3.396-3.396a.25.25 0 01.354 0l3.396 3.396a.25.25 0 01-.177.427H4.604a.25.25 0 01-.177-.427z"/>
-                                </svg>
-                            </button>
-                            
-                            <div class="options-panel" id="options-panel">
-                                <div class="options-grid">
-                                    <div class="option-group">
-                                        <label class="option-label">Project Type</label>
-                                        <select id="dream-project-type-select" class="option-select">
-                                            <option value="">Auto-detect</option>
-                                            <option value="web_api">Web API</option>
-                                            <option value="web_app">Web Application</option>
-                                            <option value="mobile_app">Mobile App</option>
-                                            <option value="cli_tool">CLI Tool</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="option-group">
-                                        <label class="option-label">Programming Language</label>
-                                        <select id="dream-language-select" class="option-select">
-                                            <option value="">Auto-detect</option>
-                                            <option value="python">Python</option>
-                                            <option value="javascript">JavaScript</option>
-                                            <option value="typescript">TypeScript</option>
-                                            <option value="java">Java</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="option-group">
-                                        <label class="option-label">Database</label>
-                                        <select id="dream-database-select" class="option-select">
-                                            <option value="">Auto-detect</option>
-                                            <option value="postgresql">PostgreSQL</option>
-                                            <option value="mysql">MySQL</option>
-                                            <option value="mongodb">MongoDB</option>
-                                            <option value="sqlite">SQLite</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="option-group">
-                                        <label class="option-label">Security Level</label>
-                                        <select id="dream-security-select" class="option-select">
-                                            <option value="standard">Standard</option>
-                                            <option value="basic">Basic</option>
-                                            <option value="high">High</option>
-                                            <option value="enterprise">Enterprise</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="options-checkboxes">
-                                    <label class="checkbox-option">
-                                        <input type="checkbox" id="dream-include-tests-checkbox" checked>
-                                        <span class="checkmark"></span>
-                                        <span class="checkbox-label">Include Tests</span>
-                                    </label>
-                                    
-                                    <label class="checkbox-option">
-                                        <input type="checkbox" id="dream-include-docs-checkbox" checked>
-                                        <span class="checkmark"></span>
-                                        <span class="checkbox-label">Include Documentation</span>
-                                    </label>
-                                    
-                                    <label class="checkbox-option">
-                                        <input type="checkbox" id="dream-include-docker-checkbox">
-                                        <span class="checkmark"></span>
-                                        <span class="checkbox-label">Include Docker</span>
-                                    </label>
-                                    
-                                    <label class="checkbox-option">
-                                        <input type="checkbox" id="dream-include-cicd-checkbox">
-                                        <span class="checkmark"></span>
-                                        <span class="checkbox-label">Include CI/CD</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="action-section">
-                            <div class="action-buttons">
-                                <button class="btn-secondary" id="dream-validate-button">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M13.854 3.646a.5.5 0 010 .708l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 11.708-.708L6.5 10.293l6.646-6.647a.5.5 0 01.708 0z"/>
-                                    </svg>
-                                    <span>Validate Idea</span>
-                                </button>
-                                
-                                <button class="btn-primary" id="dream-generate-button">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/>
-                                    </svg>
-                                    <span>Generate Code</span>
-                                </button>
-                                
-                                <button class="btn-secondary" id="dream-streaming-button">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M1.5 1.5A.5.5 0 012 1h12a.5.5 0 01.5.5v2a.5.5 0 01-.128.334L10 8.692l4.372 5.158A.5.5 0 0114 14.5v2a.5.5 0 01-.5.5H2a.5.5 0 01-.5-.5v-2a.5.5 0 01.128-.334L6 8.692 1.628 3.534A.5.5 0 011.5 3.5v-2z"/>
-                                    </svg>
-                                    <span>Stream Generation</span>
-                                </button>
-                            </div>
-                            
-                            <div class="action-meta">
-                                <button class="btn-text" id="dream-save-draft-button">Save Draft</button>
-                                <button class="btn-text" id="dream-load-draft-button">Load Draft</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Progress Section -->
-                    <div class="progress-section" id="progress-section">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="dream-progress-bar"></div>
-                            </div>
-                            <div class="progress-status" id="dream-progress-status">Ready to generate</div>
-                        </div>
-                    </div>
-
-                    <!-- Results Section -->
-                    <div class="results-section" id="dream-result-container">
-                        <div class="results-header">
-                            <h2>Generated Code</h2>
-                            <div class="results-meta">
-                                <span class="generation-time">
-                                    Generated in <span id="dream-generation-time">0.00</span>s
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="results-content">
-                            <div class="file-navigator">
-                                <label class="file-label">Files</label>
-                                <select id="dream-file-selector" class="file-select">
-                                    <option value="">Select a file...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="code-viewer">
-                                <div class="code-header">
-                                    <span class="code-language" id="code-language">Python</span>
-                                    <div class="code-actions">
-                                        <button class="btn-icon" id="dream-copy-code-button" title="Copy Code">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                                <path d="M4 1.5H3a2 2 0 00-2 2V14a2 2 0 002 2h10a2 2 0 002-2V3.5a2 2 0 00-2-2h-1v1h1a1 1 0 011 1V14a1 1 0 01-1 1H3a1 1 0 01-1-1V3.5a1 1 0 011-1h1v-1z"/>
-                                                <path d="M9.5 1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5v-1a.5.5 0 01.5-.5h3zm-3-1A1.5 1.5 0 005 1.5v1A1.5 1.5 0 006.5 4h3A1.5 1.5 0 0011 2.5v-1A1.5 1.5 0 009.5 0h-3z"/>
-                                            </svg>
-                                        </button>
-                                        <button class="btn-icon" id="dream-download-code-button" title="Download File">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                                <path d="M.5 9.9a.5.5 0 01.5.5v2.5a1 1 0 001 1h12a1 1 0 001-1v-2.5a.5.5 0 011 0v2.5a2 2 0 01-2 2H2a2 2 0 01-2-2v-2.5a.5.5 0 01.5-.5z"/>
-                                                <path d="M7.646 11.854a.5.5 0 00.708 0l3-3a.5.5 0 00-.708-.708L8.5 10.293V1.5a.5.5 0 00-1 0v8.793L5.354 8.146a.5.5 0 10-.708.708l3 3z"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="code-content">
-                                    <pre><code id="dream-code-display" class="code-block"></code></pre>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Additional Info Tabs -->
-                        <div class="info-tabs">
-                            <button class="info-tab active" data-tab="explanation">
-                                <span>Explanation</span>
-                            </button>
-                            <button class="info-tab" data-tab="architecture">
-                                <span>Architecture</span>
-                            </button>
-                            <button class="info-tab" data-tab="deployment">
-                                <span>Deployment</span>
-                            </button>
-                        </div>
-                        
-                        <div class="info-content">
-                            <div class="info-panel active" id="explanation-panel">
-                                <div id="dream-explanation" class="info-text"></div>
-                            </div>
-                            
-                            <div class="info-panel" id="architecture-panel">
-                                <div id="dream-architecture" class="info-text"></div>
-                            </div>
-                            
-                            <div class="info-panel" id="deployment-panel">
-                                <div id="dream-deployment-steps" class="deployment-steps"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Debug Section -->
-           <!-- Debug Section -->
-<section id="debug-section" class="content-section">
-    <div class="section-container">
-        <div class="hero-section">
-            <div class="hero-content">
-                <h1 class="hero-title">Debug & Improve</h1>
-                <p class="hero-subtitle">
-                    AI-powered code analysis, bug detection, and intelligent fixes with real-time collaboration.
-                </p>
+<!-- Main Container -->
+<div class="container">
+    
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="app-section">
+        <div class="card">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 16px;">Welcome to AI Debugger Factory</h1>
+            <p style="font-size: 1.25rem; color: var(--apple-text-secondary); margin-bottom: 32px;">Transform your ideas into deployed applications with revolutionary AI-powered development.</p>
+            
+            <div class="flex flex-gap flex-wrap">
+                <button class="btn btn-primary btn-large" onclick="showSection('voice-conversation')">
+                    🎤 Start AI Cofounder Conversation
+                </button>
+                <button class="btn btn-secondary btn-large" onclick="showSection('dream-engine')">
+                    ⚡ Generate Code Directly
+                </button>
             </div>
         </div>
-        
-        <!-- Debug Interface -->
-        <div class="debug-workspace">
-            <!-- Left Panel: Chat Interface -->
-            <div class="debug-chat-panel">
-                <div class="debug-chat-header">
-                    <h3>🤖 AI Debug Assistant</h3>
-                    <div class="debug-status">
-                        <span class="status-indicator active"></span>
-                        <span>Ready to help</span>
-                    </div>
-                </div>
-                
-                <div class="debug-messages" id="debug-messages">
-                    <div class="ai-message">
-                        <div class="message-content">
-                            <p>👋 Hi! I'm your AI debugging partner. I can:</p>
-                            <ul>
-                                <li>🔍 Analyze your code for bugs and issues</li>
-                                <li>🛠️ Suggest specific fixes and improvements</li>
-                                <li>✨ Add new features to existing code</li>
-                                <li>📝 Remember our conversation context</li>
-                            </ul>
-                            <p>Upload some code or describe what you'd like me to debug!</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="debug-input-area">
-                    <div class="debug-typing-indicator" id="debug-typing-indicator" style="display: none;">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                        <p>AI is analyzing...</p>
-                    </div>
-                    
-                    <div class="debug-input-container">
-                        <textarea 
-                            id="debug-input" 
-                            placeholder="Describe the issue or paste your code here..."
-                            rows="3"
-                        ></textarea>
-                        <div class="debug-input-actions">
-                            <button id="debug-upload-btn" class="btn-icon" title="Upload code file">
-                                📁
-                            </button>
-                            <button id="debug-send-btn" class="btn-primary">
-                                Send
-                            </button>
-                        </div>
-                    </div>
+
+        <!-- Projects Grid -->
+        <div class="grid">
+            <div class="project-card" onclick="openProject('sample-1')">
+                <div class="project-title">Sample Task Manager</div>
+                <div class="project-description">AI-generated task management application with real-time collaboration</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                    <span style="font-size: 14px; color: var(--apple-text-secondary);">Created: 2 days ago</span>
+                    <span class="status-badge status-active">Active</span>
                 </div>
             </div>
             
-            <!-- Right Panel: Script Editor -->
-            <div class="debug-editor-panel">
-                <div class="editor-header">
-                    <h3>📝 Code Editor</h3>
-                    <div class="editor-actions">
-                        <select id="debug-file-selector" class="file-selector">
-                            <option value="">Select a file to edit...</option>
-                        </select>
-                        <button id="editor-new-file" class="btn-secondary btn-sm">
-                            + New File
-                        </button>
-                    </div>
+            <div class="project-card" onclick="openProject('sample-2')">
+                <div class="project-title">E-commerce Platform</div>
+                <div class="project-description">Full-stack e-commerce solution with payment integration</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                    <span style="font-size: 14px; color: var(--apple-text-secondary);">Created: 1 week ago</span>
+                    <span class="status-badge status-completed">Deployed</span>
                 </div>
-                
-                <div class="code-editor-container">
-                    <div id="debug-code-editor" class="code-editor">
-                        <textarea 
-                            id="code-editor-textarea"
-                            placeholder="// Your code will appear here for editing
-// The AI can make suggestions and you can edit in real-time
-
-function example() {
-    console.log('Start coding or upload a file!');
-}"
-                            spellcheck="false"
-                        ></textarea>
-                    </div>
-                    
-                    <div class="editor-footer">
-                        <div class="editor-info">
-                            <span id="editor-line-count">Lines: 0</span>
-                            <span id="editor-char-count">Characters: 0</span>
-                        </div>
-                        <div class="editor-actions-right">
-                            <button id="editor-save" class="btn-secondary btn-sm">
-                                💾 Save Changes
-                            </button>
-                            <button id="editor-apply-suggestion" class="btn-primary btn-sm" style="display: none;">
-                                ✨ Apply AI Suggestion
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Analysis Results Panel -->
-                <div class="analysis-results" id="analysis-results" style="display: none;">
-                    <div class="analysis-header">
-                        <h4>🔍 Analysis Results</h4>
-                        <button id="close-analysis" class="btn-icon">✕</button>
-                    </div>
-                    <div class="analysis-content" id="analysis-content">
-                        <!-- Analysis results will be populated here -->
-                    </div>
+            </div>
+            
+            <div class="project-card" onclick="createNewProject()">
+                <div class="text-center" style="padding: 40px; color: var(--apple-text-secondary);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">+</div>
+                    <div>Create New Project</div>
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- VoiceBotics AI Cofounder Section -->
+    <section id="voice-conversation" class="app-section hidden">
+        <div class="card">
+            <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 24px; text-align: center;">🎤 VoiceBotics AI Cofounder</h2>
+            <p class="text-center" style="color: var(--apple-text-secondary); margin-bottom: 32px;">Have a natural conversation about your business idea. I'll help validate your strategy and generate production-ready code.</p>
+            
+            <div class="voice-interface">
+                <button id="voice-button" class="voice-button" onclick="toggleVoiceRecording()">🎤</button>
+                <div id="voice-status" style="font-size: 18px; font-weight: 500; color: var(--apple-text-secondary);">Click to start conversation</div>
+            </div>
+            
+            <div class="conversation" id="conversation-container">
+                <!-- Conversation messages will appear here -->
+            </div>
+            
+            <div class="mt-xl">
+                <textarea 
+                    id="text-input" 
+                    class="input textarea" 
+                    placeholder="Or type your message here..."
+                    onkeypress="handleTextInput(event)"
+                ></textarea>
+                <button class="btn btn-primary mt-md" onclick="sendTextMessage()">Send Message</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Business Intelligence Section -->
+    <section id="business-validation" class="app-section hidden">
+        <div class="card">
+            <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 24px;">🧠 Business Intelligence & Validation</h2>
+            <p style="color: var(--apple-text-secondary); margin-bottom: 32px;">Let me analyze your business idea, research competitors, and validate your strategy before we build.</p>
+            
+            <div class="mb-lg">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Describe your business idea:</label>
+                <textarea 
+                    id="business-idea-input"
+                    class="input textarea"
+                    placeholder="Example: I want to create a platform that helps dog owners find trusted pet sitters in their neighborhood..."
+                ></textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="startBusinessValidation()">
+                Analyze & Validate Business Idea
+            </button>
+            
+            <div id="validation-results" class="mt-xl hidden">
+                <!-- Validation results will appear here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Layer 1 Build (Dream Engine) Section -->
+    <section id="dream-engine" class="app-section hidden">
+        <div class="card">
+            <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 24px;">⚡ Layer 1 Build - Dream Engine</h2>
+            <p style="color: var(--apple-text-secondary); margin-bottom: 32px;">Describe what you want to build, and I'll generate production-ready code with strategic analysis.</p>
+            
+            <div class="mb-lg">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Project Description:</label>
+                <textarea 
+                    id="build-request-input"
+                    class="input textarea"
+                    placeholder="Example: Build a task management app with user authentication, real-time collaboration, and mobile responsiveness..."
+                ></textarea>
+            </div>
+            
+            <div class="flex flex-gap mb-lg">
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Technology Stack:</label>
+                    <select class="input" id="tech-stack-select">
+                        <option value="fastapi-react">FastAPI + React + PostgreSQL</option>
+                        <option value="django-vue">Django + Vue.js + PostgreSQL</option>
+                        <option value="nodejs-react">Node.js + React + MongoDB</option>
+                        <option value="custom">Custom Stack</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Deployment Target:</label>
+                    <select class="input" id="deployment-select">
+                        <option value="render">Render</option>
+                        <option value="vercel">Vercel</option>
+                        <option value="railway">Railway</option>
+                        <option value="aws">AWS</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary btn-large" onclick="startDreamGeneration()">
+                🚀 Generate Production Code
+            </button>
+            
+            <div id="generation-results" class="mt-xl hidden">
+                <!-- Generation results will appear here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Layer 2 Debug (Debug Engine) Section -->
+    <section id="debug-engine" class="app-section hidden">
+        <div class="card">
+            <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 24px;">🔧 Layer 2 Debug - Professional Debugging</h2>
+            <p style="color: var(--apple-text-secondary); margin-bottom: 32px;">Load your GitHub repository and debug with AI assistance using professional Monaco Editor.</p>
+            
+            <div class="mb-lg">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">GitHub Repository URL:</label>
+                <input 
+                    type="text" 
+                    id="github-repo-input"
+                    class="input"
+                    placeholder="https://github.com/username/repository"
+                />
+            </div>
+            
+            <button class="btn btn-primary" onclick="loadGitHubRepo()">
+                📁 Load Repository
+            </button>
+            
+            <div id="debug-workspace" class="mt-xl hidden">
+                <div class="flex flex-gap mb-md">
+                    <button class="btn btn-secondary" onclick="askAIDebugQuestion()">🤖 Ask AI for Help</button>
+                    <button class="btn btn-secondary" onclick="runTests()">✅ Run Tests</button>
+                    <button class="btn btn-secondary" onclick="syncToGitHub()">📤 Sync to GitHub</button>
+                </div>
+                
+                <!-- Monaco Editor Container -->
+                <div id="monaco-editor" style="height: 500px; border: 1px solid var(--apple-gray-3); border-radius: var(--border-radius); background: var(--apple-white);"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 id="modal-title" style="font-size: 20px; font-weight: 600;">Modal Title</h3>
+            <button style="background: none; border: none; font-size: 24px; cursor: pointer;" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modal-body">
+            <!-- Modal content will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // Application state
+    let currentSession = null;
+    let isRecording = false;
+    let mediaRecorder = null;
+    let conversationHistory = [];
+
+    // Navigation
+    function showSection(sectionId) {
+        document.querySelectorAll('.app-section').forEach(section => {
+            section.classList.add('hidden');
+        });
+        document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    // Modal functions
+    function showModal(title, content) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-body').innerHTML = content;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+
+    // Voice recording
+    async function toggleVoiceRecording() {
+        const button = document.getElementById('voice-button');
+        const status = document.getElementById('voice-status');
         
-        <!-- File Upload Modal -->
-        <div id="debug-upload-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Upload Code File</h3>
-                    <button class="modal-close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="upload-area" id="debug-upload-area">
-                        <div class="upload-icon">📁</div>
-                        <p>Drag & drop your code file here</p>
-                        <p class="upload-hint">Supports: .js, .py, .html, .css, .json, .md</p>
-                        <input type="file" id="debug-file-input" accept=".js,.py,.html,.css,.json,.md,.txt,.jsx,.ts,.tsx" style="display: none;">
-                        <button class="btn-secondary" onclick="document.getElementById('debug-file-input').click()">
-                            Choose File
-                        </button>
-                    </div>
-                </div>
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                button.classList.add('recording');
+                button.textContent = '⏹️';
+                status.textContent = 'Recording... Click to stop';
+                
+                setTimeout(() => {
+                    if (isRecording) {
+                        toggleVoiceRecording();
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                showModal('Microphone Error', 'Unable to access microphone. Please check permissions and try typing instead.');
+            }
+        } else {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            
+            button.classList.remove('recording');
+            button.textContent = '🎤';
+            status.textContent = 'Processing voice input...';
+            
+            setTimeout(() => {
+                addMessageToConversation('user', 'Voice message received');
+                addMessageToConversation('ai', 'Thank you for your voice input! I heard you clearly. How can I help you build your application today?');
+                status.textContent = 'Click to start conversation';
+            }, 1000);
+        }
+    }
+
+    // Text input
+    function handleTextInput(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendTextMessage();
+        }
+    }
+
+    function sendTextMessage() {
+        const input = document.getElementById('text-input');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        input.value = '';
+        addMessageToConversation('user', message);
+        
+        setTimeout(() => {
+            addMessageToConversation('ai', `Great question! "${message}" - I understand you want to explore this idea. Let me help you develop this into a complete application. What specific features are you envisioning?`);
+        }, 1000);
+    }
+
+    // Add message to conversation
+    function addMessageToConversation(sender, content) {
+        const container = document.getElementById('conversation-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar ${sender}">
+                ${sender === 'ai' ? '🤖' : '👤'}
             </div>
-        </div>
-    </div>
-</section>
+            <div class="message-content">
+                ${content}
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
 
-            <!-- Evolve Section -->
-            <section id="evolve-section" class="content-section">
-                <div class="section-container">
-                    <div class="hero-section">
-                        <div class="hero-content">
-                            <h1 class="hero-title">
-                                Evolve & Scale
-                            </h1>
-                            <p class="hero-subtitle">
-                                Get insights, analytics, and suggestions to improve your applications over time.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">📈</div>
-                        <h3>Evolution Module Coming Soon</h3>
-                        <p>Analytics and optimization suggestions will help you scale your applications.</p>
-                    </div>
-                </div>
-            </section>
-        </main>
+    // Business validation
+    function startBusinessValidation() {
+        const businessIdea = document.getElementById('business-idea-input').value.trim();
+        
+        if (!businessIdea) {
+            showModal('Input Required', 'Please describe your business idea first.');
+            return;
+        }
+        
+        showModal('Business Validation', `
+            <div style="margin-bottom: 16px;">
+                <strong>Analyzing:</strong> ${businessIdea}
+            </div>
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 16px;">This is a demo. In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Research your market and competitors</li>
+                <li>Analyze business model viability</li>
+                <li>Provide strategic recommendations</li>
+                <li>Suggest optimal technology approach</li>
+            </ul>
+        `);
+    }
 
-        <!-- Status Indicator -->
-        <div class="status-indicator" id="status-indicator">
-            <div class="status-dot"></div>
-            <span class="status-text">System Online</span>
-        </div>
-    </div>
+    // Code generation
+    function startDreamGeneration() {
+        const buildRequest = document.getElementById('build-request-input').value.trim();
+        
+        if (!buildRequest) {
+            showModal('Input Required', 'Please describe what you want to build.');
+            return;
+        }
+        
+        showModal('Code Generation', `
+            <div style="margin-bottom: 16px;">
+                <strong>Generating code for:</strong> ${buildRequest}
+            </div>
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 16px;">This is a demo. In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Analyze your requirements strategically</li>
+                <li>Generate production-ready code files</li>
+                <li>Create database schemas and API routes</li>
+                <li>Set up deployment configuration</li>
+                <li>Push everything to GitHub automatically</li>
+            </ul>
+        `);
+    }
 
-    <!-- Error Display -->
-    <div id="dream-error" class="error-toast"></div>
+    // GitHub integration
+    function loadGitHubRepo() {
+        const repoUrl = document.getElementById('github-repo-input').value.trim();
+        
+        if (!repoUrl) {
+            showModal('Input Required', 'Please enter a GitHub repository URL.');
+            return;
+        }
+        
+        document.getElementById('debug-workspace').classList.remove('hidden');
+        showModal('Repository Loaded', `
+            <p>✅ Successfully loaded repository: ${repoUrl}</p>
+            <p>In the full version, you would see:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Complete Monaco Editor with your code</li>
+                <li>AI-powered debugging assistance</li>
+                <li>Real-time collaboration features</li>
+                <li>Automatic GitHub synchronization</li>
+            </ul>
+        `);
+    }
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Processing your request...</p>
-    </div>
-    
-<!-- CRITICAL: Load main.js BEFORE diagnostic script -->
-<script src="{{ url_for('static', path='js/main.js') }}"></script>
-<script src="{{ url_for('static', path='js/interface_controller.js') }}"></script>
-<script src="{{ url_for('static', path='js/dream_client.js') }}"></script>
-<!-- Load diagnostic script LAST and don't auto-run -->
-<script src="{{ url_for('static', path='js/diagnostic_script.js') }}"></script>
-    <!-- Debug Client -->
- <script src="{{ url_for('static', path='js/debug_client.js') }}"></script>
-   
+    // Debug functions
+    function askAIDebugQuestion() {
+        showModal('AI Debug Assistant', `
+            <p>🤖 <strong>AI:</strong> I'm ready to help debug your code! What specific issue are you facing?</p>
+            <p style="margin-top: 16px;">In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Analyze your code context intelligently</li>
+                <li>Provide specific debugging suggestions</li>
+                <li>Offer code improvements and fixes</li>
+                <li>Help optimize performance</li>
+            </ul>
+        `);
+    }
+
+    function runTests() {
+        showModal('Test Results', `
+            <div style="margin-bottom: 16px;">
+                <strong>Running tests...</strong>
+                <div class="loading-spinner" style="margin-left: 8px;"></div>
+            </div>
+            <p>In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Execute your test suite automatically</li>
+                <li>Show detailed test results</li>
+                <li>Highlight failing tests with explanations</li>
+                <li>Suggest fixes for test failures</li>
+            </ul>
+        `);
+    }
+
+    function syncToGitHub() {
+        showModal('GitHub Sync', `
+            <p>🔄 Syncing changes to GitHub...</p>
+            <div class="loading-spinner" style="margin: 16px 0;"></div>
+            <p>In the full version, this would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Commit your changes automatically</li>
+                <li>Push to your GitHub repository</li>
+                <li>Create pull requests if needed</li>
+                <li>Maintain proper version control</li>
+            </ul>
+        `);
+    }
+
+    // Project functions
+    function createNewProject() {
+        showModal('Create New Project', `
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Project Name:</label>
+                <input type="text" class="input" placeholder="My Awesome Project" />
+            </div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Description:</label>
+                <textarea class="input textarea" placeholder="Describe your project..."></textarea>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="closeModal(); showSection('voice-conversation');">Create & Start Conversation</button>
+            </div>
+        `);
+    }
+
+    function openProject(projectId) {
+        showModal('Open Project', `
+            <p>Opening project: ${projectId}</p>
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="closeModal(); showSection('debug-engine');">
+                    🔧 Debug in Layer 2
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal(); showSection('dream-engine');">
+                    ⚡ Generate More Code
+                </button>
+            </div>
+        `);
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+        showSection('dashboard');
+        console.log('🚀 AI Debugger Factory initialized');
+    });
+</script>
+
+
 </body>
-</html>0 20 20" fill="currentColor">
-                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                                            <path d="M10 2a4 4 0 00-4 4v4a4 4 0 008 0V6a4 4 0 00-4-4zM7 10V6a3 3 0 116 0v4a3 3 0 11-6 0z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="btn-icon" id="template-button" title="Use Template">
-                                        <svg width="20" height="20" viewBox="0 
+</html>
