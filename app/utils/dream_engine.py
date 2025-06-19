@@ -656,15 +656,4 @@ async def create_item(item: Item):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-''',
-            "requirements.txt": '''
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
-
-        }
-
-# Global instance
-dream_engine = DreamEngine()
 '''

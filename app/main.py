@@ -36,6 +36,7 @@ from app.utils.voice_processor_production import ProductionVoiceProcessor
 # ✅ ENHANCED DREAM ENGINE AND LLM PROVIDER
 from app.utils.dream_engine import DreamEngine
 from app.utils.llm_provider import EnhancedLLMProvider
+from app.utils.voice_processor import SomeClassOrFunction
 
 # ✅ ENHANCED MIDDLEWARE
 try:
@@ -47,7 +48,7 @@ except ImportError:
 
 # ✅ SECURITY VALIDATOR (if available)
 try:
-    from app.utils.security_validator_production import SecurityValidator
+    from app.utils.security_validator import SecurityValidator
     SECURITY_VALIDATOR_AVAILABLE = True
 except ImportError:
     SECURITY_VALIDATOR_AVAILABLE = False

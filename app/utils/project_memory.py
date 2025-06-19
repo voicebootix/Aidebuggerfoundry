@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import asyncpg
 from dataclasses import dataclass, asdict
+import os
 
 logger = logging.getLogger(__name__)
 
