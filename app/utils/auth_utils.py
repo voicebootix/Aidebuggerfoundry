@@ -15,7 +15,7 @@ import asyncpg
 # Import your existing config
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import settings
+from app.config import settings
 
 from app.database.db import get_db
 from app.utils.logger import get_logger
