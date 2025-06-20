@@ -19,6 +19,8 @@ from app.config import settings
 
 from app.database.db import get_db
 from app.utils.logger import get_logger
+from app.database import SessionLocal
+from app.models import User
 
 logger = get_logger("auth_utils")
 
@@ -53,6 +55,13 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def get_user_by_email(email: str) -> User | None:
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.email == email).first()
+    finally:
+        db.close()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
