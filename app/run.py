@@ -7,7 +7,7 @@ import asyncio
 import signal
 import sys
 import uvicorn
-from main import app
+from app.main import app
 from app.config import settings
 from app.utils.logger import get_logger
 
