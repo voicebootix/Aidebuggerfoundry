@@ -28,9 +28,9 @@ elevenlabs==0.2.26
 gtts==2.4.0
 
 # Smart Contracts (Patent-worthy)
-web3==6.12.0
-eth-account==0.8.0
-ethereum==2.3.2
+web3==6.15.1
+eth-account==0.12.0
+eth-utils==2.3.0
 
 # GitHub Integration
 PyGithub==1.59.1
