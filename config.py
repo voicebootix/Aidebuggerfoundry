@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: List[str] = Field(default=["*"], description="Allowed hosts")
     
     # LLM API Keys
-    OPENAI_API_KEY: Optional[str] = Field(default=None, description="OpenAI API key")
+    OPENAI_API_KEY: str = Field(default="", description="OpenAI API key")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, description="Anthropic API key")
     GOOGLE_API_KEY: Optional[str] = Field(default=None, description="Google API key")
     DEFAULT_LLM_PROVIDER: str = Field(default="auto", description="Default LLM provider")
