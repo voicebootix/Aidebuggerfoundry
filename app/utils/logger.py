@@ -15,6 +15,9 @@ class EnhancedLogger:
         self.service_name = service_name
         self.logger = logging.getLogger(service_name)
         self._setup_logger()
+        
+    def info(self, message):
+        return self.log(message, level="INFO")
     
     def _setup_logger(self):
         """Setup structured logging"""
