@@ -94,7 +94,40 @@ async def get_current_user(
     except Exception as e:
         logger.error(f"Database error: {e}")
         raise credentials_exception
+    
+async def get_user_by_email(db: asyncpg.Connection, email: str) -> Optional[Dict[str, Any]]:
+    """Get user by email from database"""
+    try:
+        user = await db.fetchrow(
+            "SELECT id, email, full_name, hashed_password, is_active, is_verified, created_at FROM users WHERE email = $1",
+            email
+        )
+        return dict(user) if user else None
+    except Exception as e:
+        logger.error(f"Error fetching user by email: {e}")
+        return None
 
+async def create_user(db: asyncpg.Connection, email: str, full_name: str, password: str) -> Dict[str, Any]:
+    """Create new user in database"""
+    try:
+        hashed_password = get_password_hash(password)
+        
+        user = await db.fetchrow(
+            """
+            INSERT INTO users (email, full_name, hashed_password, is_active, is_verified, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, email, full_name, is_active, is_verified, created_at
+            """,
+            email, full_name, hashed_password, True, False, datetime.utcnow()
+        )
+        
+        return dict(user)
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user"
+        )
 # Create a simple User class for compatibility
 class User:
     def __init__(self, **kwargs):
