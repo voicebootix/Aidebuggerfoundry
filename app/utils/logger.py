@@ -76,3 +76,27 @@ def setup_logger(service_name: str = "ai_debugger_factory") -> EnhancedLogger:
 def get_logger(service_name: str = "ai_debugger_factory") -> EnhancedLogger:
     """Get existing logger instance"""
     return EnhancedLogger(service_name)
+
+async def log_request_response(request, response, duration: float):
+    """Log request and response details"""
+    log_data = {
+        "method": request.method,
+        "url": str(request.url),
+        "status_code": response.status_code,
+        "duration_ms": round(duration * 1000, 2),
+        "user_agent": request.headers.get("user-agent", ""),
+        "ip": request.client.host if request.client else ""
+    }
+    
+    logger = get_logger("api_requests")
+    if response.status_code >= 400:
+        logger.error(f"API Error: {log_data}")
+    else:
+        logger.info(f"API Request: {log_data}")
+
+# Also add to EnhancedLogger class:
+def error(self, message, exc_info=False):
+    if exc_info:
+        import traceback
+        message += f"\n{traceback.format_exc()}"
+    return self.logger.error(message)
