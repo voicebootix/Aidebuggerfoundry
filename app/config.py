@@ -10,6 +10,7 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings
 from pydantic import Field, validator
 
+
 class Settings(BaseSettings):
     """Application settings with validation"""
     
@@ -141,10 +142,10 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 # Import from root config (your existing excellent config)
-from config import Settings, get_settings, settings
+#from config import Settings, get_settings, settings
 
 # Re-export everything for app modules
-__all__ = ['Settings', 'get_settings', 'settings']
+#__all__ = ['Settings', 'get_settings', 'settings']
 
 # Validation function (optional)
 def validate_startup_requirements():
