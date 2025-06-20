@@ -141,14 +141,13 @@ async def logging_middleware(request: Request, call_next):
     process_time = asyncio.get_event_loop().time() - start_time
     
     # Log request/response
-    await log_request_response(
-        method=request.method,
-        url=str(request.url),
-        status_code=response.status_code,
-        process_time=process_time,
-        user_agent=request.headers.get("user-agent"),
-        ip_address=request.client.host if request.client else None
-    )
+    #await log_request_response(
+       # url=str(request.url),
+       # status_code=response.status_code,
+       # process_time=process_time,
+        #user_agent=request.headers.get("user-agent"),
+       # ip_address=request.client.host if request.client else None
+    #) 
     
     # Add processing time header
     response.headers["X-Process-Time"] = str(process_time)
