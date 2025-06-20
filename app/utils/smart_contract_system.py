@@ -1,469 +1,340 @@
+"""
+Smart Contract Revenue Sharing System (PATENT-WORTHY)
+Automated blockchain monetization and digital watermarking
+Revolutionary patent-worthy innovation for AI-generated code
+"""
+
+import asyncio
 import json
-import logging
-import os
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-from dataclasses import dataclass
+import uuid
 import hashlib
-
-logger = logging.getLogger(__name__)
-
-@dataclass
-class TechnicalSpecification:
-    """Technical specification that AI must follow"""
-    name: str
-    description: str
-    acceptance_criteria: List[str]
-    testing_method: str
-    priority: str  # HIGH, MEDIUM, LOW
-    auto_testable: bool
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timedelta
+from dataclasses import dataclass
+from web3 import Web3
+import os
 
 @dataclass
-class ContractViolation:
-    """Detected contract violation"""
-    spec_name: str
-    violation_type: str
-    expected: str
-    actual: str
-    severity: str
-    auto_correctable: bool
+class SmartContract:
+    contract_id: str
+    project_id: str
+    founder_address: str
+    platform_address: str
+    revenue_split: Dict[str, float]  # {"founder": 0.8, "platform": 0.2}
+    contract_address: Optional[str]
+    digital_fingerprint: str
+    status: str
+
+@dataclass
+class RevenueTransaction:
+    transaction_id: str
+    contract_id: str
+    amount: float
+    currency: str
+    founder_share: float
+    platform_share: float
+    transaction_hash: Optional[str]
+    timestamp: datetime
 
 class SmartContractSystem:
-    """
-    Technical contract system that ensures AI follows specifications
-    WITHOUT financial liability
-    """
+    """Patent-worthy smart contract revenue sharing system"""
     
-    def __init__(self):
-        self.active_contracts = {}
-        self.violation_log = []
-        self.compliance_stats = {
-            "total_specs": 0,
-            "specs_met": 0,
-            "violations_detected": 0,
-            "violations_auto_corrected": 0
-        }
-    
-    def create_technical_contract(self, strategy_output: Dict, founder_input: Dict) -> Dict[str, Any]:
-        """
-        Create technical contract from strategy and founder requirements
+    def __init__(self, web3_provider_url: str, platform_wallet_address: str):
+        self.w3 = Web3(Web3.HTTPProvider(web3_provider_url))
+        self.platform_address = platform_wallet_address
+        self.contracts: Dict[str, SmartContract] = {}
+        self.revenue_tracking: Dict[str, List[RevenueTransaction]] = {}
         
-        This is a SPECIFICATION CONTRACT, not a legal one
-        """
-        
-        contract_id = f"SPEC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
-        # Extract technical specifications
-        specifications = self._extract_technical_specifications(strategy_output, founder_input)
-        
-        # Create the contract
-        technical_contract = {
-            "contract_id": contract_id,
-            "created_at": datetime.now().isoformat(),
-            "project_name": founder_input.get("project_name", "Unnamed Project"),
-            
-            # CORE SPECIFICATIONS
-            "technical_specifications": specifications,
-            "quality_standards": self._define_quality_standards(),
-            "testing_requirements": self._define_testing_requirements(specifications),
-            
-            # PLATFORM COMMITMENTS (Technical, not legal)
-            "platform_commitments": [
-                "AI will follow all specified requirements",
-                "Generated code will match technical specifications",
-                "Deviations will be detected and flagged",
-                "Auto-correction will be attempted when possible",
-                "Clear documentation will be provided"
-            ],
-            
-            # FOUNDER RESPONSIBILITIES
-            "founder_responsibilities": [
-                "Provide clear and complete requirements",
-                "Review and approve specifications before generation",
-                "Test delivered code within reasonable timeframe",
-                "Provide feedback on any issues found"
-            ],
-            
-            # LIMITATION OF LIABILITY (Key protection)
-            "platform_limitations": [
-                "Platform provides best-effort technical implementation",
-                "No guarantee of business success or profitability",
-                "No financial liability for bugs or issues",
-                "Platform will make reasonable efforts to fix issues",
-                "Final code quality depends on requirement clarity"
-            ],
-            
-            # TECHNICAL ENFORCEMENT
-            "enforcement_mechanisms": {
-                "real_time_monitoring": True,
-                "deviation_detection": True,
-                "auto_correction_attempts": True,
-                "quality_scoring": True,
-                "violation_logging": True
-            }
-        }
-        
-        # Generate contract hash for integrity
-        contract_hash = self._generate_contract_hash(technical_contract)
-        technical_contract["integrity_hash"] = contract_hash
-        
-        # Save contract
-        self._save_contract(technical_contract)
-        
-        return technical_contract
-    
-    def _extract_technical_specifications(self, strategy_output: Dict, founder_input: Dict) -> List[TechnicalSpecification]:
-        """Extract specific technical requirements"""
-        
-        specifications = []
-        
-        # From strategy analysis
-        if "required_features" in strategy_output:
-            for feature in strategy_output["required_features"]:
-                spec = TechnicalSpecification(
-                    name=f"Feature: {feature['name']}",
-                    description=feature.get("description", ""),
-                    acceptance_criteria=feature.get("acceptance_criteria", []),
-                    testing_method="Functional testing",
-                    priority="HIGH",
-                    auto_testable=True
-                )
-                specifications.append(spec)
-        
-        # Database requirements
-        if "database_requirements" in strategy_output:
-            for table in strategy_output["database_requirements"]:
-                spec = TechnicalSpecification(
-                    name=f"Database: {table['name']}",
-                    description=f"Table with specified schema",
-                    acceptance_criteria=[
-                        f"Table {table['name']} exists",
-                        f"All specified columns present",
-                        f"Proper relationships configured"
-                    ],
-                    testing_method="Database schema validation",
-                    priority="HIGH",
-                    auto_testable=True
-                )
-                specifications.append(spec)
-        
-        # API endpoints
-        if "api_requirements" in strategy_output:
-            for endpoint in strategy_output["api_requirements"]:
-                spec = TechnicalSpecification(
-                    name=f"API: {endpoint['path']}",
-                    description=f"{endpoint['method']} endpoint",
-                    acceptance_criteria=[
-                        f"Endpoint {endpoint['path']} exists",
-                        f"Returns expected response format",
-                        f"Handles error cases properly"
-                    ],
-                    testing_method="API testing",
-                    priority="HIGH",
-                    auto_testable=True
-                )
-                specifications.append(spec)
-        
-        # Frontend requirements
-        if "frontend_requirements" in strategy_output:
-            for component in strategy_output["frontend_requirements"]:
-                spec = TechnicalSpecification(
-                    name=f"UI: {component['name']}",
-                    description=component.get("description", ""),
-                    acceptance_criteria=[
-                        f"Component {component['name']} renders correctly",
-                        f"User interactions work as expected",
-                        f"Responsive design implemented"
-                    ],
-                    testing_method="UI testing",
-                    priority="MEDIUM",
-                    auto_testable=False
-                )
-                specifications.append(spec)
-        
-        return specifications
-    
-    def _define_quality_standards(self) -> Dict[str, Any]:
-        """Define code quality standards"""
-        
-        return {
-            "code_style": {
-                "consistent_formatting": True,
-                "meaningful_variable_names": True,
-                "proper_commenting": True,
-                "function_documentation": True
+        # Smart contract ABI (simplified for demo)
+        self.contract_abi = [
+            {
+                "inputs": [
+                    {"name": "_founder", "type": "address"},
+                    {"name": "_platform", "type": "address"},
+                    {"name": "_founderShare", "type": "uint256"}
+                ],
+                "name": "createRevenueShare",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
             },
-            "functionality": {
-                "error_handling": "All functions must handle errors appropriately",
-                "input_validation": "All user inputs must be validated",
-                "no_placeholders": "No TODO or placeholder comments allowed",
-                "working_endpoints": "All API endpoints must return valid responses"
-            },
-            "structure": {
-                "modular_design": "Code organized in logical modules",
-                "separation_of_concerns": "Frontend/backend/database properly separated",
-                "scalable_architecture": "Code structured for future expansion"
+            {
+                "inputs": [],
+                "name": "distributeRevenue",
+                "outputs": [],
+                "stateMutability": "payable", 
+                "type": "function"
             }
-        }
+        ]
     
-    def monitor_contract_compliance(self, contract_id: str, generated_code: Dict[str, str]) -> Dict[str, Any]:
-        """
-        Monitor compliance with technical contract
+    async def create_revenue_sharing_contract(self, 
+                                            project_id: str,
+                                            founder_address: str,
+                                            revenue_split: Dict[str, float] = None) -> SmartContract:
+        """Create new revenue sharing smart contract"""
         
-        Returns compliance report without financial implications
-        """
+        if revenue_split is None:
+            revenue_split = {"founder": 0.8, "platform": 0.2}  # Default 80/20 split
         
-        contract = self.active_contracts.get(contract_id)
-        if not contract:
-            return {"error": "Contract not found"}
+        contract_id = str(uuid.uuid4())
         
-        compliance_report = {
-            "contract_id": contract_id,
-            "checked_at": datetime.now().isoformat(),
-            "overall_compliance": 0.0,
-            "specifications_checked": 0,
-            "specifications_met": 0,
-            "violations_detected": [],
-            "auto_corrections_made": [],
-            "manual_review_needed": []
+        # Generate digital fingerprint for the project
+        digital_fingerprint = await self._generate_digital_fingerprint(project_id)
+        
+        # Create smart contract instance
+        smart_contract = SmartContract(
+            contract_id=contract_id,
+            project_id=project_id,
+            founder_address=founder_address,
+            platform_address=self.platform_address,
+            revenue_split=revenue_split,
+            contract_address=None,  # Will be set after deployment
+            digital_fingerprint=digital_fingerprint,
+            status="created"
+        )
+        
+        # Deploy to blockchain (simplified - in production would deploy actual contract)
+        contract_address = await self._deploy_contract(smart_contract)
+        smart_contract.contract_address = contract_address
+        smart_contract.status = "deployed"
+        
+        # Store contract
+        self.contracts[contract_id] = smart_contract
+        self.revenue_tracking[contract_id] = []
+        
+        return smart_contract
+    
+    async def _generate_digital_fingerprint(self, project_id: str) -> str:
+        """Generate unique digital fingerprint for project tracking"""
+        
+        # Combine project data for fingerprinting
+        fingerprint_data = {
+            "project_id": project_id,
+            "platform": "AI Debugger Factory",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0"
         }
         
-        # Check each specification
-        for spec in contract["technical_specifications"]:
-            compliance_report["specifications_checked"] += 1
+        # Create cryptographic hash
+        data_string = json.dumps(fingerprint_data, sort_keys=True)
+        fingerprint = hashlib.sha256(data_string.encode()).hexdigest()
+        
+        return fingerprint
+    
+    async def _deploy_contract(self, smart_contract: SmartContract) -> str:
+        """Deploy smart contract to blockchain"""
+        
+        try:
+            # In production, this would deploy an actual smart contract
+            # For demo, we'll simulate with a mock address
             
-            spec_compliance = self._check_specification_compliance(spec, generated_code)
+            # Mock contract deployment
+            mock_address = f"0x{hashlib.md5(smart_contract.contract_id.encode()).hexdigest()[:40]}"
             
-            if spec_compliance["compliant"]:
-                compliance_report["specifications_met"] += 1
-            else:
-                violation = ContractViolation(
-                    spec_name=spec.name,
-                    violation_type=spec_compliance["violation_type"],
-                    expected=spec_compliance["expected"],
-                    actual=spec_compliance["actual"],
-                    severity=spec.priority.lower(),
-                    auto_correctable=spec.auto_testable
-                )
-                
-                compliance_report["violations_detected"].append(violation.__dict__)
-                
-                # Attempt auto-correction if possible
-                if violation.auto_correctable:
-                    correction = self._attempt_auto_correction(violation, generated_code)
-                    if correction["success"]:
-                        compliance_report["auto_corrections_made"].append(correction)
-                        compliance_report["specifications_met"] += 1
-                    else:
-                        compliance_report["manual_review_needed"].append(violation.__dict__)
-        
-        # Calculate overall compliance
-        if compliance_report["specifications_checked"] > 0:
-            compliance_report["overall_compliance"] = (
-                compliance_report["specifications_met"] / 
-                compliance_report["specifications_checked"]
-            )
-        
-        # Update statistics
-        self.compliance_stats["total_specs"] += compliance_report["specifications_checked"]
-        self.compliance_stats["specs_met"] += compliance_report["specifications_met"]
-        self.compliance_stats["violations_detected"] += len(compliance_report["violations_detected"])
-        self.compliance_stats["violations_auto_corrected"] += len(compliance_report["auto_corrections_made"])
-        
-        return compliance_report
+            # Log deployment
+            print(f"Deployed smart contract {smart_contract.contract_id} to {mock_address}")
+            
+            return mock_address
+            
+        except Exception as e:
+            print(f"Contract deployment failed: {e}")
+            return None
     
-    def _check_specification_compliance(self, spec: TechnicalSpecification, generated_code: Dict) -> Dict[str, Any]:
-        """Check if generated code meets a specific specification"""
+    async def track_project_revenue(self, 
+                                  contract_id: str,
+                                  revenue_amount: float,
+                                  currency: str = "USD") -> RevenueTransaction:
+        """Track revenue for project and trigger distribution"""
         
-        compliance = {
-            "compliant": True,
-            "violation_type": None,
-            "expected": None,
-            "actual": None
-        }
+        if contract_id not in self.contracts:
+            raise ValueError(f"Contract {contract_id} not found")
         
-        # Check based on specification type
-        if "Feature:" in spec.name:
-            compliance = self._check_feature_implementation(spec, generated_code)
-        elif "Database:" in spec.name:
-            compliance = self._check_database_implementation(spec, generated_code)
-        elif "API:" in spec.name:
-            compliance = self._check_api_implementation(spec, generated_code)
-        elif "UI:" in spec.name:
-            compliance = self._check_ui_implementation(spec, generated_code)
+        contract = self.contracts[contract_id]
         
-        return compliance
+        # Calculate revenue split
+        founder_share = revenue_amount * contract.revenue_split["founder"]
+        platform_share = revenue_amount * contract.revenue_split["platform"]
+        
+        # Create transaction record
+        transaction = RevenueTransaction(
+            transaction_id=str(uuid.uuid4()),
+            contract_id=contract_id,
+            amount=revenue_amount,
+            currency=currency,
+            founder_share=founder_share,
+            platform_share=platform_share,
+            transaction_hash=None,  # Will be set after blockchain transaction
+            timestamp=datetime.now()
+        )
+        
+        # Execute blockchain transaction (simplified)
+        transaction_hash = await self._execute_revenue_distribution(contract, transaction)
+        transaction.transaction_hash = transaction_hash
+        
+        # Store transaction
+        self.revenue_tracking[contract_id].append(transaction)
+        
+        return transaction
     
-    def _check_feature_implementation(self, spec: TechnicalSpecification, generated_code: Dict) -> Dict[str, Any]:
-        """Check if a feature is properly implemented"""
+    async def _execute_revenue_distribution(self, 
+                                          contract: SmartContract,
+                                          transaction: RevenueTransaction) -> str:
+        """Execute revenue distribution on blockchain"""
         
-        feature_name = spec.name.replace("Feature: ", "")
+        try:
+            # In production, this would interact with actual smart contract
+            # For demo, we'll simulate the transaction
+            
+            # Mock transaction hash
+            mock_hash = hashlib.sha256(
+                f"{transaction.transaction_id}{transaction.amount}".encode()
+            ).hexdigest()
+            
+            print(f"Revenue distribution executed: {transaction.founder_share} to founder, {transaction.platform_share} to platform")
+            
+            return mock_hash
+            
+        except Exception as e:
+            print(f"Revenue distribution failed: {e}")
+            return None
+    
+    async def add_digital_watermark(self, code_content: str, project_id: str) -> str:
+        """Add digital watermark to generated code (Patent-worthy)"""
         
-        # Look for feature implementation in code
-        feature_found = False
-        implementation_quality = 0.0
-        
-        for file_path, code_content in generated_code.items():
-            if self._feature_exists_in_file(feature_name, code_content):
-                feature_found = True
-                implementation_quality = self._assess_feature_quality(feature_name, code_content, spec.acceptance_criteria)
+        # Get project fingerprint
+        contract = None
+        for c in self.contracts.values():
+            if c.project_id == project_id:
+                contract = c
                 break
         
-        if not feature_found:
-            return {
-                "compliant": False,
-                "violation_type": "missing_feature",
-                "expected": f"Feature {feature_name} implementation",
-                "actual": "Feature not found in generated code"
-            }
+        if not contract:
+            # Create basic fingerprint if no contract exists
+            fingerprint = await self._generate_digital_fingerprint(project_id)
+        else:
+            fingerprint = contract.digital_fingerprint
         
-        if implementation_quality < 0.7:
-            return {
-                "compliant": False,
-                "violation_type": "incomplete_feature",
-                "expected": f"Complete {feature_name} implementation",
-                "actual": f"Partial implementation (quality: {implementation_quality:.1%})"
-            }
+        # Add watermark comment to code
+        watermark = f'''
+"""
+AI Debugger Factory - Generated Code
+Project ID: {project_id}
+Digital Fingerprint: {fingerprint}
+Generated: {datetime.now().isoformat()}
+
+This code was generated by AI Debugger Factory platform.
+Unauthorized use or redistribution may violate terms of service.
+Revenue sharing smart contract: {contract.contract_address if contract else 'N/A'}
+"""
+'''
         
-        return {"compliant": True}
+        # Insert watermark at the beginning of the code
+        watermarked_code = watermark + "\n" + code_content
+        
+        return watermarked_code
     
-    def _attempt_auto_correction(self, violation: ContractViolation, generated_code: Dict) -> Dict[str, Any]:
-        """Attempt to automatically correct a contract violation"""
+    async def detect_unauthorized_usage(self, code_sample: str) -> Dict[str, Any]:
+        """Detect unauthorized usage of generated code"""
         
-        correction = {
-            "violation": violation.spec_name,
-            "attempted_at": datetime.now().isoformat(),
-            "success": False,
-            "action_taken": None
+        detection_result = {
+            "unauthorized_usage_detected": False,
+            "project_id": None,
+            "digital_fingerprint": None,
+            "confidence": 0.0,
+            "evidence": []
         }
         
-        if violation.violation_type == "missing_feature":
-            # Try to regenerate the missing feature
-            correction["action_taken"] = "Attempted to regenerate missing feature"
-            # In real implementation, this would call the code generator
-            # For now, we'll simulate
-            correction["success"] = True  # Simulate successful correction
+        # Look for digital fingerprints in code
+        for contract in self.contracts.values():
+            fingerprint = contract.digital_fingerprint
             
-        elif violation.violation_type == "incomplete_feature":
-            # Try to enhance the existing implementation
-            correction["action_taken"] = "Attempted to enhance incomplete feature"
-            correction["success"] = True  # Simulate successful enhancement
+            if fingerprint in code_sample:
+                detection_result["unauthorized_usage_detected"] = True
+                detection_result["project_id"] = contract.project_id
+                detection_result["digital_fingerprint"] = fingerprint
+                detection_result["confidence"] = 1.0
+                detection_result["evidence"].append(f"Digital fingerprint found: {fingerprint}")
+                break
         
-        return correction
+        # Check for AI Debugger Factory watermarks
+        if "AI Debugger Factory" in code_sample:
+            detection_result["evidence"].append("AI Debugger Factory watermark found")
+            if not detection_result["unauthorized_usage_detected"]:
+                detection_result["confidence"] = 0.8
+        
+        # Additional pattern matching for code similarity
+        # This would be enhanced with ML-based code similarity detection
+        
+        return detection_result
     
-    def generate_founder_report(self, contract_id: str) -> Dict[str, Any]:
-        """Generate user-friendly report for founder"""
+    async def get_revenue_summary(self, contract_id: str) -> Dict[str, Any]:
+        """Get revenue summary for contract"""
         
-        contract = self.active_contracts.get(contract_id)
-        if not contract:
-            return {"error": "Contract not found"}
+        if contract_id not in self.revenue_tracking:
+            raise ValueError(f"No revenue tracking found for contract {contract_id}")
         
-        # Get latest compliance check
-        compliance = self.monitor_contract_compliance(contract_id, {})  # Would use actual generated code
+        transactions = self.revenue_tracking[contract_id]
+        contract = self.contracts[contract_id]
+        
+        total_revenue = sum(t.amount for t in transactions)
+        total_founder_share = sum(t.founder_share for t in transactions)
+        total_platform_share = sum(t.platform_share for t in transactions)
+        
+        return {
+            "contract_id": contract_id,
+            "project_id": contract.project_id,
+            "total_revenue": total_revenue,
+            "founder_earnings": total_founder_share,
+            "platform_earnings": total_platform_share,
+            "transaction_count": len(transactions),
+            "revenue_split": contract.revenue_split,
+            "contract_status": contract.status,
+            "last_transaction": transactions[-1].timestamp.isoformat() if transactions else None
+        }
+    
+    async def generate_revenue_report(self, time_period: timedelta = None) -> Dict[str, Any]:
+        """Generate comprehensive revenue report"""
+        
+        if time_period is None:
+            time_period = timedelta(days=30)  # Default to last 30 days
+        
+        cutoff_date = datetime.now() - time_period
         
         report = {
-            "project_name": contract["project_name"],
-            "contract_id": contract_id,
-            "report_date": datetime.now().isoformat(),
-            
-            "summary": {
-                "overall_score": f"{compliance['overall_compliance']:.1%}",
-                "specifications_met": f"{compliance['specifications_met']}/{compliance['specifications_checked']}",
-                "status": "COMPLIANT" if compliance["overall_compliance"] >= 0.9 else "NEEDS_REVIEW"
-            },
-            
-            "what_works": [
-                f"✅ {spec}" for spec in contract["technical_specifications"][:compliance["specifications_met"]]
-            ],
-            
-            "needs_attention": [
-                f"⚠️ {violation['spec_name']}: {violation['violation_type']}" 
-                for violation in compliance.get("violations_detected", [])
-            ],
-            
-            "next_steps": self._generate_next_steps(compliance),
-            
-            "platform_notes": [
-                "This is a technical specification contract",
-                "We strive for high quality but cannot guarantee perfection",
-                "Please test thoroughly and report any issues",
-                "We will make reasonable efforts to address problems"
-            ]
+            "report_period": f"Last {time_period.days} days",
+            "total_contracts": len(self.contracts),
+            "active_contracts": 0,
+            "total_revenue": 0.0,
+            "platform_earnings": 0.0,
+            "founder_earnings": 0.0,
+            "transaction_count": 0,
+            "contract_details": []
         }
         
+        for contract_id, contract in self.contracts.items():
+            if contract_id in self.revenue_tracking:
+                recent_transactions = [
+                    t for t in self.revenue_tracking[contract_id]
+                    if t.timestamp >= cutoff_date
+                ]
+                
+                if recent_transactions:
+                    report["active_contracts"] += 1
+                    
+                    contract_revenue = sum(t.amount for t in recent_transactions)
+                    contract_founder_share = sum(t.founder_share for t in recent_transactions)
+                    contract_platform_share = sum(t.platform_share for t in recent_transactions)
+                    
+                    report["total_revenue"] += contract_revenue
+                    report["founder_earnings"] += contract_founder_share
+                    report["platform_earnings"] += contract_platform_share
+                    report["transaction_count"] += len(recent_transactions)
+                    
+                    report["contract_details"].append({
+                        "contract_id": contract_id,
+                        "project_id": contract.project_id,
+                        "revenue": contract_revenue,
+                        "transactions": len(recent_transactions)
+                    })
+        
         return report
-    
-    def _generate_next_steps(self, compliance: Dict) -> List[str]:
-        """Generate actionable next steps for founder"""
-        
-        next_steps = []
-        
-        if compliance["overall_compliance"] >= 0.9:
-            next_steps.append("🎉 Excellent! Your project meets specifications.")
-            next_steps.append("📋 Please test all features thoroughly")
-            next_steps.append("🚀 Ready for deployment when you're satisfied")
-        else:
-            next_steps.append("📝 Review the items needing attention above")
-            next_steps.append("🔧 We'll work on auto-correcting issues")
-            next_steps.append("💬 Contact support if you need clarification")
-        
-        if compliance.get("manual_review_needed"):
-            next_steps.append("👥 Some items require manual review by our team")
-        
-        return next_steps
-    
-    def _save_contract(self, contract: Dict):
-        """Save contract to storage"""
-        
-        os.makedirs("contracts", exist_ok=True)
-        contract_path = f"contracts/{contract['contract_id']}.json"
-        
-        with open(contract_path, 'w') as f:
-            json.dump(contract, f, indent=2)
-        
-        self.active_contracts[contract["contract_id"]] = contract
-        
-        logger.info(f"Smart contract {contract['contract_id']} saved")
-    
-    def _generate_contract_hash(self, contract: Dict) -> str:
-        """Generate hash for contract integrity"""
-        
-        contract_string = json.dumps(contract, sort_keys=True)
-        return hashlib.sha256(contract_string.encode()).hexdigest()[:16]
-    
-    # Helper methods for feature detection
-    def _feature_exists_in_file(self, feature_name: str, code_content: str) -> bool:
-        """Check if feature exists in code file"""
-        
-        # Simple implementation - look for feature-related keywords
-        feature_keywords = feature_name.lower().split()
-        code_lower = code_content.lower()
-        
-        return any(keyword in code_lower for keyword in feature_keywords)
-    
-    def _assess_feature_quality(self, feature_name: str, code_content: str, acceptance_criteria: List[str]) -> float:
-        """Assess quality of feature implementation"""
-        
-        # Simple quality assessment
-        quality_score = 0.5  # Base score
-        
-        # Check for error handling
-        if "try:" in code_content and "except:" in code_content:
-            quality_score += 0.2
-        
-        # Check for documentation
-        if '"""' in code_content or "'''" in code_content:
-            quality_score += 0.1
-        
-        # Check for input validation
-        if "validate" in code_content.lower():
-            quality_score += 0.1
-        
-        # Check for proper function structure
-        if "def " in code_content and "return" in code_content:
-            quality_score += 0.1
-        
-        return min(quality_score, 1.0)
-
-# Global instance
-smart_contract_system = SmartContractSystem()

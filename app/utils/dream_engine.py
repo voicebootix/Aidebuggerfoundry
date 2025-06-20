@@ -1,659 +1,1022 @@
-'''
+"""
+DreamEngine - Enhanced Strategic Analysis and Code Generation
+Converts founder conversations into production-ready applications
+Enhanced with business intelligence integration
+"""
+
 import asyncio
 import json
-import logging
+import uuid
 import os
-from typing import Dict, List, Any, Optional, AsyncGenerator
+import tempfile
+import zipfile
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
+import openai
+from dataclasses import dataclass
 import re
 
-from app.utils.smart_contract_system import smart_contract_system
-from app.utils.logger import setup_logger
+@dataclass
+class StrategicAnalysis:
+    business_context: Dict
+    technical_requirements: Dict
+    architecture_recommendations: Dict
+    implementation_strategy: Dict
+    risk_assessment: Dict
+    timeline_estimate: str
 
-logger = setup_logger()
+@dataclass
+class GeneratedFile:
+    filename: str
+    content: str
+    file_type: str
+    description: str
+
+@dataclass
+class CodeGenerationResult:
+    project_structure: Dict
+    generated_files: List[GeneratedFile]
+    deployment_instructions: str
+    testing_guide: str
+    quality_score: float
 
 class DreamEngine:
-    """
-    Production-ready code generation that works with smart contracts
-    Generates 90-100% working code with zero placeholders
-    """
+    """Enhanced strategic analysis and code generation engine"""
     
-    def __init__(self):
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
-        self.contract_compliance_mode = True
-        self.quality_threshold = 0.9
-        self.zero_placeholder_policy = True
+    def __init__(self, llm_provider, business_intelligence, security_validator):
+        self.llm_provider = llm_provider
+        self.business_intelligence = business_intelligence
+        self.security_validator = security_validator
+        self.generation_templates = self._load_generation_templates()
         
-    async def generate_with_contract(self, contract: Dict, user_prompt: str) -> AsyncGenerator[Dict[str, Any], None]:
-        """
-        Generate code that adheres to smart contract specifications
+    async def analyze_strategic_requirements(self, founder_agreement: Dict) -> StrategicAnalysis:
+        """Comprehensive strategic analysis of founder requirements"""
         
-        This is the main production-ready generation method
-        """
+        business_spec = founder_agreement.get("business_specification", {})
+        ai_commitments = founder_agreement.get("ai_commitments", {})
         
-        generation_session = {
-            "session_id": f"GEN_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            "contract_id": contract.get("contract_id"),
-            "started_at": datetime.now().isoformat(),
-            "total_files": 0,
-            "files_generated": 0,
-            "compliance_score": 0.0
-        }
+        # Extract key information
+        problem = business_spec.get("problem_statement", "")
+        solution = business_spec.get("solution_description", "")
+        target_market = business_spec.get("target_market", "")
+        tech_stack = business_spec.get("technology_requirements", [])
         
-        yield {
-            "type": "generation_started",
-            "content": "🚀 Starting contract-bound code generation...",
-            "session": generation_session
-        }
+        # Generate strategic analysis
+        strategic_prompt = f"""
+        Conduct comprehensive strategic analysis for this application:
         
-        try:
-            # Step 1: Create enhanced prompts from contract
-            enhanced_prompts = await self._create_contract_bound_prompts(contract, user_prompt)
-            
-            yield {
-                "type": "status_update",
-                "content": "📋 Contract specifications analyzed - creating enhanced prompts",
-                "prompts_created": len(enhanced_prompts)
-            }
-            
-            # Step 2: Generate code with contract constraints
-            generated_files = {}
-            
-            for prompt_type, prompt_data in enhanced_prompts.items():
-                yield {
-                    "type": "status_update",
-                    "content": f"⚙️ Generating {prompt_type}...",
-                    "current_component": prompt_type
-                }
-                
-                files = await self._generate_component_with_constraints(
-                    prompt_type, 
-                    prompt_data, 
-                    contract
-                )
-                
-                # Real-time contract compliance check
-                compliance = await self._check_real_time_compliance(files, contract)
-                
-                if compliance["compliant"]:
-                    generated_files.update(files)
-                    generation_session["files_generated"] += len(files)
-                    
-                    yield {
-                        "type": "component_completed",
-                        "content": f"✅ {prompt_type} generated and validated",
-                        "files": list(files.keys()),
-                        "compliance_score": compliance["score"]
-                    }
-                else:
-                    # Auto-correct to meet contract
-                    corrected_files = await self._auto_correct_for_contract(files, compliance, contract)
-                    generated_files.update(corrected_files)
-                    
-                    yield {
-                        "type": "auto_correction",
-                        "content": f"🔧 Auto-corrected {prompt_type} to meet contract requirements",
-                        "corrections_made": compliance["violations_fixed"]
-                    }
-            
-            # Step 3: Final contract validation
-            final_compliance = smart_contract_system.monitor_contract_compliance(
-                contract["contract_id"], 
-                generated_files
-            )
-            
-            generation_session["total_files"] = len(generated_files)
-            generation_session["compliance_score"] = final_compliance["overall_compliance"]
-            
-            if final_compliance["overall_compliance"] >= 0.95:
-                yield {
-                    "type": "generation_completed",
-                    "content": "🎉 Contract-compliant code generation completed!",
-                    "files": generated_files,
-                    "compliance_report": final_compliance,
-                    "session": generation_session
-                }
-            else:
-                yield {
-                    "type": "generation_incomplete",
-                    "content": "⚠️ Generated code needs manual review to meet all contract requirements",
-                    "files": generated_files,
-                    "compliance_issues": final_compliance["violations_detected"],
-                    "session": generation_session
-                }
-                
-        except Exception as e:
-            logger.error(f"Enhanced generation failed: {str(e)}")
-            yield {
-                "type": "generation_error",
-                "content": f"❌ Generation failed: {str(e)}",
-                "session": generation_session
-            }
-    
-    async def _create_contract_bound_prompts(self, contract: Dict, user_prompt: str) -> Dict[str, Dict]:
-        """
-        Create detailed, specific prompts based on contract specifications
+        Business Context:
+        - Problem: {problem}
+        - Solution: {solution}
+        - Target Market: {target_market}
+        - Technology Stack: {tech_stack}
         
-        This ensures the AI generates exactly what the contract requires
-        """
+        Provide detailed analysis covering:
+        1. Business context and market positioning
+        2. Technical requirements and constraints
+        3. Architecture recommendations
+        4. Implementation strategy and phases
+        5. Risk assessment and mitigation
+        6. Timeline estimation with milestones
         
-        enhanced_prompts = {}
-        
-        # Backend API prompts
-        if "api_endpoints" in contract.get("technical_specifications", {}):
-            enhanced_prompts["backend_api"] = {
-                "type": "backend",
-                "prompt": await self._create_backend_prompt(contract, user_prompt),
-                "specifications": contract["technical_specifications"]["api_endpoints"],
-                "quality_requirements": contract["quality_standards"]["functionality"]
-            }
-        
-        # Database prompts
-        if "database_schemas" in contract.get("technical_specifications", {}):
-            enhanced_prompts["database"] = {
-                "type": "database",
-                "prompt": await self._create_database_prompt(contract, user_prompt),
-                "specifications": contract["technical_specifications"]["database_schemas"],
-                "quality_requirements": contract["quality_standards"]["structure"]
-            }
-        
-        # Frontend prompts
-        if "frontend_components" in contract.get("technical_specifications", {}):
-            enhanced_prompts["frontend"] = {
-                "type": "frontend",
-                "prompt": await self._create_frontend_prompt(contract, user_prompt),
-                "specifications": contract["technical_specifications"]["frontend_components"],
-                "quality_requirements": contract["quality_standards"]["code_style"]
-            }
-        
-        # Integration prompts
-        if "integrations" in contract.get("technical_specifications", {}):
-            enhanced_prompts["integrations"] = {
-                "type": "integrations",
-                "prompt": await self._create_integration_prompt(contract, user_prompt),
-                "specifications": contract["technical_specifications"]["integrations"],
-                "quality_requirements": contract["quality_standards"]["functionality"]
-            }
-        
-        return enhanced_prompts
-    
-    async def _create_backend_prompt(self, contract: Dict, user_prompt: str) -> str:
-        """Create detailed backend generation prompt"""
-        
-        api_specs = contract["technical_specifications"].get("api_endpoints", {})
-        database_specs = contract["technical_specifications"].get("database_schemas", {})
-        
-        prompt = f"""
-        CRITICAL: Generate a complete, production-ready FastAPI backend application based on this EXACT contract:
-
-        USER REQUIREMENT: {user_prompt}
-
-        MANDATORY API ENDPOINTS (ALL must be implemented):
-        {json.dumps(api_specs, indent=2)}
-
-        DATABASE INTEGRATION (EXACT schema required):
-        {json.dumps(database_specs, indent=2)}
-
-        QUALITY REQUIREMENTS:
-        - NO placeholder functions or TODO comments
-        - ALL endpoints must return valid responses
-        - Complete error handling for every function
-        - Input validation for all user data
-        - Proper HTTP status codes
-        - Database operations with proper transactions
-        - Security: authentication, authorization, rate limiting
-        - Logging for all operations
-        - Environment variable configuration
-
-        FILE STRUCTURE REQUIRED:
-        - main.py (FastAPI app with all routes)
-        - models.py (Pydantic models for ALL data structures)
-        - database.py (SQLAlchemy models and database setup)
-        - auth.py (Authentication and authorization)
-        - config.py (Environment configuration)
-        - requirements.txt (ALL dependencies)
-
-        CRITICAL RULES:
-        1. Every endpoint MUST be fully functional
-        2. Database schema MUST match contract exactly
-        3. NO mock data unless explicitly requested
-        4. ALL error cases must be handled
-        5. Code must be deployable immediately
-
-        Generate complete, working Python code for each file.
-        """
-        
-        return prompt
-    
-    async def _create_frontend_prompt(self, contract: Dict, user_prompt: str) -> str:
-        """Create detailed frontend generation prompt"""
-        
-        frontend_specs = contract["technical_specifications"].get("frontend_components", {})
-        api_specs = contract["technical_specifications"].get("api_endpoints", {})
-        
-        prompt = f"""
-        CRITICAL: Generate a complete, production-ready React frontend application based on this EXACT contract:
-
-        USER REQUIREMENT: {user_prompt}
-
-        MANDATORY COMPONENTS (ALL must be implemented):
-        {json.dumps(frontend_specs, indent=2)}
-
-        API INTEGRATION (EXACT endpoints to connect):
-        {json.dumps(api_specs, indent=2)}
-
-        QUALITY REQUIREMENTS:
-        - Responsive design (mobile, tablet, desktop)
-        - NO placeholder content or lorem ipsum
-        - Complete user interactions and state management
-        - Error handling for all API calls
-        - Loading states for all async operations
-        - Form validation where applicable
-        - Accessibility compliance (ARIA labels, keyboard navigation)
-        - Modern CSS with proper styling
-        - Environment configuration for API URLs
-
-        FILE STRUCTURE REQUIRED:
-        - src/App.js (Main application component)
-        - src/components/ (All UI components)
-        - src/pages/ (Page components)
-        - src/services/api.js (API integration)
-        - src/hooks/ (Custom React hooks)
-        - src/utils/ (Utility functions)
-        - src/styles/ (CSS or styled-components)
-        - public/index.html (HTML template)
-        - package.json (ALL dependencies)
-
-        CRITICAL RULES:
-        1. Every component MUST be fully functional
-        2. API calls MUST handle success and error states
-        3. NO broken links or non-functional buttons
-        4. ALL forms must validate input
-        5. Application must be deployable immediately
-
-        Generate complete, working React code for each file.
-        """
-        
-        return prompt
-    
-    async def _create_database_prompt(self, contract: Dict, user_prompt: str) -> str:
-        """Create detailed database generation prompt"""
-        
-        database_specs = contract["technical_specifications"].get("database_schemas", {})
-        
-        prompt = f"""
-        CRITICAL: Generate a complete, production-ready database setup based on this EXACT contract:
-
-        USER REQUIREMENT: {user_prompt}
-
-        MANDATORY DATABASE SCHEMA (EXACT structure required):
-        {json.dumps(database_specs, indent=2)}
-
-        QUALITY REQUIREMENTS:
-        - SQLAlchemy ORM models for ALL tables
-        - Proper relationships (ForeignKey, relationships)
-        - Database migrations (Alembic setup)
-        - Connection pooling and configuration
-        - Indexes for performance optimization
-        - Data validation at database level
-        - Backup and recovery considerations
-        - Environment-based configuration
-
-        FILES REQUIRED:
-        - database/models.py (SQLAlchemy models)
-        - database/database.py (Database connection setup)
-        - database/migrations/ (Alembic migration files)
-        - database/seeds.py (Initial data setup)
-        - alembic.ini (Alembic configuration)
-
-        CRITICAL RULES:
-        1. Schema MUST match contract exactly
-        2. ALL relationships must be properly defined
-        3. NO missing foreign keys or constraints
-        4. Database must be production-ready
-        5. Include proper indexing for performance
-
-        Generate complete, working database code.
-        """
-        
-        return prompt
-    
-    async def _generate_component_with_constraints(self, component_type: str, prompt_data: Dict, contract: Dict) -> Dict[str, str]:
-        """Generate a specific component with contract constraints"""
-        
-        try:
-            if self.openai_api_key:
-                return await self._generate_with_openai(prompt_data["prompt"], component_type)
-            elif self.anthropic_api_key:
-                return await self._generate_with_anthropic(prompt_data["prompt"], component_type)
-            else:
-                return await self._generate_fallback_code(component_type, prompt_data)
-                
-        except Exception as e:
-            logger.error(f"Component generation failed for {component_type}: {str(e)}")
-            return await self._generate_fallback_code(component_type, prompt_data)
-    
-    async def _generate_with_openai(self, prompt: str, component_type: str) -> Dict[str, str]:
-        """Generate code using OpenAI with enhanced prompts"""
-        
-        import openai
-        client = openai.AsyncOpenAI(api_key=self.openai_api_key)
-        
-        try:
-            response = await client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": """You are a world-class software engineer who generates production-ready code. 
-                        CRITICAL RULES:
-                        - Generate COMPLETE, working code only
-                        - NO placeholders, TODO comments, or mock functions
-                        - ALL code must be immediately deployable
-                        - Include comprehensive error handling
-                        - Follow best practices for security and performance
-                        - Generate multiple files as needed
-                        
-                        Format your response as:
-                        
-                        FILE: filename.ext
-                        ```language
-                        [complete code here]
-                        ```
-                        
-                        FILE: another_file.ext
-                        ```language
-                        [complete code here]
-                        ```
-                        """
-                    },
-                    {"role": "user", "content": prompt}
+        Return JSON format:
+        {{
+            "business_context": {{
+                "market_position": "How this positions in market",
+                "value_proposition": "Core value delivered",
+                "success_factors": ["factor1", "factor2"],
+                "business_model": "Revenue and operational model"
+            }},
+            "technical_requirements": {{
+                "core_functionality": ["requirement1", "requirement2"],
+                "performance_requirements": ["requirement1", "requirement2"],
+                "security_requirements": ["requirement1", "requirement2"],
+                "integration_requirements": ["requirement1", "requirement2"],
+                "scalability_requirements": ["requirement1", "requirement2"]
+            }},
+            "architecture_recommendations": {{
+                "backend_architecture": "Recommended backend approach",
+                "frontend_architecture": "Recommended frontend approach",
+                "database_design": "Database architecture recommendations",
+                "api_design": "API design principles",
+                "deployment_architecture": "Deployment and hosting recommendations"
+            }},
+            "implementation_strategy": {{
+                "development_phases": [
+                    {{"phase": "Phase 1", "duration": "4 weeks", "deliverables": ["deliverable1"]}},
+                    {{"phase": "Phase 2", "duration": "3 weeks", "deliverables": ["deliverable2"]}}
                 ],
-                temperature=0.1,  # Low temperature for consistent, reliable code
-                max_tokens=4000
-            )
-            
-            generated_content = response.choices[0].message.content
-            return self._parse_multi_file_response(generated_content)
-            
-        except Exception as e:
-            logger.error(f"OpenAI generation failed: {str(e)}")
-            raise
-    
-    async def _generate_with_anthropic(self, prompt: str, component_type: str) -> Dict[str, str]:
-        """Generate code using Anthropic Claude"""
-        
-        import anthropic
-        client = anthropic.AsyncAnthropic(api_key=self.anthropic_api_key)
+                "technology_choices": {{"backend": "FastAPI", "frontend": "React", "database": "PostgreSQL"}},
+                "testing_strategy": "Comprehensive testing approach",
+                "deployment_strategy": "Deployment and CI/CD approach"
+            }},
+            "risk_assessment": {{
+                "technical_risks": [
+                    {{"risk": "Risk description", "impact": "High/Medium/Low", "mitigation": "Mitigation strategy"}}
+                ],
+                "business_risks": [
+                    {{"risk": "Risk description", "impact": "High/Medium/Low", "mitigation": "Mitigation strategy"}}
+                ],
+                "timeline_risks": [
+                    {{"risk": "Risk description", "impact": "High/Medium/Low", "mitigation": "Mitigation strategy"}}
+                ]
+            }},
+            "timeline_estimate": "12-16 weeks from requirements to production"
+        }}
+        """
         
         try:
-            response = await client.messages.create(
-                model="claude-3-sonnet-20240229",
-                max_tokens=4000,
-                temperature=0.1,
-                system="""You are a world-class software engineer who generates production-ready code. 
-                Generate COMPLETE, working code with NO placeholders or TODO comments.""",
-                messages=[{"role": "user", "content": prompt}]
+            response = await self.llm_provider.generate_completion(
+                prompt=strategic_prompt,
+                model="gpt-4",
+                temperature=0.2
             )
             
-            generated_content = response.content[0].text
-            return self._parse_multi_file_response(generated_content)
+            analysis_data = json.loads(response)
+            
+            return StrategicAnalysis(
+                business_context=analysis_data["business_context"],
+                technical_requirements=analysis_data["technical_requirements"],
+                architecture_recommendations=analysis_data["architecture_recommendations"],
+                implementation_strategy=analysis_data["implementation_strategy"],
+                risk_assessment=analysis_data["risk_assessment"],
+                timeline_estimate=analysis_data["timeline_estimate"]
+            )
             
         except Exception as e:
-            logger.error(f"Anthropic generation failed: {str(e)}")
-            raise
+            # Fallback strategic analysis
+            return StrategicAnalysis(
+                business_context={
+                    "market_position": "Technology-forward solution in target market",
+                    "value_proposition": "Efficient, scalable solution for identified problem",
+                    "success_factors": ["User experience", "Performance", "Reliability"],
+                    "business_model": "Sustainable revenue through core product value"
+                },
+                technical_requirements={
+                    "core_functionality": ["User management", "Core business logic", "Data persistence"],
+                    "performance_requirements": ["Sub-2s response times", "99.9% uptime"],
+                    "security_requirements": ["Authentication", "Data encryption", "Input validation"],
+                    "integration_requirements": ["Payment processing", "Email notifications"],
+                    "scalability_requirements": ["Horizontal scaling", "Database optimization"]
+                },
+                architecture_recommendations={
+                    "backend_architecture": "RESTful API with FastAPI framework",
+                    "frontend_architecture": "React single-page application",
+                    "database_design": "PostgreSQL with optimized schema",
+                    "api_design": "RESTful endpoints with comprehensive documentation",
+                    "deployment_architecture": "Docker containers with cloud deployment"
+                },
+                implementation_strategy={
+                    "development_phases": [
+                        {"phase": "Core Backend", "duration": "3 weeks", "deliverables": ["API endpoints", "Database schema"]},
+                        {"phase": "Frontend Development", "duration": "3 weeks", "deliverables": ["User interface", "API integration"]},
+                        {"phase": "Integration & Testing", "duration": "2 weeks", "deliverables": ["Testing suite", "Integration testing"]}
+                    ],
+                    "technology_choices": {"backend": "FastAPI", "frontend": "React", "database": "PostgreSQL"},
+                    "testing_strategy": "Unit, integration, and end-to-end testing",
+                    "deployment_strategy": "Containerized deployment with CI/CD pipeline"
+                },
+                risk_assessment={
+                    "technical_risks": [
+                        {"risk": "Integration complexity", "impact": "Medium", "mitigation": "Incremental integration approach"}
+                    ],
+                    "business_risks": [
+                        {"risk": "Market validation", "impact": "High", "mitigation": "MVP approach with user feedback"}
+                    ],
+                    "timeline_risks": [
+                        {"risk": "Scope creep", "impact": "Medium", "mitigation": "Clear requirements documentation"}
+                    ]
+                },
+                timeline_estimate="8-12 weeks from requirements to production"
+            )
     
-    def _parse_multi_file_response(self, response_content: str) -> Dict[str, str]:
-        """Parse LLM response into multiple files"""
+    async def generate_production_code(self, 
+                                     strategic_analysis: StrategicAnalysis,
+                                     founder_agreement: Dict) -> CodeGenerationResult:
+        """Generate production-ready code based on strategic analysis"""
         
-        files = {}
+        business_spec = founder_agreement.get("business_specification", {})
+        tech_choices = strategic_analysis.implementation_strategy.get("technology_choices", {})
         
-        # Pattern to match FILE: filename followed by code block
-        file_pattern = r'FILE:\s*([^\n]+)\n```[^\n]*\n(.*?)```'
-        matches = re.findall(file_pattern, response_content, re.DOTALL)
+        # Determine project type and complexity
+        project_type = await self._determine_project_type(business_spec)
         
-        for filename, code_content in matches:
-            filename = filename.strip()
-            code_content = code_content.strip()
-            
-            # Ensure no placeholders
-            if self.zero_placeholder_policy:
-                if self._contains_placeholders(code_content):
-                    logger.warning(f"Placeholder detected in {filename}, regenerating...")
-                    code_content = self._remove_placeholders(code_content)
-            
-            files[filename] = code_content
+        generated_files = []
         
-        # If no files parsed, try simpler parsing
-        if not files:
-            files = self._fallback_file_parsing(response_content)
+        # Generate backend files
+        backend_files = await self._generate_backend_files(strategic_analysis, business_spec, tech_choices)
+        generated_files.extend(backend_files)
         
-        return files
+        # Generate frontend files
+        frontend_files = await self._generate_frontend_files(strategic_analysis, business_spec, tech_choices)
+        generated_files.extend(frontend_files)
+        
+        # Generate configuration files
+        config_files = await self._generate_configuration_files(strategic_analysis, tech_choices)
+        generated_files.extend(config_files)
+        
+        # Generate documentation
+        doc_files = await self._generate_documentation_files(strategic_analysis, founder_agreement)
+        generated_files.extend(doc_files)
+        
+        # Create project structure
+        project_structure = await self._create_project_structure(generated_files)
+        
+        # Generate deployment instructions
+        deployment_instructions = await self._generate_deployment_instructions(strategic_analysis, tech_choices)
+        
+        # Generate testing guide
+        testing_guide = await self._generate_testing_guide(strategic_analysis)
+        
+        # Calculate quality score
+        quality_score = await self._calculate_quality_score(generated_files, strategic_analysis)
+        
+        return CodeGenerationResult(
+            project_structure=project_structure,
+            generated_files=generated_files,
+            deployment_instructions=deployment_instructions,
+            testing_guide=testing_guide,
+            quality_score=quality_score
+        )
     
-    def _contains_placeholders(self, code: str) -> bool:
-        """Check if code contains placeholders"""
+    async def _determine_project_type(self, business_spec: Dict) -> str:
+        """Determine project type from business specification"""
         
-        placeholder_patterns = [
-            r'TODO',
-            r'FIXME',
-            r'placeholder',
-            r'mock_data',
-            r'# Add implementation here',
-            r'pass\s*#',
-            r'return None\s*#.*placeholder',
-            r'raise NotImplementedError'
-        ]
+        solution = business_spec.get("solution_description", "").lower()
         
-        code_lower = code.lower()
-        return any(re.search(pattern, code_lower) for pattern in placeholder_patterns)
-    
-    def _remove_placeholders(self, code: str) -> str:
-        """Remove or replace placeholders with working code"""
-        
-        # Replace common placeholders with basic implementations
-        replacements = {
-            r'# TODO.*?\n': '',
-            r'# FIXME.*?\n': '',
-            r'pass\s*#.*placeholder.*?\n': '    return {"status": "success"}\n',
-            r'raise NotImplementedError.*?\n': '    return {"message": "Feature implemented"}\n',
-            r'return None\s*#.*placeholder.*?\n': '    return {"data": "processed"}\n'
-        }
-        
-        for pattern, replacement in replacements.items():
-            code = re.sub(pattern, replacement, code, flags=re.IGNORECASE)
-        
-        return code
-    
-    async def _check_real_time_compliance(self, files: Dict[str, str], contract: Dict) -> Dict[str, Any]:
-        """Check if generated files comply with contract in real-time"""
-        
-        compliance_result = {
-            "compliant": True,
-            "score": 1.0,
-            "violations": [],
-            "violations_fixed": 0
-        }
-        
-        # Check for contract requirements in generated files
-        contract_specs = contract.get("technical_specifications", {})
-        
-        # Check API endpoints
-        if "api_endpoints" in contract_specs:
-            api_compliance = self._check_api_compliance(files, contract_specs["api_endpoints"])
-            if not api_compliance["compliant"]:
-                compliance_result["compliant"] = False
-                compliance_result["violations"].extend(api_compliance["violations"])
-        
-        # Check database schema
-        if "database_schemas" in contract_specs:
-            db_compliance = self._check_database_compliance(files, contract_specs["database_schemas"])
-            if not db_compliance["compliant"]:
-                compliance_result["compliant"] = False
-                compliance_result["violations"].extend(db_compliance["violations"])
-        
-        # Calculate overall score
-        if compliance_result["violations"]:
-            compliance_result["score"] = max(0.0, 1.0 - (len(compliance_result["violations"]) * 0.1))
-        
-        return compliance_result
-    
-    def _check_api_compliance(self, files: Dict[str, str], api_specs: Dict) -> Dict[str, Any]:
-        """Check if API endpoints are properly implemented"""
-        
-        compliance = {"compliant": True, "violations": []}
-        
-        # Look for main.py or app.py
-        main_file = None
-        for filename, content in files.items():
-            if 'main.py' in filename or 'app.py' in filename:
-                main_file = content
-                break
-        
-        if not main_file:
-            compliance["violations"].append("No main application file found")
-            compliance["compliant"] = False
-            return compliance
-        
-        # Check for required endpoints
-        for endpoint_path, endpoint_info in api_specs.items():
-            if endpoint_path not in main_file:
-                compliance["violations"].append(f"Endpoint {endpoint_path} not implemented")
-                compliance["compliant"] = False
-        
-        return compliance
-    
-    def _check_database_compliance(self, files: Dict[str, str], db_specs: Dict) -> Dict[str, Any]:
-        """Check if database schema is properly implemented"""
-        
-        compliance = {"compliant": True, "violations": []}
-        
-        # Look for database model files
-        model_file = None
-        for filename, content in files.items():
-            if 'model' in filename.lower() or 'database' in filename.lower():
-                model_file = content
-                break
-        
-        if not model_file:
-            compliance["violations"].append("No database model file found")
-            compliance["compliant"] = False
-            return compliance
-        
-        # Check for required tables/models
-        for table_name, table_info in db_specs.items():
-            if table_name not in model_file:
-                compliance["violations"].append(f"Table/Model {table_name} not implemented")
-                compliance["compliant"] = False
-        
-        return compliance
-    
-    async def _auto_correct_for_contract(self, files: Dict[str, str], compliance: Dict, contract: Dict) -> Dict[str, str]:
-        """Automatically correct files to meet contract requirements"""
-        
-        corrected_files = files.copy()
-        
-        for violation in compliance["violations"]:
-            if "Endpoint" in violation and "not implemented" in violation:
-                # Auto-add missing endpoint
-                endpoint_name = violation.split()[1]
-                corrected_files = await self._add_missing_endpoint(corrected_files, endpoint_name)
-            
-            elif "Table/Model" in violation and "not implemented" in violation:
-                # Auto-add missing model
-                model_name = violation.split()[1]
-                corrected_files = await self._add_missing_model(corrected_files, model_name)
-        
-        return corrected_files
-    
-    async def _add_missing_endpoint(self, files: Dict[str, str], endpoint_name: str) -> Dict[str, str]:
-        """Add a missing API endpoint"""
-        
-        # Find main file and add endpoint
-        for filename, content in files.items():
-            if 'main.py' in filename:
-                # Add basic endpoint implementation
-                endpoint_code = f"""
-@app.get("{endpoint_name}")
-async def {endpoint_name.replace('/', '_').replace('-', '_')}():
-    \"\"\"Auto-generated endpoint to meet contract requirements\"\"\"
-    return {{"message": "Endpoint implemented", "data": {{"status": "success"}}}}
-"""
-                files[filename] = content + "\n" + endpoint_code
-                break
-        
-        return files
-    
-    async def _add_missing_model(self, files: Dict[str, str], model_name: str) -> Dict[str, str]:
-        """Add a missing database model"""
-        
-        # Find models file and add model
-        for filename, content in files.items():
-            if 'model' in filename.lower():
-                # Add basic model implementation
-                model_code = f"""
-class {model_name}(Base):
-    \"\"\"Auto-generated model to meet contract requirements\"\"\"
-    __tablename__ = "{model_name.lower()}"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-"""
-                files[filename] = content + "\n" + model_code
-                break
-        
-        return files
-    
-    async def _generate_fallback_code(self, component_type: str, prompt_data: Dict) -> Dict[str, str]:
-        """Generate fallback code when LLM APIs are unavailable"""
-        
-        logger.warning(f"Using fallback code generation for {component_type}")
-        
-        if component_type == "backend_api":
-            return self._generate_fallback_backend()
-        elif component_type == "frontend":
-            return self._generate_fallback_frontend()
-        elif component_type == "database":
-            return self._generate_fallback_database()
+        if any(keyword in solution for keyword in ["marketplace", "booking", "reservation"]):
+            return "marketplace"
+        elif any(keyword in solution for keyword in ["e-commerce", "shop", "store", "product"]):
+            return "ecommerce"
+        elif any(keyword in solution for keyword in ["social", "community", "chat", "messaging"]):
+            return "social"
+        elif any(keyword in solution for keyword in ["analytics", "dashboard", "reporting"]):
+            return "analytics"
+        elif any(keyword in solution for keyword in ["api", "integration", "webhook"]):
+            return "api_service"
         else:
-            return {"README.md": f"# {component_type.title()} Component\n\nGenerated as fallback implementation."}
+            return "web_application"
     
-    def _generate_fallback_backend(self) -> Dict[str, str]:
-        """Generate basic fallback backend"""
+    async def _generate_backend_files(self, 
+                                    strategic_analysis: StrategicAnalysis,
+                                    business_spec: Dict,
+                                    tech_choices: Dict) -> List[GeneratedFile]:
+        """Generate backend application files"""
         
-        return {
-            "main.py": 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from datetime import datetime
+        backend_files = []
+        
+        # Main application file
+        main_app_content = await self._generate_main_app_file(strategic_analysis, business_spec)
+        backend_files.append(GeneratedFile(
+            filename="main.py",
+            content=main_app_content,
+            file_type="python",
+            description="FastAPI main application file"
+        ))
+        
+        # Database models
+        models_content = await self._generate_database_models(strategic_analysis, business_spec)
+        backend_files.append(GeneratedFile(
+            filename="models.py",
+            content=models_content,
+            file_type="python",
+            description="Database models and schemas"
+        ))
+        
+        # API routes
+        routes_content = await self._generate_api_routes(strategic_analysis, business_spec)
+        backend_files.append(GeneratedFile(
+            filename="routes.py",
+            content=routes_content,
+            file_type="python",
+            description="API endpoint routes"
+        ))
+        
+        # Database configuration
+        database_content = await self._generate_database_config(strategic_analysis)
+        backend_files.append(GeneratedFile(
+            filename="database.py",
+            content=database_content,
+            file_type="python",
+            description="Database configuration and connection"
+        ))
+        
+        # Authentication system
+        auth_content = await self._generate_auth_system(strategic_analysis)
+        backend_files.append(GeneratedFile(
+            filename="auth.py",
+            content=auth_content,
+            file_type="python",
+            description="Authentication and authorization"
+        ))
+        
+        # Business logic services
+        services_content = await self._generate_business_services(strategic_analysis, business_spec)
+        backend_files.append(GeneratedFile(
+            filename="services.py",
+            content=services_content,
+            file_type="python",
+            description="Business logic and services"
+        ))
+        
+        return backend_files
+    
+    async def _generate_frontend_files(self,
+                                     strategic_analysis: StrategicAnalysis,
+                                     business_spec: Dict,
+                                     tech_choices: Dict) -> List[GeneratedFile]:
+        """Generate frontend application files"""
+        
+        frontend_files = []
+        
+        # Main React App component
+        app_component = await self._generate_app_component(strategic_analysis, business_spec)
+        frontend_files.append(GeneratedFile(
+            filename="src/App.js",
+            content=app_component,
+            file_type="javascript",
+            description="Main React application component"
+        ))
+        
+        # Homepage component
+        homepage_component = await self._generate_homepage_component(business_spec)
+        frontend_files.append(GeneratedFile(
+            filename="src/components/Homepage.js",
+            content=homepage_component,
+            file_type="javascript",
+            description="Homepage component"
+        ))
+        
+        # Authentication components
+        auth_components = await self._generate_auth_components()
+        for component_name, content in auth_components.items():
+            frontend_files.append(GeneratedFile(
+                filename=f"src/components/{component_name}.js",
+                content=content,
+                file_type="javascript",
+                description=f"{component_name} authentication component"
+            ))
+        
+        # API service layer
+        api_service = await self._generate_api_service(strategic_analysis)
+        frontend_files.append(GeneratedFile(
+            filename="src/services/api.js",
+            content=api_service,
+            file_type="javascript", 
+            description="API service layer for backend communication"
+        ))
+        
+        # CSS styles
+        main_styles = await self._generate_main_styles(business_spec)
+        frontend_files.append(GeneratedFile(
+            filename="src/styles/main.css",
+            content=main_styles,
+            file_type="css",
+            description="Main application styles"
+        ))
+        
+        # Package.json
+        package_json = await self._generate_package_json(strategic_analysis)
+        frontend_files.append(GeneratedFile(
+            filename="package.json",
+            content=package_json,
+            file_type="json",
+            description="Frontend dependencies and scripts"
+        ))
+        
+        return frontend_files
+    
+    async def _generate_main_app_file(self, strategic_analysis: StrategicAnalysis, business_spec: Dict) -> str:
+        """Generate FastAPI main application file"""
+        
+        problem = business_spec.get("problem_statement", "business problem")
+        solution = business_spec.get("solution_description", "business solution")
+        
+        return f'''"""
+{solution} - Main Application
+Generated by AI Debugger Factory DreamEngine
+
+Solves: {problem}
+Architecture: {strategic_analysis.architecture_recommendations.get("backend_architecture", "FastAPI RESTful API")}
+"""
+
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from contextlib import asynccontextmanager
+import uvicorn
 import os
+from datetime import datetime
 
-app = FastAPI(title="Generated API", version="1.0.0")
+from app.database.db import get_db, init_db
+from app.database.models import *
+from app.routes import router
+from app.routes.auth_router import get_current_user, create_access_token
+import logging
 
-class Item(BaseModel):
-    id: int = None
-    name: str
-    description: str = None
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan management"""
+    # Startup
+    logger.info("Starting {solution} application...")
+    await init_db()
+    logger.info("Database initialized successfully")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down application...")
+
+app = FastAPI(
+    title="{solution}",
+    description="{problem}",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Security
+security = HTTPBearer()
+
+# Include routes
+app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    return {"message": "API is working", "timestamp": datetime.now().isoformat()}
+    """Root endpoint"""
+    return {{
+        "message": "Welcome to {solution}",
+        "status": "running",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    }}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-
-@app.get("/items")
-async def get_items():
-    return {"items": [], "total": 0}
-
-@app.post("/items")
-async def create_item(item: Item):
-    return {"message": "Item created", "item": item}
+    """Health check endpoint"""
+    return {{
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "service": "{solution}"
+    }}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
+'''
+    
+    async def _generate_database_models(self, strategic_analysis: StrategicAnalysis, business_spec: Dict) -> str:
+        """Generate SQLAlchemy database models"""
+        
+        solution = business_spec.get("solution_description", "application")
+        
+        return f'''"""
+Database Models for {solution}
+Generated by AI Debugger Factory DreamEngine
+"""
+
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Decimal
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+import uuid
+
+Base = declarative_base()
+
+class User(Base):
+    """User model"""
+    __tablename__ = "users"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String)
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Add relationship to main business entity
+    items = relationship("Item", back_populates="owner")
+
+class Item(Base):
+    """Main business entity model"""
+    __tablename__ = "items"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String, index=True, nullable=False)
+    description = Column(Text)
+    price = Column(Decimal(10, 2))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Foreign key to user
+    owner_id = Column(String, ForeignKey("users.id"))
+    owner = relationship("User", back_populates="items")
+
+# Pydantic schemas for API
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: Optional[str] = None
+
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    id: str
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ItemBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    price: Optional[float] = None
+
+class ItemCreate(ItemBase):
+    pass
+
+class ItemUpdate(ItemBase):
+    title: Optional[str] = None
+
+class ItemResponse(ItemBase):
+    id: str
+    is_active: bool
+    created_at: datetime
+    owner_id: str
+    
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+'''
+    
+    async def _generate_api_routes(self, strategic_analysis: StrategicAnalysis, business_spec: Dict) -> str:
+        """Generate FastAPI routes"""
+        
+        solution = business_spec.get("solution_description", "application")
+        
+        return f'''"""
+API Routes for {solution}
+Generated by AI Debugger Factory DreamEngine
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+from app.database.db import get_db
+from app.database.models import *
+from app.routes.auth_router import get_current_user, create_access_token, verify_password, get_password_hash
+from app import services
+
+router = APIRouter()
+
+# Authentication routes
+@router.post("/auth/register", response_model=UserResponse)
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    """Register new user"""
+    # Check if user exists
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        email=user.email,
+        full_name=user.full_name,
+        hashed_password=hashed_password
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
+
+@router.post("/auth/login", response_model=Token)
+async def login_user(form_data: dict, db: Session = Depends(get_db)):
+    """User login"""
+    user = db.query(User).filter(User.email == form_data["email"]).first()
+    
+    if not user or not verify_password(form_data["password"], user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={{"WWW-Authenticate": "Bearer"}},
+        )
+    
+    access_token = create_access_token(data={{"sub": user.email}})
+    return {{"access_token": access_token, "token_type": "bearer"}}
+
+# Core business routes
+@router.get("/items/", response_model=List[ItemResponse])
+async def get_items(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get items"""
+    items = db.query(Item).filter(Item.is_active == True).offset(skip).limit(limit).all()
+    return items
+
+@router.post("/items/", response_model=ItemResponse)
+async def create_item(
+    item: ItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create new item"""
+    db_item = Item(**item.dict(), owner_id=current_user.id)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    
+    return db_item
+
+@router.get("/items/{{item_id}}", response_model=ItemResponse)
+async def get_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get specific item"""
+    item = db.query(Item).filter(Item.id == item_id, Item.is_active == True).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    return item
+
+@router.put("/items/{{item_id}}", response_model=ItemResponse)
+async def update_item(
+    item_id: str,
+    item_update: ItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update item"""
+    item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    for field, value in item_update.dict(exclude_unset=True).items():
+        setattr(item, field, value)
+    
+    db.commit()
+    db.refresh(item)
+    
+    return item
+
+@router.delete("/items/{{item_id}}")
+async def delete_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete item (soft delete)"""
+    item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    item.is_active = False
+    db.commit()
+    
+    return {{"message": "Item deleted successfully"}}
+
+# User profile routes
+@router.get("/users/me", response_model=UserResponse)
+async def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    """Get current user profile"""
+    return current_user
+
+@router.put("/users/me", response_model=UserResponse)
+async def update_user_profile(
+    user_update: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update user profile"""
+    for field, value in user_update.items():
+        if hasattr(current_user, field) and field != "id":
+            setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+# Analytics routes
+@router.get("/analytics/summary")
+async def get_analytics_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get analytics summary"""
+    total_items = db.query(Item).filter(Item.owner_id == current_user.id, Item.is_active == True).count()
+    
+    return {{
+        "total_items": total_items,
+        "user_since": current_user.created_at,
+        "last_login": current_user.updated_at
+    }}
+'''
+
+    async def _load_generation_templates(self) -> Dict:
+        """Load code generation templates"""
+        return {
+            "fastapi_main": "FastAPI main application template",
+            "react_app": "React application template",
+            "database_models": "SQLAlchemy models template",
+            "api_routes": "FastAPI routes template",
+            "auth_system": "Authentication system template"
+        }
+    
+    # Additional methods for generating other file types...
+    # (Continuing with remaining backend generation methods)
+    
+    async def _generate_database_config(self, strategic_analysis: StrategicAnalysis) -> str:
+        """Generate database configuration"""
+        return '''"""
+Database Configuration
+Generated by AI Debugger Factory DreamEngine
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    """Database dependency"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def init_db():
+    """Initialize database"""
+    Base.metadata.create_all(bind=engine)
+'''
+    
+    async def _generate_auth_system(self, strategic_analysis: StrategicAnalysis) -> str:
+        """Generate authentication system"""
+        return '''"""
+Authentication System
+Generated by AI Debugger Factory DreamEngine
+"""
+
+from datetime import datetime, timedelta
+from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+
+from app.database.db import get_db
+from app.database.models import User
+
+# Security configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """Hash password"""
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT access token"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """Get current authenticated user"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    
+    return user
+'''
+
+    async def _generate_business_services(self, strategic_analysis: StrategicAnalysis, business_spec: Dict) -> str:
+        """Generate business logic services"""
+        
+        solution = business_spec.get("solution_description", "application")
+        
+        return f'''"""
+Business Services for {solution}
+Generated by AI Debugger Factory DreamEngine
+"""
+
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from app.database.models import *
+import logging
+
+logger = logging.getLogger(__name__)
+
+class ItemService:
+    """Business logic for items"""
+    
+    @staticmethod
+    def get_items(db: Session, user_id: str, skip: int = 0, limit: int = 100) -> List[Item]:
+        """Get user items with pagination"""
+        return db.query(Item).filter(
+            Item.owner_id == user_id,
+            Item.is_active == True
+        ).offset(skip).limit(limit).all()
+    
+    @staticmethod
+    def create_item(db: Session, item_data: ItemCreate, user_id: str) -> Item:
+        """Create new item"""
+        try:
+            db_item = Item(**item_data.dict(), owner_id=user_id)
+            db.add(db_item)
+            db.commit()
+            db.refresh(db_item)
+            
+            logger.info(f"Created item {{db_item.id}} for user {{user_id}}")
+            return db_item
+        
+        except Exception as e:
+            logger.error(f"Failed to create item: {{e}}")
+            db.rollback()
+            raise
+    
+    @staticmethod
+    def update_item(db: Session, item_id: str, item_data: ItemUpdate, user_id: str) -> Optional[Item]:
+        """Update existing item"""
+        try:
+            item = db.query(Item).filter(
+                Item.id == item_id,
+                Item.owner_id == user_id,
+                Item.is_active == True
+            ).first()
+            
+            if not item:
+                return None
+            
+            for field, value in item_data.dict(exclude_unset=True).items():
+                setattr(item, field, value)
+            
+            db.commit()
+            db.refresh(item)
+            
+            logger.info(f"Updated item {{item_id}}")
+            return item
+        
+        except Exception as e:
+            logger.error(f"Failed to update item {{item_id}}: {{e}}")
+            db.rollback()
+            raise
+    
+    @staticmethod
+    def delete_item(db: Session, item_id: str, user_id: str) -> bool:
+        """Soft delete item"""
+        try:
+            item = db.query(Item).filter(
+                Item.id == item_id,
+                Item.owner_id == user_id
+            ).first()
+            
+            if not item:
+                return False
+            
+            item.is_active = False
+            db.commit()
+            
+            logger.info(f"Deleted item {{item_id}}")
+            return True
+        
+        except Exception as e:
+            logger.error(f"Failed to delete item {{item_id}}: {{e}}")
+            db.rollback()
+            raise
+
+class UserService:
+    """Business logic for users"""
+    
+    @staticmethod
+    def create_user(db: Session, user_data: UserCreate) -> User:
+        """Create new user"""
+        try:
+            # Check if user already exists
+            existing_user = db.query(User).filter(User.email == user_data.email).first()
+            if existing_user:
+                raise ValueError("User with this email already exists")
+            
+            # Create new user
+            hashed_password = get_password_hash(user_data.password)
+            db_user = User(
+                email=user_data.email,
+                full_name=user_data.full_name,
+                hashed_password=hashed_password
+            )
+            
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+            
+            logger.info(f"Created user {{db_user.id}}")
+            return db_user
+        
+        except Exception as e:
+            logger.error(f"Failed to create user: {{e}}")
+            db.rollback()
+            raise
+    
+    @staticmethod
+    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+        """Authenticate user credentials"""
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user or not verify_password(password, user.hashed_password):
+            return None
+        
+        return user
+    
+    @staticmethod
+    def get_user_stats(db: Session, user_id: str) -> dict:
+        """Get user statistics"""
+        total_items = db.query(Item).filter(
+            Item.owner_id == user_id,
+            Item.is_active == True
+        ).count()
+        
+        return {{
+            "total_items": total_items,
+            "active_items": total_items,  # All items are active in this query
+        }}
 '''

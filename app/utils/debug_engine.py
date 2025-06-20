@@ -1,464 +1,505 @@
-import os
+"""
+Debug Engine - AI-Powered Code Analysis and Debugging
+Integrates with Monaco Editor for professional debugging experience
+Enhanced with real-time collaboration and GitHub sync
+"""
+
 import asyncio
-import ast
 import json
-import logging
-import re
-import time
 import uuid
+import ast
+import re
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
-from typing import Dict, List, Optional, Any, AsyncGenerator, Tuple
 from dataclasses import dataclass
-import difflib
-from pathlib import Path
-
-from fastapi import HTTPException
-from pydantic import BaseModel
 import openai
-import anthropic
 
-from app.utils.project_memory import ProjectMemoryManager
-from app.utils.code_analyzer import CodeAnalyzer
-from app.utils.precision_updater import PrecisionUpdater
-from app.utils.conversation_ai import ConversationAI
-from openai import AsyncOpenAI
+@dataclass
+class CodeAnalysis:
+    file_path: str
+    issues_found: List[Dict]
+    suggestions: List[Dict]
+    complexity_score: float
+    quality_score: float
 
-logger = logging.getLogger(__name__)
-
-class DebugEngine:
-    def __init__(self):
-        self.openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+@dataclass
+class DebugSuggestion:
+    type: str  # "bug_fix", "optimization", "feature_enhancement"
+    description: str
+    code_changes: Dict
+    confidence: float
+    impact: str  # "low", "medium", "high"
 
 @dataclass
 class DebugSession:
-    """Represents an active debugging session"""
     session_id: str
     project_id: str
     user_id: str
+    codebase_snapshot: Dict
+    analysis_results: List[CodeAnalysis]
+    suggestions: List[DebugSuggestion]
     conversation_history: List[Dict]
-    current_codebase: Dict[str, str]  # filename -> content
-    original_intent: str
-    last_activity: datetime
-
-class DebugRequest(BaseModel):
-    session_id: Optional[str] = None
-    project_id: str
-    user_input: str
-    context: Optional[Dict] = None
-    request_type: str = "general"  # general, fix_bug, add_feature, explain_code, etc.
-
-class DebugResponse(BaseModel):
-    session_id: str
     status: str
-    message: str
-    analysis: Dict
-    suggested_changes: List[Dict]
-    explanation: str
-    confidence_score: float
-    requires_confirmation: bool = False
 
 class DebugEngine:
-    """
-    Main DebugBot Engine - Provides intelligent debugging and iteration
-    """
+    """Advanced AI debugging and code analysis engine"""
     
-    def __init__(self):
-        self.memory_manager = ProjectMemoryManager()
-        self.code_analyzer = CodeAnalyzer()
-        self.precision_updater = PrecisionUpdater()
-        self.conversation_ai = ConversationAI()
+    def __init__(self, llm_provider, monaco_integration, github_integration):
+        self.llm_provider = llm_provider
+        self.monaco_integration = monaco_integration
+        self.github_integration = github_integration
         self.active_sessions: Dict[str, DebugSession] = {}
         
-        # LLM clients for debugging
-        self.openai_client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    async def start_debug_session(self, project_id: str, user_id: str, codebase: Dict) -> DebugSession:
+        """Initialize new debugging session"""
         
-    async def start_debug_session(self, project_id: str, user_id: str) -> str:
-        """Initialize a new debugging session"""
-        try:
-            session_id = str(uuid.uuid4())
-            
-            # Load project from memory
-            project_context = await self.memory_manager.load_project(project_id)
-            
-            if not project_context:
-                raise HTTPException(status_code=404, detail="Project not found")
-            
-            session = DebugSession(
-                session_id=session_id,
-                project_id=project_id,
-                user_id=user_id,
-                conversation_history=[],
-                current_codebase=project_context.get("files", {}),
-                original_intent=project_context.get("original_prompt", ""),
-                last_activity=datetime.now()
-            )
-            
-            self.active_sessions[session_id] = session
-            
-            logger.info(f"🔧 Started debug session {session_id} for project {project_id}")
-            
-            return session_id
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to start debug session: {str(e)}")
-            raise
+        session_id = str(uuid.uuid4())
+        
+        # Create debug session
+        session = DebugSession(
+            session_id=session_id,
+            project_id=project_id,
+            user_id=user_id,
+            codebase_snapshot=codebase,
+            analysis_results=[],
+            suggestions=[],
+            conversation_history=[],
+            status="initializing"
+        )
+        
+        # Perform initial code analysis
+        analysis_results = await self._analyze_codebase(codebase)
+        session.analysis_results = analysis_results
+        
+        # Generate initial suggestions
+        suggestions = await self._generate_initial_suggestions(analysis_results)
+        session.suggestions = suggestions
+        
+        session.status = "active"
+        self.active_sessions[session_id] = session
+        
+        return session
     
-    async def process_debug_request(self, request: DebugRequest) -> DebugResponse:
-        """Main debugging intelligence - processes user requests"""
-        try:
-            # Get or create session
-            session = await self._get_or_create_session(request)
-            
-            # Analyze user input to understand intent
-            user_intent = await self.conversation_ai.analyze_intent(
-                request.user_input, 
-                session.conversation_history,
-                session.current_codebase
-            )
-            
-            logger.info(f"🧠 Detected intent: {user_intent['type']} - {user_intent['summary']}")
-            
-            # Route to appropriate handler based on intent
-            if user_intent["type"] == "bug_report":
-                response = await self._handle_bug_report(session, request, user_intent)
-            elif user_intent["type"] == "feature_request":
-                response = await self._handle_feature_request(session, request, user_intent)
-            elif user_intent["type"] == "code_explanation":
-                response = await self._handle_code_explanation(session, request, user_intent)
-            elif user_intent["type"] == "modify_specific":
-                response = await self._handle_specific_modification(session, request, user_intent)
-            elif user_intent["type"] == "quality_review":
-                response = await self._handle_quality_review(session, request, user_intent)
-            else:
-                response = await self._handle_general_query(session, request, user_intent)
-            
-            # Update conversation history
-            session.conversation_history.append({
-                "timestamp": datetime.now().isoformat(),
-                "user_input": request.user_input,
-                "intent": user_intent,
-                "response": response.dict(),
-                "session_id": session.session_id
-            })
-            
-            session.last_activity = datetime.now()
-            
-            # Save session state
-            await self._save_session_state(session)
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"❌ Debug processing failed: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Debug processing failed: {str(e)}")
+    async def _analyze_codebase(self, codebase: Dict) -> List[CodeAnalysis]:
+        """Comprehensive codebase analysis"""
+        
+        analysis_results = []
+        
+        for file_path, file_content in codebase.items():
+            if file_path.endswith(('.py', '.js', '.ts', '.jsx', '.tsx')):
+                analysis = await self._analyze_file(file_path, file_content)
+                analysis_results.append(analysis)
+        
+        return analysis_results
     
-    async def _handle_bug_report(self, session: DebugSession, request: DebugRequest, intent: Dict) -> DebugResponse:
-        """Handle bug reports and debugging"""
+    async def _analyze_file(self, file_path: str, file_content: str) -> CodeAnalysis:
+        """Analyze individual file for issues and improvements"""
+        
+        file_extension = file_path.split('.')[-1]
+        
+        analysis_prompt = f"""
+        Analyze this {file_extension} file for issues and improvements:
+        
+        File: {file_path}
+        Content:
+        ```{file_extension}
+        {file_content}
+        ```
+        
+        Provide comprehensive analysis covering:
+        1. Code quality issues
+        2. Potential bugs and vulnerabilities
+        3. Performance optimization opportunities
+        4. Best practices violations
+        5. Maintainability concerns
+        
+        Return JSON format:
+        {{
+            "issues_found": [
+                {{
+                    "type": "bug|performance|security|style|maintainability",
+                    "severity": "low|medium|high|critical",
+                    "line_number": 42,
+                    "description": "Detailed issue description",
+                    "suggestion": "How to fix this issue"
+                }}
+            ],
+            "suggestions": [
+                {{
+                    "type": "optimization|refactoring|feature_enhancement",
+                    "description": "Improvement suggestion",
+                    "code_example": "Example of improved code",
+                    "benefit": "Expected benefit"
+                }}
+            ],
+            "complexity_score": 0.75,
+            "quality_score": 0.85,
+            "overall_assessment": "File assessment summary"
+        }}
+        """
+        
         try:
-            # Analyze code for potential issues
-            bug_analysis = await self.code_analyzer.analyze_for_bugs(
-                session.current_codebase,
-                intent["details"],
-                session.original_intent
-            )
-            
-            # Generate debugging suggestions
-            debug_suggestions = await self._generate_debug_suggestions(
-                session.current_codebase,
-                intent["details"],
-                bug_analysis
-            )
-            
-            # Create suggested fixes
-            suggested_changes = []
-            for suggestion in debug_suggestions:
-                if suggestion.get("confidence", 0) > 0.7:  # High confidence fixes
-                    changes = await self.precision_updater.generate_precise_fix(
-                        session.current_codebase,
-                        suggestion
-                    )
-                    suggested_changes.extend(changes)
-            
-            return DebugResponse(
-                session_id=session.session_id,
-                status="bug_analysis_complete",
-                message=f"Found {len(bug_analysis.get('issues', []))} potential issues",
-                analysis=bug_analysis,
-                suggested_changes=suggested_changes,
-                explanation=await self._generate_bug_explanation(bug_analysis, intent),
-                confidence_score=bug_analysis.get("overall_confidence", 0.5),
-                requires_confirmation=len(suggested_changes) > 0
-            )
-            
-        except Exception as e:
-            logger.error(f"❌ Bug analysis failed: {str(e)}")
-            raise
-    
-    async def _handle_feature_request(self, session: DebugSession, request: DebugRequest, intent: Dict) -> DebugResponse:
-        """Handle new feature additions"""
-        try:
-            # Analyze where to add the feature
-            integration_analysis = await self.code_analyzer.analyze_integration_points(
-                session.current_codebase,
-                intent["feature_description"]
-            )
-            
-            # Generate feature implementation
-            feature_implementation = await self._generate_feature_code(
-                session.current_codebase,
-                intent["feature_description"],
-                integration_analysis,
-                session.original_intent
-            )
-            
-            # Create precise updates
-            suggested_changes = await self.precision_updater.generate_feature_integration(
-                session.current_codebase,
-                feature_implementation,
-                integration_analysis
-            )
-            
-            return DebugResponse(
-                session_id=session.session_id,
-                status="feature_analysis_complete",
-                message=f"Analyzed integration for: {intent['feature_description'][:50]}...",
-                analysis=integration_analysis,
-                suggested_changes=suggested_changes,
-                explanation=await self._generate_feature_explanation(feature_implementation, intent),
-                confidence_score=integration_analysis.get("feasibility_score", 0.8),
-                requires_confirmation=True
-            )
-            
-        except Exception as e:
-            logger.error(f"❌ Feature analysis failed: {str(e)}")
-            raise
-    
-    async def _handle_specific_modification(self, session: DebugSession, request: DebugRequest, intent: Dict) -> DebugResponse:
-        """Handle specific code modifications like 'change only the login logic'"""
-        try:
-            # Parse what specifically needs to be changed
-            modification_target = await self.code_analyzer.identify_modification_target(
-                session.current_codebase,
-                intent["target_component"],
-                intent["modification_type"]
-            )
-            
-            # Generate precise changes
-            suggested_changes = await self.precision_updater.generate_targeted_modification(
-                session.current_codebase,
-                modification_target,
-                intent["modification_details"]
-            )
-            
-            # Analyze impact on other components
-            impact_analysis = await self.code_analyzer.analyze_change_impact(
-                session.current_codebase,
-                suggested_changes
-            )
-            
-            return DebugResponse(
-                session_id=session.session_id,
-                status="modification_ready",
-                message=f"Ready to modify {modification_target.get('component_name', 'target component')}",
-                analysis={
-                    "target": modification_target,
-                    "impact": impact_analysis
-                },
-                suggested_changes=suggested_changes,
-                explanation=await self._generate_modification_explanation(modification_target, intent, impact_analysis),
-                confidence_score=modification_target.get("confidence", 0.8),
-                requires_confirmation=impact_analysis.get("has_dependencies", False)
-            )
-            
-        except Exception as e:
-            logger.error(f"❌ Modification analysis failed: {str(e)}")
-            raise
-    
-    async def _handle_code_explanation(self, session: DebugSession, request: DebugRequest, intent: Dict) -> DebugResponse:
-        """Handle requests to explain code or decisions"""
-        try:
-            # Identify what code to explain
-            explanation_target = await self.code_analyzer.identify_explanation_target(
-                session.current_codebase,
-                intent.get("target_code", "")
-            )
-            
-            # Generate explanation using project memory
-            explanation = await self._generate_code_explanation(
-                explanation_target,
-                session.original_intent,
-                session.conversation_history
-            )
-            
-            return DebugResponse(
-                session_id=session.session_id,
-                status="explanation_ready",
-                message="Code explanation generated",
-                analysis=explanation_target,
-                suggested_changes=[],  # No changes for explanations
-                explanation=explanation,
-                confidence_score=0.9,
-                requires_confirmation=False
-            )
-            
-        except Exception as e:
-            logger.error(f"❌ Code explanation failed: {str(e)}")
-            raise
-    
-    async def _handle_quality_review(self, session: DebugSession, request: DebugRequest, intent: Dict) -> DebugResponse:
-        """Handle code quality analysis and improvement suggestions"""
-        try:
-            # Comprehensive code quality analysis
-            quality_analysis = await self.code_analyzer.analyze_code_quality(
-                session.current_codebase,
-                session.original_intent
-            )
-            
-            # Generate improvement suggestions
-            improvements = await self._generate_quality_improvements(
-                session.current_codebase,
-                quality_analysis
-            )
-            
-            # Create actionable changes
-            suggested_changes = []
-            for improvement in improvements[:5]:  # Top 5 improvements
-                if improvement.get("priority", 0) >= 7:  # High priority only
-                    changes = await self.precision_updater.generate_quality_fix(
-                        session.current_codebase,
-                        improvement
-                    )
-                    suggested_changes.extend(changes)
-            
-            return DebugResponse(
-                session_id=session.session_id,
-                status="quality_analysis_complete",
-                message=f"Analyzed code quality - found {len(improvements)} improvements",
-                analysis=quality_analysis,
-                suggested_changes=suggested_changes,
-                explanation=await self._generate_quality_explanation(quality_analysis, improvements),
-                confidence_score=quality_analysis.get("overall_score", 0.7) / 10,
-                requires_confirmation=len(suggested_changes) > 0
-            )
-            
-        except Exception as e:
-            logger.error(f"❌ Quality analysis failed: {str(e)}")
-            raise
-    
-    async def _generate_debug_suggestions(self, codebase: Dict, issue_description: str, analysis: Dict) -> List[Dict]:
-        """Generate AI-powered debugging suggestions"""
-        try:
-            prompt = f"""
-            Analyze this code issue and provide debugging suggestions:
-            
-            Issue: {issue_description}
-            Analysis: {json.dumps(analysis, indent=2)}
-            
-            Code files:
-            {self._format_codebase_for_prompt(codebase)}
-            
-            Provide specific, actionable debugging suggestions with confidence scores.
-            Focus on root causes, not just symptoms.
-            """
-            
-            response = await self.anthropic_client.messages.create(
-                model="claude-3-sonnet-20240229",
-                max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            
-            # Parse response into structured suggestions
-            suggestions_text = response.content[0].text
-            return self._parse_debug_suggestions(suggestions_text)
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to generate debug suggestions: {str(e)}")
-            return []
-    
-    async def _generate_feature_code(self, codebase: Dict, feature_description: str, 
-                                   integration_analysis: Dict, original_intent: str) -> Dict:
-        """Generate code for new features"""
-        try:
-            prompt = f"""
-            Generate code to implement this feature:
-            
-            Feature: {feature_description}
-            Original intent: {original_intent}
-            Integration points: {json.dumps(integration_analysis, indent=2)}
-            
-            Current codebase:
-            {self._format_codebase_for_prompt(codebase)}
-            
-            Generate minimal, precise code that integrates cleanly with existing architecture.
-            Return structured response with files and modifications.
-            """
-            
-            response = await self.openai_client.chat.completions.create(
+            response = await self.llm_provider.generate_completion(
+                prompt=analysis_prompt,
                 model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=3000
+                temperature=0.1
             )
             
-            return self._parse_feature_implementation(response.choices[0].message.content)
+            result = json.loads(response)
+            
+            return CodeAnalysis(
+                file_path=file_path,
+                issues_found=result["issues_found"],
+                suggestions=result["suggestions"],
+                complexity_score=result["complexity_score"],
+                quality_score=result["quality_score"]
+            )
             
         except Exception as e:
-            logger.error(f"❌ Failed to generate feature code: {str(e)}")
-            return {}
+            # Fallback basic analysis
+            return CodeAnalysis(
+                file_path=file_path,
+                issues_found=[],
+                suggestions=[
+                    {
+                        "type": "review",
+                        "description": f"Manual review recommended for {file_path}",
+                        "code_example": "",
+                        "benefit": "Ensure code quality"
+                    }
+                ],
+                complexity_score=0.5,
+                quality_score=0.7
+            )
     
-    async def apply_suggested_changes(self, session_id: str, change_ids: List[str]) -> Dict:
-        """Apply approved changes to the codebase"""
+    async def _generate_initial_suggestions(self, analysis_results: List[CodeAnalysis]) -> List[DebugSuggestion]:
+        """Generate initial debugging suggestions from analysis"""
+        
+        suggestions = []
+        
+        # Priority: Critical and high severity issues first
+        critical_issues = []
+        for analysis in analysis_results:
+            for issue in analysis.issues_found:
+                if issue["severity"] in ["critical", "high"]:
+                    critical_issues.append((analysis.file_path, issue))
+        
+        # Generate suggestions for critical issues
+        for file_path, issue in critical_issues:
+            suggestion = DebugSuggestion(
+                type="bug_fix",
+                description=f"Fix {issue['severity']} {issue['type']} in {file_path}: {issue['description']}",
+                code_changes={
+                    "file": file_path,
+                    "line": issue["line_number"],
+                    "suggestion": issue["suggestion"]
+                },
+                confidence=0.9 if issue["severity"] == "critical" else 0.8,
+                impact="high" if issue["severity"] == "critical" else "medium"
+            )
+            suggestions.append(suggestion)
+        
+        # Generate optimization suggestions
+        for analysis in analysis_results:
+            if analysis.quality_score < 0.7:
+                suggestion = DebugSuggestion(
+                    type="optimization",
+                    description=f"Improve code quality in {analysis.file_path}",
+                    code_changes={
+                        "file": analysis.file_path,
+                        "suggestions": analysis.suggestions
+                    },
+                    confidence=0.7,
+                    impact="medium"
+                )
+                suggestions.append(suggestion)
+        
+        return suggestions
+    
+    async def process_debug_request(self, session_id: str, user_request: str) -> Dict:
+        """Process user debugging request"""
+        
+        if session_id not in self.active_sessions:
+            raise ValueError(f"Debug session {session_id} not found")
+        
+        session = self.active_sessions[session_id]
+        
+        # Add user request to conversation history
+        session.conversation_history.append({
+            "role": "user",
+            "content": user_request,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Analyze request and generate response
+        debug_response = await self._generate_debug_response(session, user_request)
+        
+        # Add AI response to conversation history
+        session.conversation_history.append({
+            "role": "assistant",
+            "content": debug_response["message"],
+            "suggestions": debug_response.get("suggestions", []),
+            "code_changes": debug_response.get("code_changes", {}),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        return debug_response
+    
+    async def _generate_debug_response(self, session: DebugSession, user_request: str) -> Dict:
+        """Generate AI debugging response"""
+        
+        # Context from codebase and previous analysis
+        context = {
+            "codebase_files": list(session.codebase_snapshot.keys()),
+            "analysis_summary": self._summarize_analysis_results(session.analysis_results),
+            "conversation_history": session.conversation_history[-5:],  # Last 5 messages
+            "current_suggestions": [s.description for s in session.suggestions]
+        }
+        
+        debug_prompt = f"""
+        You are an expert AI debugging assistant helping with code analysis and improvements.
+        
+        User Request: "{user_request}"
+        
+        Context:
+        - Project files: {context["codebase_files"]}
+        - Previous analysis: {context["analysis_summary"]}
+        - Recent conversation: {context["conversation_history"]}
+        - Current suggestions: {context["current_suggestions"]}
+        
+        Provide helpful debugging assistance:
+        1. Understand what the user is asking for
+        2. Provide specific, actionable advice
+        3. Include code examples when relevant
+        4. Suggest next steps
+        
+        If the user is asking about:
+        - Specific bugs: Provide detailed analysis and fix suggestions
+        - Performance: Suggest optimization strategies
+        - New features: Help implement and integrate properly
+        - Code review: Provide comprehensive feedback
+        - Testing: Suggest testing strategies and implementations
+        
+        Return JSON format:
+        {{
+            "message": "Detailed response to user request",
+            "suggestions": [
+                {{
+                    "title": "Suggestion title",
+                    "description": "Detailed description",
+                    "code_example": "Code example if applicable",
+                    "priority": "high|medium|low"
+                }}
+            ],
+            "code_changes": {{
+                "file_path": "path/to/file.py",
+                "changes": [
+                    {{
+                        "line_number": 42,
+                        "original": "original code",
+                        "modified": "improved code",
+                        "explanation": "Why this change improves the code"
+                    }}
+                ]
+            }},
+            "next_steps": ["step1", "step2"],
+            "confidence": 0.9
+        }}
+        """
+        
         try:
-            session = self.active_sessions.get(session_id)
-            if not session:
-                raise HTTPException(status_code=404, detail="Session not found")
-            
-            # Apply changes using precision updater
-            updated_codebase = await self.precision_updater.apply_changes(
-                session.current_codebase,
-                change_ids
+            response = await self.llm_provider.generate_completion(
+                prompt=debug_prompt,
+                model="gpt-4",
+                temperature=0.2
             )
             
-            # Update session with new codebase
-            session.current_codebase = updated_codebase
-            session.last_activity = datetime.now()
-            
-            # Save updated project state
-            await self.memory_manager.save_project_state(
-                session.project_id,
-                updated_codebase,
-                session.conversation_history
-            )
-            
-            # Generate update summary
-            update_summary = await self._generate_update_summary(change_ids, updated_codebase)
-            
-            return {
-                "status": "changes_applied",
-                "updated_files": list(updated_codebase.keys()),
-                "change_summary": update_summary,
-                "timestamp": datetime.now().isoformat()
-            }
+            return json.loads(response)
             
         except Exception as e:
-            logger.error(f"❌ Failed to apply changes: {str(e)}")
-            raise
+            return {
+                "message": f"I understand you're asking about: {user_request}. Let me help you with that. Could you provide more specific details about what you'd like me to analyze or improve?",
+                "suggestions": [
+                    {
+                        "title": "Provide More Context",
+                        "description": "Please share specific files or error messages you'd like me to examine",
+                        "priority": "high"
+                    }
+                ],
+                "code_changes": {},
+                "next_steps": ["Share specific code snippets", "Describe the exact issue"],
+                "confidence": 0.6
+            }
     
-    # Utility methods
-    def _format_codebase_for_prompt(self, codebase: Dict) -> str:
-        """Format codebase for LLM prompts"""
-        formatted = ""
-        for filename, content in codebase.items():
-            formatted += f"\n## {filename}\n```\n{content[:2000]}...\n```\n"
-        return formatted
+    async def _summarize_analysis_results(self, analysis_results: List[CodeAnalysis]) -> str:
+        """Summarize analysis results for context"""
+        
+        total_issues = sum(len(analysis.issues_found) for analysis in analysis_results)
+        avg_quality = sum(analysis.quality_score for analysis in analysis_results) / len(analysis_results) if analysis_results else 0
+        
+        issue_types = {}
+        for analysis in analysis_results:
+            for issue in analysis.issues_found:
+                issue_type = issue["type"]
+                issue_types[issue_type] = issue_types.get(issue_type, 0) + 1
+        
+        return f"Found {total_issues} total issues. Average quality score: {avg_quality:.2f}. Issue breakdown: {issue_types}"
     
-    async def _get_or_create_session(self, request: DebugRequest) -> DebugSession:
-        """Get existing session or create new one"""
-        if request.session_id and request.session_id in self.active_sessions:
-            return self.active_sessions[request.session_id]
-        else:
-            session_id = await self.start_debug_session(request.project_id, "anonymous")
-            return self.active_sessions[session_id]
+    async def apply_code_changes(self, session_id: str, changes: Dict) -> Dict:
+        """Apply suggested code changes to codebase"""
+        
+        if session_id not in self.active_sessions:
+            raise ValueError(f"Debug session {session_id} not found")
+        
+        session = self.active_sessions[session_id]
+        
+        try:
+            # Apply changes to codebase snapshot
+            file_path = changes["file_path"]
+            if file_path in session.codebase_snapshot:
+                # Apply line-by-line changes
+                lines = session.codebase_snapshot[file_path].split('\n')
+                
+                for change in changes["changes"]:
+                    line_num = change["line_number"] - 1  # Convert to 0-based index
+                    if 0 <= line_num < len(lines):
+                        lines[line_num] = change["modified"]
+                
+                # Update codebase snapshot
+                session.codebase_snapshot[file_path] = '\n'.join(lines)
+                
+                # Re-analyze modified file
+                new_analysis = await self._analyze_file(file_path, session.codebase_snapshot[file_path])
+                
+                # Update analysis results
+                session.analysis_results = [
+                    analysis for analysis in session.analysis_results 
+                    if analysis.file_path != file_path
+                ]
+                session.analysis_results.append(new_analysis)
+                
+                return {
+                    "success": True,
+                    "message": f"Successfully applied changes to {file_path}",
+                    "updated_analysis": {
+                        "quality_score": new_analysis.quality_score,
+                        "issues_found": len(new_analysis.issues_found)
+                    }
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"File {file_path} not found in codebase"
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Failed to apply changes: {str(e)}"
+            }
     
-    # Additional helper methods would continue here...
-    # (Implementation continues with parsing, analysis, and utility functions)
+    async def get_session_summary(self, session_id: str) -> Dict:
+        """Get comprehensive session summary"""
+        
+        if session_id not in self.active_sessions:
+            raise ValueError(f"Debug session {session_id} not found")
+        
+        session = self.active_sessions[session_id]
+        
+        # Calculate overall metrics
+        total_files = len(session.codebase_snapshot)
+        total_issues = sum(len(analysis.issues_found) for analysis in session.analysis_results)
+        avg_quality = sum(analysis.quality_score for analysis in session.analysis_results) / len(session.analysis_results) if session.analysis_results else 0
+        
+        # Group issues by severity
+        issues_by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for analysis in session.analysis_results:
+            for issue in analysis.issues_found:
+                severity = issue.get("severity", "low")
+                issues_by_severity[severity] += 1
+        
+        return {
+            "session_id": session_id,
+            "status": session.status,
+            "metrics": {
+                "total_files": total_files,
+                "total_issues": total_issues,
+                "average_quality_score": round(avg_quality, 2),
+                "issues_by_severity": issues_by_severity
+            },
+            "suggestions_available": len(session.suggestions),
+            "conversation_length": len(session.conversation_history),
+            "last_activity": session.conversation_history[-1]["timestamp"] if session.conversation_history else None
+        }
+    
+    async def export_debug_report(self, session_id: str) -> Dict:
+        """Export comprehensive debugging report"""
+        
+        if session_id not in self.active_sessions:
+            raise ValueError(f"Debug session {session_id} not found")
+        
+        session = self.active_sessions[session_id]
+        
+        report = {
+            "session_info": {
+                "session_id": session_id,
+                "project_id": session.project_id,
+                "created_at": session.conversation_history[0]["timestamp"] if session.conversation_history else None,
+                "status": session.status
+            },
+            "codebase_analysis": {
+                "files_analyzed": len(session.analysis_results),
+                "total_issues": sum(len(analysis.issues_found) for analysis in session.analysis_results),
+                "average_quality_score": sum(analysis.quality_score for analysis in session.analysis_results) / len(session.analysis_results) if session.analysis_results else 0
+            },
+            "detailed_analysis": [
+                {
+                    "file_path": analysis.file_path,
+                    "quality_score": analysis.quality_score,
+                    "complexity_score": analysis.complexity_score,
+                    "issues_count": len(analysis.issues_found),
+                    "issues": analysis.issues_found,
+                    "suggestions": analysis.suggestions
+                }
+                for analysis in session.analysis_results
+            ],
+            "ai_suggestions": [
+                {
+                    "type": suggestion.type,
+                    "description": suggestion.description,
+                    "confidence": suggestion.confidence,
+                    "impact": suggestion.impact
+                }
+                for suggestion in session.suggestions
+            ],
+            "conversation_summary": {
+                "total_interactions": len(session.conversation_history),
+                "key_topics": await self._extract_conversation_topics(session.conversation_history)
+            }
+        }
+        
+        return report
+    
+    async def _extract_conversation_topics(self, conversation_history: List[Dict]) -> List[str]:
+        """Extract key topics from conversation history"""
+        
+        # Simple keyword extraction - can be enhanced with NLP
+        user_messages = [msg["content"] for msg in conversation_history if msg["role"] == "user"]
+        combined_text = " ".join(user_messages).lower()
+        
+        # Common debugging topics
+        topics = []
+        topic_keywords = {
+            "bug_fixing": ["bug", "error", "issue", "problem", "fix"],
+            "performance": ["slow", "performance", "optimize", "speed"],
+            "testing": ["test", "testing", "unit test", "integration"],
+            "refactoring": ["refactor", "clean", "organize", "structure"],
+            "features": ["add", "feature", "implement", "new"],
+            "security": ["security", "vulnerability", "secure", "auth"]
+        }
+        
+        for topic, keywords in topic_keywords.items():
+            if any(keyword in combined_text for keyword in keywords):
+                topics.append(topic.replace("_", " ").title())
+        
+        return topics if topics else ["General debugging"]

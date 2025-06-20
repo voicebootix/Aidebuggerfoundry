@@ -1,440 +1,290 @@
+"""
+Production PostgreSQL Database Manager
+Real connection pooling with async operations
+Enhanced with performance optimization and monitoring
+"""
+
 import asyncpg
+import asyncio
 import logging
-from typing import Dict, List, Optional, Any
 import os
-import json
+from typing import AsyncGenerator, Optional
+from contextlib import asynccontextmanager
 from datetime import datetime
+import json
 
-from app.config import settings
-
-# Set up logger
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database connection pool
-pool = None
-
-
-async def init_db():
-    """Initialize database connection pool and create tables if they don't exist"""
-    global pool
-    
-    try:
-        # Create connection pool
-        logger.info(f"Connecting to database: {settings.DATABASE_URL}")
-        pool = await asyncpg.create_pool(settings.DATABASE_URL)
-        
-        # Create tables
-        async with pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS prompts (
-                    id SERIAL PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    prompt TEXT NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS contracts (
-                    id SERIAL PRIMARY KEY,
-                    prompt_id INTEGER REFERENCES prompts(id),
-                    contract JSONB NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS generated_code (
-                    id SERIAL PRIMARY KEY,
-                    prompt_id INTEGER REFERENCES prompts(id),
-                    contract_id INTEGER REFERENCES contracts(id),
-                    files JSONB NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS build_logs (
-                    id SERIAL PRIMARY KEY,
-                    prompt_id INTEGER REFERENCES prompts(id),
-                    status TEXT NOT NULL,
-                    message TEXT,
-                    details JSONB,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS prompt_lineage (
-                    id SERIAL PRIMARY KEY,
-                    parent_prompt_id INTEGER REFERENCES prompts(id),
-                    child_prompt_id INTEGER REFERENCES prompts(id),
-                    relationship_type TEXT NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-        logger.info("Database initialized successfully")
-        return True
-    
-    except Exception as e:
-        logger.error(f"Database initialization error: {str(e)}")
-        
-        # Create a fallback file-based storage if database connection fails
-        os.makedirs("../../meta/db_fallback", exist_ok=True)
-        
-        # Initialize fallback files if they don't exist
-        for table in ["prompts", "contracts", "generated_code", "build_logs", "prompt_lineage"]:
-            if not os.path.exists(f"../../meta/db_fallback/{table}.json"):
-                with open(f"../../meta/db_fallback/{table}.json", "w") as f:
-                    json.dump({"records": []}, f)
-        
-        logger.info("Initialized fallback file-based storage")
-        return False
-
-async def get_db():
-    """Get database connection from pool"""
-    global pool
-
-    if pool is None:
-        success = await init_db()
-        if not success:
-            # Return a fallback file-based DB handler
-            yield FallbackDBHandler()
-            return
-
-    conn = None
-    try:
-        conn = await pool.acquire()
-        yield DBHandler(conn)
-    except Exception as e:
-        logger.error(f"Database connection error: {str(e)}")
-        yield FallbackDBHandler()
-    finally:
-        if conn:
-            await pool.release(conn)
-
-class DBHandler:
-    """Database handler for PostgreSQL operations"""
-    
-    def __init__(self, conn):
-        self.conn = conn
-    
-    async def save_prompt(self, title: str, prompt: str) -> int:
-        """Save a prompt to the database and return its ID"""
-        query = """
-            INSERT INTO prompts (title, prompt)
-            VALUES ($1, $2)
-            RETURNING id
-        """
-        prompt_id = await self.conn.fetchval(query, title, prompt)
-        return prompt_id
-    
-    async def save_contract(self, prompt_id: int, contract: Dict) -> int:
-        """Save an API contract to the database and return its ID"""
-        query = """
-            INSERT INTO contracts (prompt_id, contract)
-            VALUES ($1, $2)
-            RETURNING id
-        """
-        contract_id = await self.conn.fetchval(query, prompt_id, json.dumps(contract))
-        return contract_id
-    
-    async def save_generated_code(self, prompt_id: int, contract_id: int, files: Dict) -> int:
-        """Save generated code files to the database and return its ID"""
-        query = """
-            INSERT INTO generated_code (prompt_id, contract_id, files)
-            VALUES ($1, $2, $3)
-            RETURNING id
-        """
-        code_id = await self.conn.fetchval(query, prompt_id, contract_id, json.dumps(files))
-        return code_id
-    
-    async def save_build_log(self, prompt_id: int, status: str, message: str, details: Dict = None) -> int:
-        """Save a build log to the database and return its ID"""
-        query = """
-            INSERT INTO build_logs (prompt_id, status, message, details)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id
-        """
-        log_id = await self.conn.fetchval(query, prompt_id, status, message, json.dumps(details) if details else None)
-        return log_id
-    
-    async def save_prompt_lineage(self, parent_prompt_id: int, child_prompt_id: int, relationship_type: str) -> int:
-        """Save a prompt lineage relationship to the database and return its ID"""
-        query = """
-            INSERT INTO prompt_lineage (parent_prompt_id, child_prompt_id, relationship_type)
-            VALUES ($1, $2, $3)
-            RETURNING id
-        """
-        lineage_id = await self.conn.fetchval(query, parent_prompt_id, child_prompt_id, relationship_type)
-        return lineage_id
-    
-    async def get_prompt_by_id(self, prompt_id: int) -> Dict:
-        """Get a prompt by its ID"""
-        query = """
-            SELECT id, title, prompt, created_at
-            FROM prompts
-            WHERE id = $1
-        """
-        row = await self.conn.fetchrow(query, prompt_id)
-        if row:
-            return dict(row)
-        return None
-    
-    async def get_contract_by_prompt_id(self, prompt_id: int) -> Dict:
-        """Get an API contract by prompt ID"""
-        query = """
-            SELECT id, prompt_id, contract, created_at
-            FROM contracts
-            WHERE prompt_id = $1
-            ORDER BY created_at DESC
-            LIMIT 1
-        """
-        row = await self.conn.fetchrow(query, prompt_id)
-        if row:
-            result = dict(row)
-            result["contract"] = json.loads(result["contract"])
-            return result
-        return None
-    
-    async def get_generated_code_by_prompt_id(self, prompt_id: int) -> Dict:
-        """Get generated code by prompt ID"""
-        query = """
-            SELECT id, prompt_id, contract_id, files, created_at
-            FROM generated_code
-            WHERE prompt_id = $1
-            ORDER BY created_at DESC
-            LIMIT 1
-        """
-        row = await self.conn.fetchrow(query, prompt_id)
-        if row:
-            result = dict(row)
-            result["files"] = json.loads(result["files"])
-            return result
-        return None
-
-class FallbackDBHandler:
-    """Fallback file-based database handler when PostgreSQL is unavailable"""
+class DatabaseManager:
+    """Production-ready PostgreSQL database manager"""
     
     def __init__(self):
-        self.base_path = "../../meta/db_fallback"
-        os.makedirs(self.base_path, exist_ok=True)
-    
-    async def save_prompt(self, title: str, prompt: str) -> int:
-        """Save a prompt to the fallback storage and return its ID"""
-        file_path = f"{self.base_path}/prompts.json"
+        self.pool: Optional[asyncpg.Pool] = None
+        self.database_url = os.getenv(
+            'DATABASE_URL', 
+            'postgresql://ai_debugger:secure_password@localhost:5432/ai_debugger_factory'
+        )
+        self.min_connections = int(os.getenv('DB_MIN_CONNECTIONS', '5'))
+        self.max_connections = int(os.getenv('DB_MAX_CONNECTIONS', '20'))
         
+    async def initialize(self):
+        """Initialize database connection pool with error handling"""
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"records": []}
-        
-        # Generate a new ID
-        prompt_id = len(data["records"]) + 1
-        
-        # Add the new prompt
-        data["records"].append({
-            "id": prompt_id,
-            "title": title,
-            "prompt": prompt,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        # Save the updated data
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        
-        return prompt_id
-    
-    async def save_contract(self, prompt_id: int, contract: Dict) -> int:
-        """Save an API contract to the fallback storage and return its ID"""
-        file_path = f"{self.base_path}/contracts.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"records": []}
-        
-        # Generate a new ID
-        contract_id = len(data["records"]) + 1
-        
-        # Add the new contract
-        data["records"].append({
-            "id": contract_id,
-            "prompt_id": prompt_id,
-            "contract": contract,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        # Save the updated data
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        
-        return contract_id
-    
-    async def save_generated_code(self, prompt_id: int, contract_id: int, files: Dict) -> int:
-        """Save generated code files to the fallback storage and return its ID"""
-        file_path = f"{self.base_path}/generated_code.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"records": []}
-        
-        # Generate a new ID
-        code_id = len(data["records"]) + 1
-        
-        # Add the new generated code
-        data["records"].append({
-            "id": code_id,
-            "prompt_id": prompt_id,
-            "contract_id": contract_id,
-            "files": files,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        # Save the updated data
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        
-        return code_id
-    
-    async def save_build_log(self, prompt_id: int, status: str, message: str, details: Dict = None) -> int:
-        """Save a build log to the fallback storage and return its ID"""
-        file_path = f"{self.base_path}/build_logs.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"records": []}
-        
-        # Generate a new ID
-        log_id = len(data["records"]) + 1
-        
-        # Add the new build log
-        data["records"].append({
-            "id": log_id,
-            "prompt_id": prompt_id,
-            "status": status,
-            "message": message,
-            "details": details,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        # Save the updated data
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        
-        return log_id
-    
-    async def save_prompt_lineage(self, parent_prompt_id: int, child_prompt_id: int, relationship_type: str) -> int:
-        """Save a prompt lineage relationship to the fallback storage and return its ID"""
-        file_path = f"{self.base_path}/prompt_lineage.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"records": []}
-        
-        # Generate a new ID
-        lineage_id = len(data["records"]) + 1
-        
-        # Add the new lineage
-        data["records"].append({
-            "id": lineage_id,
-            "parent_prompt_id": parent_prompt_id,
-            "child_prompt_id": child_prompt_id,
-            "relationship_type": relationship_type,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        # Save the updated data
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        
-        return lineage_id
-    
-    async def get_prompt_by_id(self, prompt_id: int) -> Dict:
-        """Get a prompt by its ID from fallback storage"""
-        file_path = f"{self.base_path}/prompts.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
+            self.pool = await asyncpg.create_pool(
+                self.database_url,
+                min_size=self.min_connections,
+                max_size=self.max_connections,
+                command_timeout=60,
+                server_settings={
+                    'jit': 'off',  # Disable JIT for faster startup
+                    'timezone': 'UTC'
+                }
+            )
+            
+            # Test connection and log database info
+            async with self.pool.acquire() as conn:
+                result = await conn.fetchval('SELECT version()')
+                db_name = await conn.fetchval('SELECT current_database()')
+                logger.info(f"✅ Connected to PostgreSQL: {db_name}")
+                logger.info(f"📊 Database version: {result}")
+                logger.info(f"🔗 Connection pool: {self.min_connections}-{self.max_connections} connections")
                 
-            for record in data["records"]:
-                if record["id"] == prompt_id:
-                    return record
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-        
-        return None
+                # Verify AI Debugger Factory tables exist
+                tables = await conn.fetch("""
+                    SELECT table_name FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    ORDER BY table_name
+                """)
+                
+                if tables:
+                    table_names = [table['table_name'] for table in tables]
+                    logger.info(f"📋 Existing tables: {', '.join(table_names)}")
+                else:
+                    logger.warning("⚠️ No tables found - run migrations to create schema")
+                
+        except Exception as e:
+            logger.error(f"❌ Database initialization failed: {e}")
+            raise ConnectionError(f"Failed to connect to database: {e}")
     
-    async def get_contract_by_prompt_id(self, prompt_id: int) -> Dict:
-        """Get an API contract by prompt ID from fallback storage"""
-        file_path = f"{self.base_path}/contracts.json"
-        
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-            
-            # Find the most recent contract for the prompt
-            matching_contracts = [
-                record for record in data["records"]
-                if record["prompt_id"] == prompt_id
-            ]
-            
-            if matching_contracts:
-                # Sort by created_at in descending order
-                matching_contracts.sort(
-                    key=lambda x: x["created_at"],
-                    reverse=True
-                )
-                return matching_contracts[0]
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-        
-        return None
+    async def close(self):
+        """Close database connection pool"""
+        if self.pool:
+            await self.pool.close()
+            logger.info("🔒 Database connection pool closed")
     
-    async def get_generated_code_by_prompt_id(self, prompt_id: int) -> Dict:
-        """Get generated code by prompt ID from fallback storage"""
-        file_path = f"{self.base_path}/generated_code.json"
-        
+    @asynccontextmanager
+    async def get_connection(self) -> AsyncGenerator[asyncpg.Connection, None]:
+        """Get database connection from pool with automatic cleanup"""
+        if not self.pool:
+            await self.initialize()
+            
+        async with self.pool.acquire() as connection:
+            try:
+                yield connection
+            except Exception as e:
+                logger.error(f"Database operation error: {e}")
+                await connection.execute("ROLLBACK")  # Rollback any pending transaction
+                raise
+    
+    async def execute_query(self, query: str, *args) -> None:
+        """Execute a query without returning results"""
+        async with self.get_connection() as conn:
+            await conn.execute(query, *args)
+    
+    async def fetch_one(self, query: str, *args) -> Optional[dict]:
+        """Fetch single row as dictionary"""
+        async with self.get_connection() as conn:
+            row = await conn.fetchrow(query, *args)
+            return dict(row) if row else None
+    
+    async def fetch_all(self, query: str, *args) -> list:
+        """Fetch all rows as list of dictionaries"""
+        async with self.get_connection() as conn:
+            rows = await conn.fetch(query, *args)
+            return [dict(row) for row in rows]
+    
+    async def health_check(self) -> dict:
+        """Perform database health check"""
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-            
-            # Find the most recent generated code for the prompt
-            matching_code = [
-                record for record in data["records"]
-                if record["prompt_id"] == prompt_id
-            ]
-            
-            if matching_code:
-                # Sort by created_at in descending order
-                matching_code.sort(
-                    key=lambda x: x["created_at"],
-                    reverse=True
-                )
-                return matching_code[0]
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+            async with self.get_connection() as conn:
+                # Test basic connectivity
+                result = await conn.fetchval('SELECT 1')
+                
+                # Check connection pool status
+                pool_stats = {
+                    "pool_size": self.pool.get_size(),
+                    "available_connections": self.pool.get_idle_size(),
+                    "min_connections": self.min_connections,
+                    "max_connections": self.max_connections
+                }
+                
+                # Check database size and performance
+                db_stats = await conn.fetchrow("""
+                    SELECT 
+                        pg_database_size(current_database()) as db_size_bytes,
+                        (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections
+                """)
+                
+                return {
+                    "status": "healthy",
+                    "connected": bool(result),
+                    "timestamp": datetime.now().isoformat(),
+                    "pool_stats": pool_stats,
+                    "database_size_mb": round(db_stats['db_size_bytes'] / 1024 / 1024, 2),
+                    "active_connections": db_stats['active_connections']
+                }
+                
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+
+# Global database manager instance
+db_manager = DatabaseManager()
+
+async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
+    """FastAPI dependency for database connections"""
+    async with db_manager.get_connection() as conn:
+        yield conn
+
+async def init_db():
+    """Initialize database with complete schema"""
+    async with db_manager.get_connection() as conn:
         
-        return None
-
-async def test_db_connection():
-    try:
-        async with pool.acquire() as conn:
-            result = await conn.fetchval("SELECT 1")
-            return result == 1
-    except Exception as e:
-        logger.error(f"Database test failed: {e}")
-        return False
-
-
+        # Enable UUID extension
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+        
+        # Users table
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                email VARCHAR(255) UNIQUE NOT NULL,
+                hashed_password VARCHAR(255) NOT NULL,
+                full_name VARCHAR(255),
+                is_active BOOLEAN DEFAULT TRUE,
+                is_verified BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Voice conversations table (Revolutionary VoiceBotics)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS voice_conversations (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                session_id VARCHAR(255) UNIQUE NOT NULL,
+                user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+                conversation_history JSONB NOT NULL DEFAULT '[]',
+                founder_type_detected VARCHAR(50),
+                business_validation_requested BOOLEAN DEFAULT FALSE,
+                strategy_validated BOOLEAN DEFAULT FALSE,
+                founder_ai_agreement JSONB,
+                conversation_state VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Projects table (Core entity)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS projects (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                project_name VARCHAR(255) NOT NULL,
+                user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+                conversation_session_id UUID REFERENCES voice_conversations(id),
+                founder_ai_agreement JSONB,
+                github_repo_url VARCHAR(500),
+                deployment_url VARCHAR(500),
+                smart_contract_address VARCHAR(255),
+                technology_stack JSONB DEFAULT '["FastAPI", "React", "PostgreSQL"]',
+                status VARCHAR(50) DEFAULT 'planning',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Dream sessions table (Layer 1 - Build)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS dream_sessions (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+                user_input TEXT NOT NULL,
+                strategic_analysis JSONB,
+                generated_files JSONB,
+                generation_quality_score DECIMAL(3,2),
+                status VARCHAR(50) DEFAULT 'pending',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Debug sessions table (Layer 2 - Debug)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS debug_sessions (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+                debug_request TEXT NOT NULL,
+                analysis_results JSONB,
+                suggestions JSONB,
+                code_modifications JSONB,
+                monaco_workspace_state JSONB,
+                collaboration_users JSONB DEFAULT '[]',
+                github_sync_history JSONB DEFAULT '[]',
+                status VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Business validations table
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS business_validations (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                conversation_id UUID REFERENCES voice_conversations(id),
+                market_analysis JSONB,
+                competitor_research JSONB,
+                business_model_validation JSONB,
+                strategy_recommendations JSONB,
+                validation_score DECIMAL(3,2),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Contract compliance table (Patent-worthy)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS contract_compliance (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+                founder_contract JSONB NOT NULL,
+                compliance_monitoring JSONB DEFAULT '[]',
+                deviation_alerts JSONB DEFAULT '[]',
+                compliance_score DECIMAL(3,2) DEFAULT 1.0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Revenue sharing table (Patent-worthy)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS revenue_sharing (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+                smart_contract_address VARCHAR(255),
+                revenue_tracked DECIMAL(15,2) DEFAULT 0.00,
+                platform_share DECIMAL(15,2) DEFAULT 0.00,
+                digital_fingerprint VARCHAR(500),
+                status VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Create indexes for performance
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)')
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)')
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_voice_conversations_user_id ON voice_conversations(user_id)')
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_dream_sessions_project_id ON dream_sessions(project_id)')
+        await conn.execute('CREATE INDEX IF NOT EXISTS idx_debug_sessions_project_id ON debug_sessions(project_id)')
+        
+        logger.info("✅ Database schema initialized successfully")
