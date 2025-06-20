@@ -30,7 +30,7 @@ from app.database.db import DatabaseManager, get_db
 from app.database.models import *
 
 # Core utilities
-from app.utils.logger import get_logger, log_request_response
+# from app.utils.logger import get_logger, log_request_response
 from app.config import settings, get_settings
 
 # Route imports - Import all revolutionary features
