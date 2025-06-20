@@ -17,7 +17,7 @@ class EnhancedLogger:
         self._setup_logger()
         
     def info(self, message):
-        return self.log(message, level="INFO")
+        return self.logger.info(message)
     
     def _setup_logger(self):
         """Setup structured logging"""
