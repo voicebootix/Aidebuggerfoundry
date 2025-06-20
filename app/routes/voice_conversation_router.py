@@ -12,6 +12,7 @@ import json
 import asyncio
 from datetime import datetime
 import uuid
+import asyncpg
 
 from app.database.db import get_db
 from app.database.models import *
@@ -21,6 +22,8 @@ from app.utils.business_intelligence import BusinessIntelligence
 from app.utils.contract_method import ContractMethod
 from app.utils.logger import get_logger
 from app.utils.security_validator import SecurityValidator
+from app.utils.auth_utils import get_current_user
+from typing import Dict
 
 router = APIRouter(prefix="/voice-conversation", tags=["VoiceBotics AI Cofounder"])
 logger = get_logger("voice_conversation_api")
@@ -380,3 +383,13 @@ async def get_user_conversation_sessions(
             for conv in conversations
         ]
     }
+    # UPDATE ALL ROUTE DEPENDENCIES
+async def example_route(
+    db: asyncpg.Connection = Depends(get_db),  # Changed from Session
+    current_user: Dict = Depends(get_current_user)  # Changed from User
+):
+    # Use asyncpg operations instead of SQLAlchemy
+    # Example:
+    # OLD: db.query(User).filter(User.id == user_id).first()
+    # NEW: await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+    pass

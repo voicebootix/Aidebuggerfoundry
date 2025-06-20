@@ -4,6 +4,7 @@ Centralized settings for all application components
 """
 
 import os
+import sys
 from typing import List, Optional
 from functools import lru_cache
 from pydantic_settings import BaseSettings
@@ -133,6 +134,30 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance"""
     return Settings()
+
+# Add root directory to path
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
+# Import from root config (your existing excellent config)
+from config import Settings, get_settings, settings
+
+# Re-export everything for app modules
+__all__ = ['Settings', 'get_settings', 'settings']
+
+# Validation function (optional)
+def validate_startup_requirements():
+    """Validate that all required settings are present"""
+    required = ['SECRET_KEY', 'DATABASE_URL', 'JWT_SECRET_KEY', 'API_KEY_SALT']
+    missing = [key for key in required if not getattr(settings, key, None)]
+    
+    if missing:
+        print(f"⚠️  Missing required environment variables: {', '.join(missing)}")
+        print("📝 Please create a .env file with the required values")
+        return False
+    
+    return True
 
 # Global settings instance
 settings = get_settings()

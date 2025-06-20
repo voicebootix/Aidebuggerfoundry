@@ -294,46 +294,35 @@ async def voice_conversation_page(request: Request):
 # HEALTH & STATUS ENDPOINTS
 # ==========================================
 
-@app.get("/health")
+# Add this after the main FastAPI app creation, before route registration
+
+@app.get("/health", tags=["Health"])
 async def health_check():
-    """Application health check"""
+    """Health check endpoint for Docker and monitoring"""
     try:
-        # Check database connection
-        db_status = "healthy"
-        if db_manager:
-            await db_manager.health_check()
-        else:
-            db_status = "not_initialized"
-        
-        # Check LLM providers
-        llm_status = "healthy"
-        try:
-            from app.utils.llm_provider import llm_provider
-            llm_status = await llm_provider.health_check()
-        except:
-            llm_status = "degraded"
+        # Test database connection
+        db_health = await db_manager.health_check()
         
         return {
             "status": "healthy",
-            "timestamp": asyncio.get_event_loop().time(),
+            "timestamp": datetime.now().isoformat(),
             "version": "1.0.0",
             "environment": settings.ENVIRONMENT,
+            "database": db_health["status"],
             "services": {
-                "database": db_status,
-                "llm_providers": llm_status,
-                "voice_processing": "healthy",
-                "github_integration": "healthy"
+                "api": "healthy",
+                "database": db_health["status"],
+                "auth": "healthy"
             }
         }
-        
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
             status_code=503,
             content={
                 "status": "unhealthy",
-                "error": str(e),
-                "timestamp": asyncio.get_event_loop().time()
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e)
             }
         )
 
