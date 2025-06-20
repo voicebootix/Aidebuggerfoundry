@@ -1,3 +1,4 @@
+
 """
 Business Intelligence API Router (INTELLIGENT)
 Optional but intelligent business validation and strategy analysis
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import asyncio
 from datetime import datetime
+from app.utils.auth_utils import get_current_user, User
 
 from app.database.db import get_db
 from app.database.models import *

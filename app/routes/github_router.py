@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import json
 from datetime import datetime
+from app.utils.auth_utils import get_current_user, User
 
 from app.database.db import get_db
 from app.database.models import *

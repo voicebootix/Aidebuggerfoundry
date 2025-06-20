@@ -12,6 +12,7 @@ import json
 import asyncio
 import uuid
 from datetime import datetime
+from app.utils.auth_utils import get_current_user, User
 
 from app.database.db import get_db
 from app.database.models import *

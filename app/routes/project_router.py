@@ -13,6 +13,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.project_manager import ProjectManager, ProjectMetadata, ProjectState, ProjectStatus
 from app.utils.logger import get_logger
+from app.utils.auth_utils import get_current_user, User
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
 logger = get_logger("project_management_api")

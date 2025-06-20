@@ -13,6 +13,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.smart_contract_system import SmartContractSystem, SmartContract, RevenueTransaction
 from app.utils.logger import get_logger
+from app.utils.auth_utils import get_current_user, User
 
 router = APIRouter(prefix="/smart-contracts", tags=["Smart Contract Revenue Sharing"])
 logger = get_logger("smart_contract_api")
