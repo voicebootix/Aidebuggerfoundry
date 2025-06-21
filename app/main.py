@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         await db_manager.initialize()
-        await db_manager.run_migrations()
+        logger.info("⏭️ Database already has tables - skipping migrations")
         logger.info("✅ Database initialized successfully")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
