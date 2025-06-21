@@ -30,7 +30,8 @@ from app.database.db import DatabaseManager, get_db
 from app.database.models import *
 
 # Core utilities
-from app.utils.logger import get_logger, log_request_response
+import logging
+logger = logging.getLogger(__name__)
 from app.config import settings, get_settings
 
 # Route imports - Import all revolutionary features
@@ -80,10 +81,6 @@ async def lifespan(app: FastAPI):
         await voice_processor.initialize()
         logger.info("✅ Voice processor initialized")
         
-        # Initialize GitHub integration
-        from app.utils.github_integration import github_manager
-        await github_manager.initialize()
-        logger.info("✅ GitHub integration initialized")
         
         logger.info("🎉 AI Debugger Factory startup complete!")
         
@@ -185,13 +182,6 @@ async def general_exception_handler(request: Request, exc: Exception):
             "path": str(request.url.path)
         }
     )
-
-# ==========================================
-# STATIC FILES AND TEMPLATES
-# ==========================================
-
-# Mount static files
-#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Templates
 templates = Jinja2Templates(directory="templates")
