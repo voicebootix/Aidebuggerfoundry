@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         await db_manager.initialize()
-        # Skip migrations for now - database already has tables
+        await db_manager.run_migrations()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
@@ -141,7 +141,14 @@ async def logging_middleware(request: Request, call_next):
     process_time = asyncio.get_event_loop().time() - start_time
     
     # Log request/response
-    await log_request_response(request, response, process_time)
+    await log_request_response(
+        method=request.method,
+        url=str(request.url),
+        status_code=response.status_code,
+        process_time=process_time,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None
+    )
     
     # Add processing time header
     response.headers["X-Process-Time"] = str(process_time)
@@ -167,7 +174,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions"""
-    logger.error(f"Unexpected error: {exc}")
+    logger.error(f"Unexpected error: {exc}", exc_info=True)
     
     return JSONResponse(
         status_code=500,
@@ -184,7 +191,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # ==========================================
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Templates
 templates = Jinja2Templates(directory="templates")

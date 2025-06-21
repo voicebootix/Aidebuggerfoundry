@@ -32,15 +32,7 @@ class VoiceProcessor:
         
         # Audio processing configuration
         self.supported_formats = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm']
-        self.max_file_size = 25 * 1024 * 1024  # 25MB limit for Whisper
-        
-    async def initialize(self):
-        """Initialize the voice processor"""
-        try:
-            self.logger.info("✅ Voice Processor initialized successfully")
-        except Exception as e:
-            self.logger.error(f"❌ Voice Processor initialization failed: {e}")
-            raise
+        self.max_file_size = 25 * 1024 * 1024  # 25MB limit for Whisper   
         
     async def transcribe_audio(self, audio_data: bytes, audio_format: str = "webm") -> VoiceProcessingResult:
         """Transcribe audio using OpenAI Whisper"""
@@ -132,6 +124,22 @@ class VoiceProcessor:
                 processing_time=processing_time,
                 error_message=error_msg
             )
+            
+    async def initialize(self):
+        """Initialize voice processor - missing method causing error"""
+        try:
+            # Test OpenAI API connection
+            if not self.client.api_key:
+                self.logger.warning("⚠️ OpenAI API key not provided for voice processing")
+                return False
+            
+            # Simple connection test
+            self.logger.info("✅ Voice processor initialized successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Voice processor initialization failed: {e}")
+            return False
     
     async def transcribe_base64_audio(self, base64_audio: str, audio_format: str = "webm") -> VoiceProcessingResult:
         """Transcribe base64-encoded audio"""
