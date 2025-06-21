@@ -1020,3 +1020,7 @@ class UserService:
             "active_items": total_items,  # All items are active in this query
         }}
 '''
+# In your dream_engine router
+@router.post("/api/v1/dreamengine/generate")
+async def generate_code(request: CodeGenerationRequest, current_user = Depends(get_current_user)):
+    pass # Your existing DreamEngine logic
