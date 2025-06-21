@@ -1044,10 +1044,10 @@ async function sendTextMessage() {
 // 7. AUTHENTICATION (Your Auth Router)
 // ==========================================
 
-async function checkAuthentication() {
+aasync function checkAuthentication() {
     if (!authToken) {
-        showLoginModal();
-        return false;
+        console.log('No auth token - using demo mode');
+        return true;  // Changed from false to true
     }
     
     try {
@@ -1119,6 +1119,14 @@ function showLoginModal() {
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuthentication();
 });
+
+// Add this BEFORE your existing JavaScript functions
+function showSection(sectionId) {
+    document.querySelectorAll('.app-section').forEach(section => {
+        section.classList.add('hidden');
+    });
+    document.getElementById(sectionId).classList.remove('hidden');
+}
 </script>
 
 
