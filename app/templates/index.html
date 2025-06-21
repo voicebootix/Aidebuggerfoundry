@@ -378,88 +378,6 @@
         .message-content { max-width: 85%; }
         .voice-button { width: 100px; height: 100px; font-size: 24px; }
     }
-
-    /* Loading and Progress Styles */
-.loading-spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid var(--apple-blue);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background-color: #e0e0e0;
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 10px 0;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--apple-blue), var(--apple-purple));
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.validation-results {
-    text-align: left;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.validation-results h3 {
-    color: var(--apple-blue);
-    margin: 15px 0 5px 0;
-}
-
-.validation-results ul {
-    padding-left: 20px;
-}
-
-.generation-complete {
-    text-align: center;
-}
-
-.btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    margin: 5px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-primary {
-    background: var(--apple-blue);
-    color: white;
-}
-
-.btn-secondary {
-    background: var(--apple-gray);
-    color: white;
-}
-
-.btn-outline {
-    background: transparent;
-    color: var(--apple-blue);
-    border: 2px solid var(--apple-blue);
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
 </style>
 
 
@@ -676,350 +594,271 @@
 
 <!-- JavaScript -->
 <script>
-    // ==========================================
-// REAL API INTEGRATION (Replace Demo Code)
-// ==========================================
+    // Application state
+    let currentSession = null;
+    let isRecording = false;
+    let mediaRecorder = null;
+    let conversationHistory = [];
 
-const API_BASE = window.location.origin;
-let currentUser = null;
-let authToken = localStorage.getItem('auth_token');
-
-// Real Voice Recording Function
-async function toggleVoiceRecording() {
-    const button = document.getElementById('voice-button');
-    const status = document.getElementById('voice-status');
-    
-    if (!isRecording) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            
-            const audioChunks = [];
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-            
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                await processVoiceInput(audioBlob);
-            };
-            
-            mediaRecorder.start();
-            isRecording = true;
-            
-            button.classList.add('recording');
-            button.textContent = '⏹️';
-            status.textContent = 'Recording... Click to stop';
-            
-        } catch (error) {
-            console.error('Error accessing microphone:', error);
-            showModal('Microphone Error', 'Unable to access microphone. Please check permissions.');
-        }
-    } else {
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-        }
-        isRecording = false;
-        button.classList.remove('recording');
-        button.textContent = '🎤';
-        status.textContent = 'Processing voice input...';
-    }
-}
-
-// Real Voice Processing Function
-async function processVoiceInput(audioBlob) {
-    try {
-        const formData = new FormData();
-        formData.append('audio_file', audioBlob, 'voice_input.wav');
-        
-        // Call your actual voice processing endpoint
-        const response = await fetch(`${API_BASE}/api/v1/voice/process`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: formData
+    // Navigation
+    function showSection(sectionId) {
+        document.querySelectorAll('.app-section').forEach(section => {
+            section.classList.add('hidden');
         });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        
-        // Add real transcription to conversation
-        addMessageToConversation('user', `🎤 ${result.transcription}`);
-        
-        // Generate AI response using your backend
-        await generateAIResponse(result.transcription);
-        
-    } catch (error) {
-        console.error('Voice processing failed:', error);
-        addMessageToConversation('system', `❌ Voice processing failed: ${error.message}`);
-    } finally {
-        document.getElementById('voice-status').textContent = 'Click to start conversation';
+        document.getElementById(sectionId).classList.remove('hidden');
     }
-}
 
-// Real AI Response Generation
-async function generateAIResponse(userInput) {
-    try {
-        // Call your DreamEngine conversation endpoint
-        const response = await fetch(`${API_BASE}/api/v1/voice/conversation`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                message: userInput,
-                conversation_history: conversationHistory
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`AI response failed: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        // Add real AI response to conversation
-        addMessageToConversation('ai', result.ai_response);
-        
-        // Update conversation history
-        conversationHistory.push({
-            user: userInput,
-            ai: result.ai_response
-        });
-        
-    } catch (error) {
-        console.error('AI response generation failed:', error);
-        addMessageToConversation('ai', '❌ I apologize, but I encountered an error. Please try again.');
+    // Modal functions
+    function showModal(title, content) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-body').innerHTML = content;
+        document.getElementById('modal-overlay').classList.add('active');
     }
-}
 
-// Real Business Validation Function
-async function startBusinessValidation() {
-    const businessIdea = document.getElementById('business-idea-input').value.trim();
-    
-    if (!businessIdea) {
-        showModal('Input Required', 'Please describe your business idea first.');
-        return;
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
     }
-    
-    // Show loading modal
-    showModal('Business Validation', `
-        <div style="margin-bottom: 16px;">
-            <strong>Analyzing:</strong> ${businessIdea}
-        </div>
-        <div class="loading-spinner"></div>
-        <p style="margin-top: 16px;">Analyzing market, competitors, and business model...</p>
-    `);
-    
-    try {
-        // Call your actual business validation endpoint
-        const response = await fetch(`${API_BASE}/api/v1/business/validate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                business_idea: businessIdea,
-                validation_depth: 'comprehensive'
-            })
-        });
+
+    // Voice recording
+    async function toggleVoiceRecording() {
+        const button = document.getElementById('voice-button');
+        const status = document.getElementById('voice-status');
         
-        if (!response.ok) {
-            throw new Error(`Validation failed: ${response.status}`);
-        }
-        
-        const validation = await response.json();
-        
-        // Show real validation results
-        showModal('Business Validation Results', `
-            <div class="validation-results">
-                <h3>Market Analysis</h3>
-                <p><strong>Market Size:</strong> ${validation.market_analysis.market_size}</p>
-                <p><strong>Competition Level:</strong> ${validation.market_analysis.competition_level}</p>
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
                 
-                <h3>Business Model</h3>
-                <p><strong>Viability Score:</strong> ${validation.business_model.viability_score}/10</p>
-                <p><strong>Revenue Potential:</strong> ${validation.business_model.revenue_potential}</p>
+                mediaRecorder.start();
+                isRecording = true;
                 
-                <h3>Recommendations</h3>
-                <ul>
-                    ${validation.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-                </ul>
+                button.classList.add('recording');
+                button.textContent = '⏹️';
+                status.textContent = 'Recording... Click to stop';
                 
-                <div style="margin-top: 20px;">
-                    <button onclick="proceedToCodeGeneration('${validation.validation_id}')" class="btn btn-primary">
-                        ✅ Proceed to Code Generation
-                    </button>
-                </div>
-            </div>
-        `);
-        
-    } catch (error) {
-        console.error('Business validation failed:', error);
-        showModal('Validation Error', `
-            <p>❌ Business validation failed: ${error.message}</p>
-            <p>Please try again or contact support if the issue persists.</p>
-        `);
-    }
-}
-
-// Real Code Generation Function
-async function proceedToCodeGeneration(validationId) {
-    closeModal();
-    
-    // Show code generation modal
-    showModal('Code Generation', `
-        <div style="margin-bottom: 16px;">
-            <strong>Generating code for your project...</strong>
-        </div>
-        <div class="loading-spinner"></div>
-        <div id="generation-progress">
-            <p>🔍 Analyzing requirements...</p>
-        </div>
-    `);
-    
-    try {
-        // Call your DreamEngine code generation endpoint
-        const response = await fetch(`${API_BASE}/api/v1/dreamengine/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                validation_id: validationId,
-                generation_type: 'full_stack_application'
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Code generation failed: ${response.status}`);
-        }
-        
-        // Handle streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        updateGenerationProgress(data);
-                    } catch (e) {
-                        console.error('Error parsing SSE data:', e);
+                setTimeout(() => {
+                    if (isRecording) {
+                        toggleVoiceRecording();
                     }
-                }
-            }
-        }
-        
-    } catch (error) {
-        console.error('Code generation failed:', error);
-        showModal('Generation Error', `
-            <p>❌ Code generation failed: ${error.message}</p>
-            <p>Please try again or contact support.</p>
-        `);
-    }
-}
-
-// Update generation progress
-function updateGenerationProgress(data) {
-    const progressDiv = document.getElementById('generation-progress');
-    
-    if (data.status === 'progress') {
-        progressDiv.innerHTML = `
-            <p>${data.message}</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.progress}%"></div>
-            </div>
-            <p>${data.progress}% complete</p>
-        `;
-    } else if (data.status === 'complete') {
-        showModal('Code Generation Complete', `
-            <div class="generation-complete">
-                <h3>✅ Your application is ready!</h3>
-                <p><strong>Files Generated:</strong> ${data.files_count}</p>
-                <p><strong>Project Structure:</strong> ${data.tech_stack}</p>
+                }, 5000);
                 
-                <div style="margin: 20px 0;">
-                    <button onclick="downloadProject('${data.project_id}')" class="btn btn-primary">
-                        📥 Download Project Files
-                    </button>
-                    <button onclick="viewInGitHub('${data.github_url}')" class="btn btn-secondary">
-                        🐙 View on GitHub
-                    </button>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <button onclick="proceedToDebug('${data.project_id}')" class="btn btn-outline">
-                        🔧 Open in Layer 2 Debug
-                    </button>
-                </div>
-            </div>
-        `);
-    }
-}
-
-// Real text message function
-async function sendTextMessage() {
-    const input = document.getElementById('text-input');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    
-    input.value = '';
-    addMessageToConversation('user', message);
-    
-    // Generate real AI response
-    await generateAIResponse(message);
-}
-
-// Authentication check
-async function checkAuthentication() {
-    if (!authToken) {
-        // Redirect to login or show login modal
-        showLoginModal();
-        return false;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/api/v1/auth/verify`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                showModal('Microphone Error', 'Unable to access microphone. Please check permissions and try typing instead.');
             }
-        });
-        
-        if (response.ok) {
-            currentUser = await response.json();
-            return true;
         } else {
-            localStorage.removeItem('auth_token');
-            showLoginModal();
-            return false;
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            
+            button.classList.remove('recording');
+            button.textContent = '🎤';
+            status.textContent = 'Processing voice input...';
+            
+            setTimeout(() => {
+                addMessageToConversation('user', 'Voice message received');
+                addMessageToConversation('ai', 'Thank you for your voice input! I heard you clearly. How can I help you build your application today?');
+                status.textContent = 'Click to start conversation';
+            }, 1000);
         }
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        return false;
     }
-}
 
-// Initialize app with authentication
-document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuthentication();
-});
+    // Text input
+    function handleTextInput(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendTextMessage();
+        }
+    }
+
+    function sendTextMessage() {
+        const input = document.getElementById('text-input');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        input.value = '';
+        addMessageToConversation('user', message);
+        
+        setTimeout(() => {
+            addMessageToConversation('ai', `Great question! "${message}" - I understand you want to explore this idea. Let me help you develop this into a complete application. What specific features are you envisioning?`);
+        }, 1000);
+    }
+
+    // Add message to conversation
+    function addMessageToConversation(sender, content) {
+        const container = document.getElementById('conversation-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar ${sender}">
+                ${sender === 'ai' ? '🤖' : '👤'}
+            </div>
+            <div class="message-content">
+                ${content}
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Business validation
+    function startBusinessValidation() {
+        const businessIdea = document.getElementById('business-idea-input').value.trim();
+        
+        if (!businessIdea) {
+            showModal('Input Required', 'Please describe your business idea first.');
+            return;
+        }
+        
+        showModal('Business Validation', `
+            <div style="margin-bottom: 16px;">
+                <strong>Analyzing:</strong> ${businessIdea}
+            </div>
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 16px;">This is a demo. In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Research your market and competitors</li>
+                <li>Analyze business model viability</li>
+                <li>Provide strategic recommendations</li>
+                <li>Suggest optimal technology approach</li>
+            </ul>
+        `);
+    }
+
+    // Code generation
+    function startDreamGeneration() {
+        const buildRequest = document.getElementById('build-request-input').value.trim();
+        
+        if (!buildRequest) {
+            showModal('Input Required', 'Please describe what you want to build.');
+            return;
+        }
+        
+        showModal('Code Generation', `
+            <div style="margin-bottom: 16px;">
+                <strong>Generating code for:</strong> ${buildRequest}
+            </div>
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 16px;">This is a demo. In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Analyze your requirements strategically</li>
+                <li>Generate production-ready code files</li>
+                <li>Create database schemas and API routes</li>
+                <li>Set up deployment configuration</li>
+                <li>Push everything to GitHub automatically</li>
+            </ul>
+        `);
+    }
+
+    // GitHub integration
+    function loadGitHubRepo() {
+        const repoUrl = document.getElementById('github-repo-input').value.trim();
+        
+        if (!repoUrl) {
+            showModal('Input Required', 'Please enter a GitHub repository URL.');
+            return;
+        }
+        
+        document.getElementById('debug-workspace').classList.remove('hidden');
+        showModal('Repository Loaded', `
+            <p>✅ Successfully loaded repository: ${repoUrl}</p>
+            <p>In the full version, you would see:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Complete Monaco Editor with your code</li>
+                <li>AI-powered debugging assistance</li>
+                <li>Real-time collaboration features</li>
+                <li>Automatic GitHub synchronization</li>
+            </ul>
+        `);
+    }
+
+    // Debug functions
+    function askAIDebugQuestion() {
+        showModal('AI Debug Assistant', `
+            <p>🤖 <strong>AI:</strong> I'm ready to help debug your code! What specific issue are you facing?</p>
+            <p style="margin-top: 16px;">In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Analyze your code context intelligently</li>
+                <li>Provide specific debugging suggestions</li>
+                <li>Offer code improvements and fixes</li>
+                <li>Help optimize performance</li>
+            </ul>
+        `);
+    }
+
+    function runTests() {
+        showModal('Test Results', `
+            <div style="margin-bottom: 16px;">
+                <strong>Running tests...</strong>
+                <div class="loading-spinner" style="margin-left: 8px;"></div>
+            </div>
+            <p>In the full version, I would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Execute your test suite automatically</li>
+                <li>Show detailed test results</li>
+                <li>Highlight failing tests with explanations</li>
+                <li>Suggest fixes for test failures</li>
+            </ul>
+        `);
+    }
+
+    function syncToGitHub() {
+        showModal('GitHub Sync', `
+            <p>🔄 Syncing changes to GitHub...</p>
+            <div class="loading-spinner" style="margin: 16px 0;"></div>
+            <p>In the full version, this would:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Commit your changes automatically</li>
+                <li>Push to your GitHub repository</li>
+                <li>Create pull requests if needed</li>
+                <li>Maintain proper version control</li>
+            </ul>
+        `);
+    }
+
+    // Project functions
+    function createNewProject() {
+        showModal('Create New Project', `
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Project Name:</label>
+                <input type="text" class="input" placeholder="My Awesome Project" />
+            </div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Description:</label>
+                <textarea class="input textarea" placeholder="Describe your project..."></textarea>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="closeModal(); showSection('voice-conversation');">Create & Start Conversation</button>
+            </div>
+        `);
+    }
+
+    function openProject(projectId) {
+        showModal('Open Project', `
+            <p>Opening project: ${projectId}</p>
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="closeModal(); showSection('debug-engine');">
+                    🔧 Debug in Layer 2
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal(); showSection('dream-engine');">
+                    ⚡ Generate More Code
+                </button>
+            </div>
+        `);
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+        showSection('dashboard');
+        console.log('🚀 AI Debugger Factory initialized');
+    });
 </script>
+
+
 </body>
 </html>
