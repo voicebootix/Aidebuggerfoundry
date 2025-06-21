@@ -26,7 +26,7 @@ from app.utils.auth_utils import get_current_user
 from typing import Dict
 from app.utils.auth_utils import get_current_user, User
 
-router = APIRouter(prefix="/voice-conversation", tags=["VoiceBotics AI Cofounder"])
+router = APIRouter(tags=["VoiceBotics AI Cofounder"])
 logger = get_logger("voice_conversation_api")
 security_validator = SecurityValidator()
 
