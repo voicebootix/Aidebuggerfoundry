@@ -30,7 +30,7 @@ from app.database.db import DatabaseManager, get_db
 from app.database.models import *
 
 # Core utilities
-import logging
+
 logger = logging.getLogger(__name__)
 from app.config import settings, get_settings
 
@@ -46,7 +46,7 @@ from app.routes.project_router import router as project_router
 from app.routes.auth_router import router as auth_router
 
 # Initialize logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Database manager instance
 db_manager = None
