@@ -22,7 +22,7 @@ from app.utils.security_validator import SecurityValidator
 from app.utils.smart_contract_system import SmartContractSystem
 from app.utils.logger import get_logger
 
-router = APIRouter(prefix="/dream", tags=["Layer 1 - Build"])
+router = APIRouter(tags=["Layer 1 - Build"])
 logger = get_logger("dream_engine_api")
 
 # Initialize core components
