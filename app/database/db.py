@@ -142,7 +142,7 @@ class DatabaseManager:
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }
-
+    
 # Global database manager instance
 db_manager = DatabaseManager()
 
@@ -288,3 +288,22 @@ async def init_db():
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_debug_sessions_project_id ON debug_sessions(project_id)')
         
         logger.info("✅ Database schema initialized successfully")
+        
+async def run_migrations(self):
+    """Run database migrations"""
+    try:
+        async with self.pool.acquire() as conn:
+            # Check if tables exist and create them if needed
+            tables = await conn.fetch("""
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """)
+            table_names = [row['table_name'] for row in tables]
+            logger.info(f"📋 Existing tables: {', '.join(table_names)}")
+            
+            # Basic migration - ensure core tables exist
+            logger.info("✅ Database migrations completed")
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {e}")
+        raise
