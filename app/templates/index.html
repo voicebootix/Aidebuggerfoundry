@@ -326,6 +326,26 @@
             color: white;
         }
 
+        /* Error Styles */
+        .error-message {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid var(--apple-red);
+            color: var(--apple-red);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin: 16px 0;
+        }
+
+        .error-details {
+            font-family: monospace;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            white-space: pre-wrap;
+        }
+
         /* Loading and Progress Styles */
         .loading-spinner {
             border: 3px solid #f3f3f3;
@@ -356,25 +376,6 @@
             background: linear-gradient(90deg, var(--apple-blue), var(--apple-purple));
             border-radius: 4px;
             transition: width 0.3s ease;
-        }
-
-        .validation-results {
-            text-align: left;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .validation-results h3 {
-            color: var(--apple-blue);
-            margin: 15px 0 5px 0;
-        }
-
-        .validation-results ul {
-            padding-left: 20px;
-        }
-
-        .generation-complete {
-            text-align: center;
         }
 
         /* Utilities */
@@ -418,7 +419,7 @@
             background: var(--apple-white);
             border-radius: var(--border-radius);
             padding: 32px;
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -658,7 +659,7 @@
 
     <script>
         // ==========================================
-        // PERFECT HYBRID: SOPHISTICATED + WORKING BUTTONS
+        // TRULY CONNECTED FRONTEND - NO HARDCODED RESPONSES
         // ==========================================
 
         const API_BASE = window.location.origin;
@@ -667,20 +668,20 @@
         let isRecording = false;
         let mediaRecorder = null;
         let conversationHistory = [];
-        let currentSessionId = null; // For session-based conversations
+        let currentSessionId = null;
 
         // ==========================================
-        // 1. FIXED AUTHENTICATION (NON-BLOCKING)
+        // 1. AUTHENTICATION (NO FALLBACKS)
         // ==========================================
 
-        async function checkAuthentication() {  // FIXED: removed extra 'a'
+        async function checkAuthentication() {
             if (!authToken) {
-                console.log('No auth token - using demo mode');
-                return true;  // Allow demo mode for testing
+                console.log('❌ No auth token found');
+                return false;
             }
             
             try {
-                // CORRECT ENDPOINT: /api/v1/auth/me
+                console.log('🔍 Checking authentication...');
                 const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
                     method: 'GET',
                     headers: {
@@ -690,34 +691,23 @@
                 
                 if (response.ok) {
                     currentUser = await response.json();
+                    console.log('✅ Authentication successful:', currentUser);
                     return true;
                 } else {
+                    console.log('❌ Authentication failed:', response.status);
                     localStorage.removeItem('auth_token');
-                    console.log('Auth failed, using demo mode');
-                    return true;  // Allow demo mode instead of blocking
+                    authToken = null;
+                    return false;
                 }
             } catch (error) {
-                console.error('Auth check failed:', error);
-                return true;  // Allow demo mode on error
+                console.error('❌ Auth check failed:', error);
+                showError('Authentication Error', `Failed to check authentication: ${error.message}`);
+                return false;
             }
         }
 
-        function showLoginModal() {
-            showModal('Authentication Required', `
-                <p>Please log in to use AI Debugger Factory features.</p>
-                <div style="margin-top: 20px;">
-                    <button onclick="window.location.href='/login'" class="btn btn-primary">
-                        🔐 Go to Login
-                    </button>
-                    <button onclick="closeModal()" class="btn btn-secondary">
-                        Continue in Demo Mode
-                    </button>
-                </div>
-            `);
-        }
-
         // ==========================================
-        // 2. SOPHISTICATED VOICE RECORDING (SESSION-BASED)
+        // 2. VOICE RECORDING (REAL BACKEND ONLY)
         // ==========================================
 
         async function toggleVoiceRecording() {
@@ -726,6 +716,7 @@
             
             if (!isRecording) {
                 try {
+                    console.log('🎤 Requesting microphone access...');
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     
@@ -736,6 +727,7 @@
                     
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        console.log('🎵 Audio recorded, size:', audioBlob.size, 'bytes');
                         await processVoiceInput(audioBlob);
                     };
                     
@@ -745,14 +737,16 @@
                     button.classList.add('recording');
                     button.textContent = '⏹️';
                     status.textContent = 'Recording... Click to stop';
+                    console.log('✅ Recording started');
                     
                 } catch (error) {
-                    console.error('Error accessing microphone:', error);
-                    showModal('Microphone Error', 'Unable to access microphone. Please check permissions.');
+                    console.error('❌ Microphone access failed:', error);
+                    showError('Microphone Error', `Unable to access microphone: ${error.message}`);
                 }
             } else {
                 if (mediaRecorder) {
                     mediaRecorder.stop();
+                    console.log('⏹️ Recording stopped');
                 }
                 isRecording = false;
                 button.classList.remove('recording');
@@ -761,11 +755,11 @@
             }
         }
 
-        // SOPHISTICATED: Session-based voice processing with CORRECT endpoints
         async function processVoiceInput(audioBlob) {
             try {
                 // STEP 1: Start conversation session (if not exists)
                 if (!currentSessionId) {
+                    console.log('🚀 Starting new conversation session...');
                     const sessionResponse = await fetch(`${API_BASE}/api/v1/voice-conversation/start-conversation`, {
                         method: 'POST',
                         headers: {
@@ -779,15 +773,20 @@
                         })
                     });
                     
-                    if (sessionResponse.ok) {
-                        const sessionData = await sessionResponse.json();
-                        currentSessionId = sessionData.session_id;
-                    } else {
-                        throw new Error(`Session start failed: ${sessionResponse.status}`);
+                    console.log('📡 Session response status:', sessionResponse.status);
+                    
+                    if (!sessionResponse.ok) {
+                        const errorText = await sessionResponse.text();
+                        throw new Error(`Session start failed (${sessionResponse.status}): ${errorText}`);
                     }
+                    
+                    const sessionData = await sessionResponse.json();
+                    currentSessionId = sessionData.session_id;
+                    console.log('✅ Session started:', currentSessionId);
                 }
                 
-                // STEP 2: Transcribe audio with session ID
+                // STEP 2: Transcribe audio
+                console.log('🔄 Transcribing audio...');
                 const formData = new FormData();
                 formData.append('audio_file', audioBlob, 'voice_input.wav');
                 
@@ -799,31 +798,34 @@
                     body: formData
                 });
                 
+                console.log('📡 Transcribe response status:', transcribeResponse.status);
+                
                 if (!transcribeResponse.ok) {
-                    throw new Error(`Transcription failed: ${transcribeResponse.status}`);
+                    const errorText = await transcribeResponse.text();
+                    throw new Error(`Transcription failed (${transcribeResponse.status}): ${errorText}`);
                 }
                 
                 const transcriptionData = await transcribeResponse.json();
+                console.log('✅ Transcription result:', transcriptionData);
                 
                 // Add transcription to conversation
                 addMessageToConversation('user', `🎤 ${transcriptionData.transcription}`);
                 
-                // STEP 3: Continue conversation with transcribed text
+                // STEP 3: Continue conversation
                 await continueConversation(currentSessionId, transcriptionData.transcription);
                 
             } catch (error) {
-                console.error('Voice processing failed:', error);
-                // Fallback to demo mode
-                addMessageToConversation('user', '🎤 Voice input received');
-                addMessageToConversation('ai', 'I heard your voice input! How can I help you build your application?');
+                console.error('❌ Voice processing failed:', error);
+                showError('Voice Processing Error', `Voice processing failed: ${error.message}`);
+                addMessageToConversation('system', `❌ Voice processing failed: ${error.message}`);
             } finally {
                 document.getElementById('voice-status').textContent = 'Click to start conversation';
             }
         }
 
-        // SOPHISTICATED: Session-based conversation continuation
         async function continueConversation(sessionId, userInput) {
             try {
+                console.log('💬 Continuing conversation with session:', sessionId);
                 const response = await fetch(`${API_BASE}/api/v1/voice-conversation/process-turn/${sessionId}`, {
                     method: 'POST',
                     headers: {
@@ -836,37 +838,42 @@
                     })
                 });
                 
+                console.log('📡 Conversation response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error(`Conversation failed: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`Conversation failed (${response.status}): ${errorText}`);
                 }
                 
                 const result = await response.json();
+                console.log('✅ AI response:', result);
                 
                 // Add AI response to conversation
-                addMessageToConversation('ai', result.ai_response);
+                addMessageToConversation('ai', result.ai_response || result.response || JSON.stringify(result));
                 
-                // Update conversation history with session
+                // Update conversation history
                 conversationHistory.push({
                     user: userInput,
-                    ai: result.ai_response,
+                    ai: result.ai_response || result.response,
                     session_id: sessionId
                 });
                 
             } catch (error) {
-                console.error('Conversation continuation failed:', error);
-                addMessageToConversation('ai', 'I understand your request. Let me help you develop this into a complete application. What specific features are you envisioning?');
+                console.error('❌ Conversation continuation failed:', error);
+                showError('Conversation Error', `Conversation failed: ${error.message}`);
+                addMessageToConversation('system', `❌ Conversation failed: ${error.message}`);
             }
         }
 
         // ==========================================
-        // 3. SOPHISTICATED BUSINESS INTELLIGENCE
+        // 3. BUSINESS INTELLIGENCE (REAL BACKEND ONLY)
         // ==========================================
 
         async function startBusinessValidation() {
             const businessIdea = document.getElementById('business-idea-input').value.trim();
             
             if (!businessIdea) {
-                showModal('Input Required', 'Please describe your business idea first.');
+                showError('Input Required', 'Please describe your business idea first.');
                 return;
             }
             
@@ -876,11 +883,12 @@
                     <strong>Analyzing:</strong> ${businessIdea}
                 </div>
                 <div class="loading-spinner"></div>
-                <p style="margin-top: 16px;">Running comprehensive business intelligence analysis...</p>
+                <p style="margin-top: 16px;">🔄 Calling backend API for business intelligence analysis...</p>
+                <p style="font-size: 14px; color: var(--apple-text-secondary);">Endpoint: POST ${API_BASE}/api/v1/business-intelligence/analyze-market</p>
             `);
             
             try {
-                // CORRECT ENDPOINT: /api/v1/business-intelligence/analyze-market
+                console.log('🧠 Starting business validation for:', businessIdea);
                 const response = await fetch(`${API_BASE}/api/v1/business-intelligence/analyze-market`, {
                     method: 'POST',
                     headers: {
@@ -895,33 +903,27 @@
                     })
                 });
                 
+                console.log('📡 Business validation response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error(`Validation failed: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`Business validation failed (${response.status}): ${errorText}`);
                 }
                 
                 const validation = await response.json();
+                console.log('✅ Business validation result:', validation);
                 
-                // Show real validation results
+                // Show REAL validation results from backend
                 showModal('Business Validation Results', `
-                    <div class="validation-results">
-                        <h3>Market Analysis</h3>
-                        <p><strong>Market Size:</strong> ${validation.market_size || 'Large addressable market identified'}</p>
-                        <p><strong>Competition Level:</strong> ${validation.competition_level || 'Moderate competition'}</p>
+                    <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                        <h3>✅ Analysis Complete</h3>
+                        <p><strong>Business Idea:</strong> ${businessIdea}</p>
                         
-                        <h3>Business Model</h3>
-                        <p><strong>Viability Score:</strong> ${validation.viability_score || '8'}/10</p>
-                        <p><strong>Revenue Potential:</strong> ${validation.revenue_potential || 'High potential identified'}</p>
-                        
-                        <h3>Recommendations</h3>
-                        <ul>
-                            <li>Focus on unique value proposition</li>
-                            <li>Consider MVP development approach</li>
-                            <li>Validate with target customers early</li>
-                            <li>Plan for scalable architecture</li>
-                        </ul>
+                        <h4>🔍 Backend Response:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(validation, null, 2)}</pre>
                         
                         <div style="margin-top: 20px;">
-                            <button onclick="proceedToCodeGeneration('${validation.validation_id || 'demo'}')" class="btn btn-primary">
+                            <button onclick="proceedToCodeGeneration('${validation.validation_id || validation.id || 'generated'}')" class="btn btn-primary">
                                 ✅ Proceed to Code Generation
                             </button>
                         </div>
@@ -929,49 +931,26 @@
                 `);
                 
             } catch (error) {
-                console.error('Business validation failed:', error);
-                // Fallback to demo analysis
-                showModal('Business Validation Results', `
-                    <div class="validation-results">
-                        <h3>Analysis Complete</h3>
-                        <p>Your business idea: <strong>${businessIdea}</strong></p>
-                        
-                        <h3>Key Insights</h3>
-                        <ul>
-                            <li>Market opportunity exists for this concept</li>
-                            <li>Consider starting with an MVP approach</li>
-                            <li>Focus on user validation and feedback</li>
-                            <li>Technology stack should match your goals</li>
-                        </ul>
-                        
-                        <div style="margin-top: 20px;">
-                            <button onclick="proceedToCodeGeneration('demo')" class="btn btn-primary">
-                                ✅ Proceed to Code Generation
-                            </button>
-                        </div>
-                    </div>
-                `);
+                console.error('❌ Business validation failed:', error);
+                showError('Business Validation Error', `Business validation failed: ${error.message}`);
             }
         }
 
         // ==========================================
-        // 4. SOPHISTICATED CODE GENERATION (STREAMING)
+        // 4. CODE GENERATION (REAL BACKEND ONLY)
         // ==========================================
 
         async function startDreamGeneration() {
             const buildRequest = document.getElementById('build-request-input').value.trim();
-            const techStack = document.getElementById('tech-stack-select').value;
-            const deployment = document.getElementById('deployment-select').value;
             
             if (!buildRequest) {
-                showModal('Input Required', 'Please describe what you want to build.');
+                showError('Input Required', 'Please describe what you want to build.');
                 return;
             }
             
             proceedToCodeGeneration('direct');
         }
 
-        // SOPHISTICATED: Streaming code generation with real-time progress
         async function proceedToCodeGeneration(validationId) {
             closeModal();
             
@@ -979,21 +958,25 @@
                                 document.getElementById('business-idea-input')?.value.trim() || 
                                 'Create a web application';
             
-            // Show code generation modal with progress tracking
+            // Show code generation modal
             showModal('Code Generation', `
                 <div style="margin-bottom: 16px;">
                     <strong>Generating code for your project...</strong>
                 </div>
                 <div class="loading-spinner"></div>
                 <div id="generation-progress">
-                    <p>🔍 Analyzing requirements...</p>
+                    <p>🔄 Calling backend API...</p>
+                    <p style="font-size: 14px; color: var(--apple-text-secondary);">Endpoint: POST ${API_BASE}/api/v1/dreamengine/stream-generation</p>
                 </div>
             `);
             
             try {
-                // STEP 1: Strategic analysis (if available)
+                console.log('⚡ Starting code generation for:', buildRequest);
+                
+                // STEP 1: Try streaming generation first
+                console.log('🔄 Attempting streaming code generation...');
                 try {
-                    const strategicResponse = await fetch(`${API_BASE}/api/v1/dreamengine/analyze-strategic-requirements`, {
+                    const response = await fetch(`${API_BASE}/api/v1/dreamengine/stream-generation`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1001,71 +984,54 @@
                         },
                         body: JSON.stringify({
                             project_description: buildRequest,
-                            validation_id: validationId
+                            tech_stack: "fastapi-react",
+                            deployment_target: "render",
+                            validation_id: validationId,
+                            generation_type: 'full_stack_application',
+                            include_deployment_config: true,
+                            target_platforms: ["web", "mobile"]
                         })
                     });
                     
-                    if (strategicResponse.ok) {
-                        updateGenerationProgress({
-                            status: 'progress',
-                            message: '📋 Strategic analysis complete',
-                            progress: 25
-                        });
+                    console.log('📡 Streaming generation response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Streaming generation failed (${response.status}): ${await response.text()}`);
                     }
-                } catch (e) {
-                    console.log('Strategic analysis not available, proceeding with generation');
-                }
-                
-                // STEP 2: SOPHISTICATED STREAMING CODE GENERATION
-                const response = await fetch(`${API_BASE}/api/v1/dreamengine/stream-generation`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
-                    },
-                    body: JSON.stringify({
-                        project_description: buildRequest,
-                        tech_stack: "fastapi-react",
-                        deployment_target: "render",
-                        validation_id: validationId,
-                        generation_type: 'full_stack_application',
-                        include_deployment_config: true,
-                        target_platforms: ["web", "mobile"]
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Code generation failed: ${response.status}`);
-                }
-                
-                // SOPHISTICATED: Real-time streaming with progress tracking
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
                     
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
+                    // Handle streaming response
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let streamData = '';
                     
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
-                                updateGenerationProgress(data);
-                            } catch (e) {
-                                console.error('Error parsing SSE data:', e);
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        streamData += chunk;
+                        console.log('📥 Received chunk:', chunk);
+                        
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    updateGenerationProgress(data);
+                                } catch (e) {
+                                    console.error('❌ Error parsing SSE data:', e);
+                                }
                             }
                         }
                     }
-                }
-                
-            } catch (error) {
-                console.error('Code generation failed:', error);
-                
-                // Fallback to non-streaming generation
-                try {
+                    
+                    console.log('✅ Streaming complete. Full data:', streamData);
+                    
+                } catch (streamError) {
+                    console.log('❌ Streaming generation failed, trying regular generation:', streamError.message);
+                    
+                    // STEP 2: Fallback to regular generation
                     const fallbackResponse = await fetch(`${API_BASE}/api/v1/dreamengine/generate-code`, {
                         method: 'POST',
                         headers: {
@@ -1075,64 +1041,66 @@
                         body: JSON.stringify({
                             project_description: buildRequest,
                             tech_stack: "fastapi-react",
-                            deployment_target: "render"
+                            deployment_target: "render",
+                            validation_id: validationId
                         })
                     });
                     
-                    if (fallbackResponse.ok) {
-                        const result = await fallbackResponse.json();
-                        updateGenerationProgress({
-                            status: 'complete',
-                            project_id: result.generation_id || 'demo',
-                            files_count: result.files_count || 15,
-                            tech_stack: 'FastAPI + React + PostgreSQL'
-                        });
-                    } else {
-                        throw new Error('Fallback generation also failed');
+                    console.log('📡 Regular generation response status:', fallbackResponse.status);
+                    
+                    if (!fallbackResponse.ok) {
+                        const errorText = await fallbackResponse.text();
+                        throw new Error(`Code generation failed (${fallbackResponse.status}): ${errorText}`);
                     }
-                } catch (fallbackError) {
-                    // Final fallback to demo completion
+                    
+                    const result = await fallbackResponse.json();
+                    console.log('✅ Code generation result:', result);
+                    
                     updateGenerationProgress({
                         status: 'complete',
-                        project_id: 'demo',
-                        files_count: 15,
-                        tech_stack: 'FastAPI + React + PostgreSQL'
+                        project_id: result.generation_id || result.project_id || 'generated',
+                        files_count: result.files_count || 'Unknown',
+                        tech_stack: result.tech_stack || 'FastAPI + React + PostgreSQL',
+                        data: result
                     });
                 }
+                
+            } catch (error) {
+                console.error('❌ Code generation failed:', error);
+                showError('Code Generation Error', `Code generation failed: ${error.message}`);
             }
         }
 
-        // SOPHISTICATED: Real-time progress updates
         function updateGenerationProgress(data) {
             const progressDiv = document.getElementById('generation-progress');
             
             if (data.status === 'progress') {
                 progressDiv.innerHTML = `
                     <p>${data.message}</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${data.progress}%"></div>
-                    </div>
-                    <p>${data.progress}% complete</p>
+                    ${data.progress ? `
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${data.progress}%"></div>
+                        </div>
+                        <p>${data.progress}% complete</p>
+                    ` : ''}
+                    ${data.data ? `
+                        <div class="error-details">Backend Data: ${JSON.stringify(data.data, null, 2)}</div>
+                    ` : ''}
                 `;
             } else if (data.status === 'complete') {
                 showModal('Code Generation Complete', `
-                    <div class="generation-complete">
-                        <h3>✅ Your application is ready!</h3>
+                    <div style="text-align: center;">
+                        <h3>✅ Code Generation Complete!</h3>
+                        <p><strong>Project ID:</strong> ${data.project_id}</p>
                         <p><strong>Files Generated:</strong> ${data.files_count}</p>
-                        <p><strong>Project Structure:</strong> ${data.tech_stack}</p>
+                        <p><strong>Tech Stack:</strong> ${data.tech_stack}</p>
+                        
+                        <h4>🔍 Backend Response:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; text-align: left; white-space: pre-wrap;">${JSON.stringify(data.data || {}, null, 2)}</pre>
                         
                         <div style="margin: 20px 0;">
                             <button onclick="downloadProject('${data.project_id}')" class="btn btn-primary">
-                                📥 Download Project Files
-                            </button>
-                            <button onclick="viewInGitHub('${data.github_url || '#'}')" class="btn btn-secondary">
-                                🐙 View on GitHub
-                            </button>
-                        </div>
-                        
-                        <div style="margin-top: 20px;">
-                            <button onclick="proceedToDebug('${data.project_id}')" class="btn btn-outline">
-                                🔧 Open in Layer 2 Debug
+                                📥 Download Project
                             </button>
                         </div>
                     </div>
@@ -1141,7 +1109,7 @@
         }
 
         // ==========================================
-        // 5. TEXT MESSAGE SYSTEM (SESSION-AWARE)
+        // 5. TEXT MESSAGE SYSTEM (REAL BACKEND ONLY)
         // ==========================================
 
         async function sendTextMessage() {
@@ -1153,12 +1121,13 @@
             input.value = '';
             addMessageToConversation('user', message);
             
-            // Use session-based conversation if available
+            // Use session-based conversation
             if (currentSessionId) {
                 await continueConversation(currentSessionId, message);
             } else {
                 // Start new session for text input
                 try {
+                    console.log('💬 Starting new text conversation session...');
                     const sessionResponse = await fetch(`${API_BASE}/api/v1/voice-conversation/start-conversation`, {
                         method: 'POST',
                         headers: {
@@ -1172,16 +1141,22 @@
                         })
                     });
                     
-                    if (sessionResponse.ok) {
-                        const sessionData = await sessionResponse.json();
-                        currentSessionId = sessionData.session_id;
-                        await continueConversation(currentSessionId, message);
-                    } else {
-                        throw new Error('Session start failed');
+                    console.log('📡 Text session response status:', sessionResponse.status);
+                    
+                    if (!sessionResponse.ok) {
+                        const errorText = await sessionResponse.text();
+                        throw new Error(`Session start failed (${sessionResponse.status}): ${errorText}`);
                     }
+                    
+                    const sessionData = await sessionResponse.json();
+                    currentSessionId = sessionData.session_id;
+                    console.log('✅ Text session started:', currentSessionId);
+                    
+                    await continueConversation(currentSessionId, message);
                 } catch (error) {
-                    console.error('Text conversation failed:', error);
-                    addMessageToConversation('ai', 'I understand your request. Let me help you develop this into a complete application. What specific features are you envisioning?');
+                    console.error('❌ Text conversation failed:', error);
+                    showError('Text Conversation Error', `Text conversation failed: ${error.message}`);
+                    addMessageToConversation('system', `❌ Text conversation failed: ${error.message}`);
                 }
             }
         }
@@ -1194,7 +1169,7 @@
         }
 
         // ==========================================
-        // 6. UTILITY FUNCTIONS (WORKING BUTTONS)
+        // 6. UTILITY FUNCTIONS
         // ==========================================
 
         function addMessageToConversation(sender, content) {
@@ -1204,7 +1179,7 @@
             
             messageDiv.innerHTML = `
                 <div class="message-avatar ${sender}">
-                    ${sender === 'ai' ? '🤖' : '👤'}
+                    ${sender === 'ai' ? '🤖' : sender === 'user' ? '👤' : '⚠️'}
                 </div>
                 <div class="message-content">
                     ${content}
@@ -1225,8 +1200,28 @@
             document.getElementById('modal-overlay').classList.remove('active');
         }
 
-        // FIXED: Working navigation function
+        function showError(title, message) {
+            showModal(title, `
+                <div class="error-message">
+                    <strong>❌ Error:</strong> ${message}
+                    <div class="error-details">
+                        This error came directly from the backend API or network request.
+                        Check the browser console for more details.
+                        
+                        Expected API endpoints:
+                        • POST /api/v1/voice-conversation/start-conversation
+                        • POST /api/v1/voice-conversation/transcribe-audio/{sessionId}
+                        • POST /api/v1/voice-conversation/process-turn/{sessionId}
+                        • POST /api/v1/business-intelligence/analyze-market
+                        • POST /api/v1/dreamengine/stream-generation
+                        • POST /api/v1/dreamengine/generate-code
+                    </div>
+                </div>
+            `);
+        }
+
         function showSection(sectionId) {
+            console.log('🔄 Switching to section:', sectionId);
             document.querySelectorAll('.app-section').forEach(section => {
                 section.classList.add('hidden');
             });
@@ -1234,83 +1229,258 @@
         }
 
         // ==========================================
-        // 7. GITHUB AND DEBUG FUNCTIONS
+        // 7. GITHUB AND DEBUG FUNCTIONS (REAL BACKEND ONLY)
         // ==========================================
 
-        function loadGitHubRepo() {
+        async function loadGitHubRepo() {
             const repoUrl = document.getElementById('github-repo-input').value.trim();
             
             if (!repoUrl) {
-                showModal('Input Required', 'Please enter a GitHub repository URL.');
+                showError('Input Required', 'Please enter a GitHub repository URL.');
                 return;
             }
             
-            document.getElementById('debug-workspace').classList.remove('hidden');
-            showModal('Repository Loaded', `
-                <p>✅ Successfully loaded repository: ${repoUrl}</p>
-                <p>Monaco Editor is ready for debugging!</p>
-                <div style="margin-top: 20px;">
-                    <button onclick="closeModal()" class="btn btn-primary">
-                        Start Debugging
-                    </button>
-                </div>
-            `);
+            try {
+                console.log('📤 Loading GitHub repository:', repoUrl);
+                const response = await fetch(`${API_BASE}/api/v1/github/load-repository`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        repository_url: repoUrl
+                    })
+                });
+                
+                console.log('📡 GitHub load response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`GitHub load failed (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ GitHub load result:', result);
+                
+                document.getElementById('debug-workspace').classList.remove('hidden');
+                showModal('Repository Loaded', `
+                    <p>✅ Successfully loaded repository: ${repoUrl}</p>
+                    <h4>🔍 Backend Response:</h4>
+                    <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                    <div style="margin-top: 20px;">
+                        <button onclick="closeModal()" class="btn btn-primary">
+                            Start Debugging
+                        </button>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ GitHub repository load failed:', error);
+                showError('GitHub Load Error', `GitHub repository load failed: ${error.message}`);
+            }
         }
 
-        function askAIDebugQuestion() {
-            showModal('AI Debug Assistant', `
-                <p>🤖 <strong>AI:</strong> I'm ready to help debug your code! What specific issue are you facing?</p>
-                <textarea class="input textarea" placeholder="Describe your debugging question..."></textarea>
-                <div style="margin-top: 15px;">
-                    <button onclick="closeModal()" class="btn btn-primary">Get AI Help</button>
-                </div>
-            `);
+        async function askAIDebugQuestion() {
+            const question = prompt('What debugging question do you have?');
+            if (!question) return;
+            
+            try {
+                console.log('🤖 Asking AI debug question:', question);
+                const response = await fetch(`${API_BASE}/api/v1/debug/ask-question`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        context: 'debug_session'
+                    })
+                });
+                
+                console.log('📡 AI debug response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`AI debug failed (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ AI debug result:', result);
+                
+                showModal('AI Debug Response', `
+                    <div style="text-align: left;">
+                        <h4>❓ Your Question:</h4>
+                        <p>${question}</p>
+                        
+                        <h4>🤖 AI Response:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ AI debug question failed:', error);
+                showError('AI Debug Error', `AI debug question failed: ${error.message}`);
+            }
         }
 
-        function runTests() {
-            showModal('Test Results', `
-                <div style="margin-bottom: 16px;">
-                    <strong>Running tests...</strong>
-                    <div class="loading-spinner" style="margin-left: 8px;"></div>
-                </div>
-                <p>✅ All tests passed successfully!</p>
-                <p>Your code is ready for deployment.</p>
-            `);
+        async function runTests() {
+            try {
+                console.log('🧪 Running tests...');
+                const response = await fetch(`${API_BASE}/api/v1/debug/run-tests`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        test_type: 'all'
+                    })
+                });
+                
+                console.log('📡 Test run response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Test run failed (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ Test results:', result);
+                
+                showModal('Test Results', `
+                    <div style="text-align: left;">
+                        <h4>🧪 Test Execution Results:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ Test run failed:', error);
+                showError('Test Run Error', `Test run failed: ${error.message}`);
+            }
         }
 
-        function syncToGitHub() {
-            showModal('GitHub Sync', `
-                <p>🔄 Syncing changes to GitHub...</p>
-                <div class="loading-spinner" style="margin: 16px 0;"></div>
-                <p>✅ Successfully synced to GitHub!</p>
-                <p>Your changes are now live in the repository.</p>
-            `);
+        async function syncToGitHub() {
+            try {
+                console.log('📤 Syncing to GitHub...');
+                const response = await fetch(`${API_BASE}/api/v1/github/sync-changes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        commit_message: 'Auto-sync from AI Debugger Factory'
+                    })
+                });
+                
+                console.log('📡 GitHub sync response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`GitHub sync failed (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ GitHub sync result:', result);
+                
+                showModal('GitHub Sync Complete', `
+                    <div style="text-align: left;">
+                        <h4>📤 Sync Results:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ GitHub sync failed:', error);
+                showError('GitHub Sync Error', `GitHub sync failed: ${error.message}`);
+            }
         }
 
         // ==========================================
-        // 8. PROJECT FUNCTIONS
+        // 8. PROJECT FUNCTIONS (REAL BACKEND ONLY)
         // ==========================================
 
         function createNewProject() {
             showModal('Create New Project', `
                 <div style="margin-bottom: 16px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500;">Project Name:</label>
-                    <input type="text" class="input" placeholder="My Awesome Project" />
+                    <input id="new-project-name" type="text" class="input" placeholder="My Awesome Project" />
                 </div>
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500;">Description:</label>
-                    <textarea class="input textarea" placeholder="Describe your project..."></textarea>
+                    <textarea id="new-project-desc" class="input textarea" placeholder="Describe your project..."></textarea>
                 </div>
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="closeModal(); showSection('voice-conversation');">Create & Start Conversation</button>
+                    <button class="btn btn-primary" onclick="createProjectBackend()">Create Project</button>
                 </div>
             `);
         }
 
+        async function createProjectBackend() {
+            const name = document.getElementById('new-project-name').value.trim();
+            const description = document.getElementById('new-project-desc').value.trim();
+            
+            if (!name) {
+                showError('Input Required', 'Please enter a project name.');
+                return;
+            }
+            
+            try {
+                console.log('📝 Creating new project:', name);
+                const response = await fetch(`${API_BASE}/api/v1/projects/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description
+                    })
+                });
+                
+                console.log('📡 Project creation response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Project creation failed (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ Project creation result:', result);
+                
+                closeModal();
+                showModal('Project Created', `
+                    <div style="text-align: left;">
+                        <h4>✅ Project Created Successfully!</h4>
+                        <p><strong>Name:</strong> ${name}</p>
+                        <p><strong>Description:</strong> ${description}</p>
+                        
+                        <h4>🔍 Backend Response:</h4>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                        
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="closeModal(); showSection('voice-conversation');">
+                                Start Conversation
+                            </button>
+                        </div>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ Project creation failed:', error);
+                showError('Project Creation Error', `Project creation failed: ${error.message}`);
+            }
+        }
+
         function openProject(projectId) {
             showModal('Open Project', `
-                <p>Opening project: ${projectId}</p>
+                <p>📂 Opening project: ${projectId}</p>
+                <p><em>This would call the backend to load project details...</em></p>
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
                     <button class="btn btn-primary" onclick="closeModal(); showSection('debug-engine');">
                         🔧 Debug in Layer 2
@@ -1322,45 +1492,75 @@
             `);
         }
 
-        // Additional sophisticated functions
-        function downloadProject(projectId) {
-            showModal('Download Project', `
-                <p>📥 Preparing download for project: ${projectId}</p>
-                <div class="loading-spinner"></div>
-                <p>Your project files will be ready shortly...</p>
-            `);
-        }
-
-        function viewInGitHub(githubUrl) {
-            if (githubUrl && githubUrl !== '#') {
-                window.open(githubUrl, '_blank');
-            } else {
-                showModal('GitHub Integration', `
-                    <p>🐙 GitHub integration is being set up...</p>
-                    <p>Your project will be automatically pushed to GitHub once generation is complete.</p>
+        async function downloadProject(projectId) {
+            try {
+                console.log('📥 Downloading project:', projectId);
+                const response = await fetch(`${API_BASE}/api/v1/dreamengine/download-code/${projectId}`, {
+                    method: 'GET',
+                    headers: authToken ? {
+                        'Authorization': `Bearer ${authToken}`
+                    } : {}
+                });
+                
+                console.log('📡 Download response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Download failed (${response.status}): ${errorText}`);
+                }
+                
+                // Handle file download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `project-${projectId}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                console.log('✅ Download complete');
+                showModal('Download Complete', `
+                    <p>✅ Project ${projectId} downloaded successfully!</p>
                 `);
+                
+            } catch (error) {
+                console.error('❌ Project download failed:', error);
+                showError('Download Error', `Project download failed: ${error.message}`);
             }
-        }
-
-        function proceedToDebug(projectId) {
-            closeModal();
-            showSection('debug-engine');
-            showModal('Debug Environment', `
-                <p>🔧 Loading project ${projectId} into debug environment...</p>
-                <div class="loading-spinner"></div>
-                <p>Monaco Editor and AI debugging tools are being prepared...</p>
-            `);
         }
 
         // ==========================================
         // 9. INITIALIZATION
         // ==========================================
 
-        // Initialize authentication on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuthentication();
+            console.log('🚀 AI Debugger Factory - TRULY CONNECTED VERSION');
+            console.log('🌐 API Base URL:', API_BASE);
+            
+            const isAuthenticated = await checkAuthentication();
+            console.log('🔐 Authentication status:', isAuthenticated);
+            
             showSection('dashboard');
-            console.log('🚀 AI Debugger Factory initialized - PERFECT HYBRID with sophisticated features and working buttons!');
+            
+            // Log all expected endpoints for debugging
+            console.log('📋 Expected API endpoints:');
+            console.log('  • POST /api/v1/voice-conversation/start-conversation');
+            console.log('  • POST /api/v1/voice-conversation/transcribe-audio/{sessionId}');
+            console.log('  • POST /api/v1/voice-conversation/process-turn/{sessionId}');
+            console.log('  • POST /api/v1/business-intelligence/analyze-market');
+            console.log('  • POST /api/v1/dreamengine/analyze-strategic-requirements');
+            console.log('  • POST /api/v1/dreamengine/stream-generation');
+            console.log('  • POST /api/v1/dreamengine/generate-code');
+            console.log('  • GET  /api/v1/dreamengine/download-code/{generationId}');
+            console.log('  • POST /api/v1/github/load-repository');
+            console.log('  • POST /api/v1/debug/ask-question');
+            console.log('  • POST /api/v1/debug/run-tests');
+            console.log('  • POST /api/v1/github/sync-changes');
+            console.log('  • POST /api/v1/projects/create');
+            
+            console.log('✅ Frontend initialized - Ready to test backend connections!');
         });
     </script>
 </body>
