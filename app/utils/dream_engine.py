@@ -15,6 +15,11 @@ from datetime import datetime
 import openai
 from dataclasses import dataclass
 import re
+from fastapi import APIRouter, Depends
+from app.schemas import CodeGenerationRequest
+from app.dependencies import get_current_user
+
+router = APIRouter()
 
 @dataclass
 class StrategicAnalysis:
