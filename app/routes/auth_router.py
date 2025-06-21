@@ -18,7 +18,7 @@ from app.utils.auth_utils import (
 from app.utils.security_validator import SecurityValidator
 from app.utils.logger import get_logger
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 logger = get_logger("authentication_api")
 security_validator = SecurityValidator()
 
