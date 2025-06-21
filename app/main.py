@@ -184,7 +184,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 # ==========================================
 # API ROUTES REGISTRATION
