@@ -16,7 +16,7 @@ from app.database.models import *
 from app.utils.github_integration import GitHubIntegration, GitHubRepository, GitHubDeployment
 from app.utils.logger import get_logger
 
-router = APIRouter(prefix="/github", tags=["GitHub Integration"])
+router = APIRouter(tags=["GitHub Integration"])
 logger = get_logger("github_integration_api")
 
 # Initialize GitHub integration
