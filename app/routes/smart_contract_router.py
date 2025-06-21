@@ -15,7 +15,7 @@ from app.utils.smart_contract_system import SmartContractSystem, SmartContract, 
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_current_user, User
 
-router = APIRouter(prefix="/smart-contracts", tags=["Smart Contract Revenue Sharing"])
+router = APIRouter(tags=["Project Management"])
 logger = get_logger("smart_contract_api")
 
 # Initialize smart contract system
