@@ -17,7 +17,7 @@ from app.database.models import *
 from app.utils.business_intelligence import BusinessIntelligence, MarketAnalysis, CompetitorAnalysis, BusinessValidation
 from app.utils.logger import get_logger
 
-router = APIRouter(prefix="/business-intelligence", tags=["Smart Business Validation"])
+router = APIRouter(tags=["Smart Business Validation"])
 logger = get_logger("business_intelligence_api")
 
 # Initialize business intelligence engine
