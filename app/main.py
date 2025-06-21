@@ -185,13 +185,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# ==========================================
-# STATIC FILES AND TEMPLATES
-# ==========================================
-
-# Mount static files
-#app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # Templates
 templates = Jinja2Templates(directory="app/templates")
 
