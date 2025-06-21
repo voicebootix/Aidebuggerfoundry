@@ -150,3 +150,6 @@ class GitHubIntegration:
             
         except Exception as e:
             return {"success": False, "error": str(e)}
+# Create the global instance that main.py expects
+github_manager = GitHubManager(github_token=os.getenv("GITHUB_TOKEN", ""))
+

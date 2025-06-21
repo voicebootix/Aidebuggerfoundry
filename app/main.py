@@ -30,7 +30,7 @@ from app.database.db import DatabaseManager, get_db
 from app.database.models import *
 
 # Core utilities
-from app.utils.logger import get_logger, log_request_response
+# from app.utils.logger import get_logger, log_request_response
 from app.config import settings, get_settings
 
 # Route imports - Import all revolutionary features
@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         await db_manager.initialize()
-        #await db_manager.run_migrations()
+        await db_manager.run_migrations()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
@@ -141,13 +141,14 @@ async def logging_middleware(request: Request, call_next):
     process_time = asyncio.get_event_loop().time() - start_time
     
     # Log request/response
-    #await log_request_response(
-       # url=str(request.url),
-       # status_code=response.status_code,
-       # process_time=process_time,
-        #user_agent=request.headers.get("user-agent"),
-       # ip_address=request.client.host if request.client else None
-    #) 
+    await log_request_response(
+        method=request.method,
+        url=str(request.url),
+        status_code=response.status_code,
+        process_time=process_time,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None
+    )
     
     # Add processing time header
     response.headers["X-Process-Time"] = str(process_time)
@@ -185,8 +186,15 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
+# ==========================================
+# STATIC FILES AND TEMPLATES
+# ==========================================
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Templates
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="templates")
 
 # ==========================================
 # API ROUTES REGISTRATION

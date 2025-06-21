@@ -187,3 +187,7 @@ class VoiceProcessor:
             validation_result["warnings"].append("Audio file seems very small")
         
         return validation_result
+
+# Create the global instance that main.py expects
+voice_processor = VoiceProcessor(openai_api_key=os.getenv("OPENAI_API_KEY", ""))
+
