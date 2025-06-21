@@ -20,7 +20,7 @@ from app.utils.github_integration import GitHubIntegration
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_current_user, User
 
-router = APIRouter(prefix="/debug", tags=["Layer 2 - Debug"])
+router = APIRouter(tags=["Layer 2 - Debug"])
 logger = get_logger("debug_engine_api")
 
 # Initialize core components
