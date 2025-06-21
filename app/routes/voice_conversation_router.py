@@ -394,12 +394,3 @@ async def example_route(
     # OLD: db.query(User).filter(User.id == user_id).first()
     # NEW: await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
     pass
-
-# In your voice_conversation_router.py
-@router.post("/api/v1/voice/process")
-async def process_voice_input(audio_file: UploadFile, current_user = Depends(get_current_user)):
-    pass  # Your existing voice processing logic
-   
-@router.post("/api/v1/voice/conversation") 
-async def voice_conversation(request: ConversationRequest, current_user = Depends(get_current_user)):
-    pass # Your existing conversation logic

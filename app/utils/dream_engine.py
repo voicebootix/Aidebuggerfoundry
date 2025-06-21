@@ -15,11 +15,6 @@ from datetime import datetime
 import openai
 from dataclasses import dataclass
 import re
-from fastapi import APIRouter, Depends
-from app.schemas import CodeGenerationRequest
-from app.dependencies import get_current_user
-
-router = APIRouter()
 
 @dataclass
 class StrategicAnalysis:
@@ -1025,7 +1020,3 @@ class UserService:
             "active_items": total_items,  # All items are active in this query
         }}
 '''
-# In your dream_engine router
-@router.post("/api/v1/dreamengine/generate")
-async def generate_code(request: CodeGenerationRequest, current_user = Depends(get_current_user)):
-    pass # Your existing DreamEngine logic

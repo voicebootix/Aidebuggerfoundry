@@ -293,7 +293,3 @@ async def get_validation_summary(
         created_at=db_validation.created_at.isoformat()
     )
     
-# In your business_router.py
-@router.post("/api/v1/business/validate")
-async def validate_business_idea(request: BusinessValidationRequest, current_user = Depends(get_current_user)):
-   pass  # Your existing business validation logic

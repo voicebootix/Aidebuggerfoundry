@@ -24,9 +24,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
-from app.utils.dream_engine import router as dream_engine_router
-
-app.include_router(dream_engine_router)
 
 # Database and models
 from app.database.db import DatabaseManager, get_db
@@ -119,7 +116,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://ai-debugger-factory.onrender.com"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
