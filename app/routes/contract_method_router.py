@@ -25,7 +25,7 @@ contract_method = None  # Will be initialized with LLM provider
 async def register_founder_agreement(
     request: RegisterAgreementRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Register founder agreement for AI compliance monitoring
@@ -101,7 +101,7 @@ async def monitor_ai_output_compliance(
     contract_id: str,
     request: MonitorComplianceRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Monitor AI output for compliance with founder contract
@@ -177,7 +177,7 @@ async def monitor_ai_output_compliance(
 async def get_compliance_report(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Get comprehensive AI compliance report for project"""
     

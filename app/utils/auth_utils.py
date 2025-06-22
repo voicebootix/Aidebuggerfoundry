@@ -95,6 +95,38 @@ async def get_current_user(
         logger.error(f"Database error: {e}")
         raise credentials_exception
     
+    # ✅ Optional user dependency (no token = None return)
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: asyncpg.Connection = Depends(get_db)
+) -> Optional[Dict[str, Any]]:
+    """Get current user if token is provided, else return None"""
+    if credentials is None:
+        return None
+
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+
+    try:
+        user = await db.fetchrow(
+            "SELECT id, email, full_name, is_active, is_verified, created_at FROM users WHERE email = $1",
+            email
+        )
+
+        if user is None or not user['is_active']:
+            return None
+        
+        return dict(user)
+    
+    except Exception as e:
+        logger.error(f"Database error in optional auth: {e}")
+        return None
+    
 async def get_user_by_email(db: asyncpg.Connection, email: str) -> Optional[Dict[str, Any]]:
     """Get user by email from database"""
     try:

@@ -122,7 +122,7 @@ async def login_user(
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_current_user_profile(
-    current_user: Dict = Depends(get_current_user)
+    current_user: Dict = Depends(get_optional_current_user)
 ):
     """Get current user profile"""
     

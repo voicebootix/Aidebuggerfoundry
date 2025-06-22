@@ -28,7 +28,7 @@ async def analyze_market_opportunity(
     request: MarketAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Comprehensive market opportunity analysis
@@ -94,7 +94,7 @@ async def analyze_market_opportunity(
 async def research_competitors(
     request: CompetitorResearchRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     AI-powered competitor research and analysis
@@ -146,7 +146,7 @@ async def research_competitors(
 async def validate_business_model(
     request: BusinessModelValidationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Comprehensive business model validation
@@ -216,7 +216,7 @@ async def validate_business_model(
 async def generate_comprehensive_business_plan(
     request: BusinessPlanRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Generate comprehensive AI-powered business plan
@@ -268,7 +268,7 @@ async def generate_comprehensive_business_plan(
 async def get_validation_summary(
     conversation_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Get complete business validation summary"""
     

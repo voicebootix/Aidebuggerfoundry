@@ -26,7 +26,7 @@ github_integration = None  # Will be initialized with token
 async def create_github_repository(
     request: CreateGitHubRepositoryRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Create new GitHub repository for project
@@ -94,7 +94,7 @@ async def upload_generated_code_to_github(
     request: UploadCodeToGitHubRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Upload AI-generated code to GitHub repository
@@ -172,7 +172,7 @@ async def sync_debug_changes_to_github(
     project_id: str,
     request: SyncDebugChangesRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Sync Layer 2 debug changes back to GitHub
@@ -229,7 +229,7 @@ async def sync_debug_changes_to_github(
 async def get_github_repository_status(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Get GitHub repository status and recent activity"""
     

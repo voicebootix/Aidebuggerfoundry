@@ -39,7 +39,7 @@ business_intelligence = None  # Will be initialized with LLM provider
 async def start_ai_cofounder_conversation(
     request: VoiceConversationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Start revolutionary AI cofounder conversation
@@ -115,7 +115,7 @@ async def process_conversation_turn(
     session_id: str,
     request: ConversationTurnRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Process user response in ongoing conversation"""
     
@@ -187,7 +187,7 @@ async def transcribe_voice_input(
     session_id: str,
     audio_file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Transcribe voice input for conversation
@@ -263,7 +263,7 @@ async def transcribe_voice_input(
 async def create_founder_ai_agreement(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """
     Create binding founder-AI agreement (Contract Method)
@@ -336,7 +336,7 @@ async def create_founder_ai_agreement(
 async def get_conversation_history(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Get complete conversation history"""
     
@@ -364,7 +364,7 @@ async def get_conversation_history(
 @router.get("/sessions")
 async def get_user_conversation_sessions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_optional_current_user)
 ):
     """Get all conversation sessions for user"""
     
@@ -387,7 +387,7 @@ async def get_user_conversation_sessions(
     # UPDATE ALL ROUTE DEPENDENCIES
 async def example_route(
     db: asyncpg.Connection = Depends(get_db),  # Changed from Session
-    current_user: Dict = Depends(get_current_user)  # Changed from User
+    current_user: Dict = Depends(get_optional_current_user)  # Changed from User
 ):
     # Use asyncpg operations instead of SQLAlchemy
     # Example:
