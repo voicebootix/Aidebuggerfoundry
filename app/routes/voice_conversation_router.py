@@ -41,7 +41,7 @@ business_intelligence = None  # Will be initialized with LLM provider
 async def start_ai_cofounder_conversation(
     request: VoiceConversationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Start revolutionary AI cofounder conversation
@@ -49,6 +49,11 @@ async def start_ai_cofounder_conversation(
     """
     
     try:
+        
+        # Handle demo mode when user is not authenticated
+        user_id = current_user.get("id") if current_user else "demo_user"
+        user_email = current_user.get("email") if current_user else "demo@example.com"
+
         # Validate and sanitize input
         security_issues = await security_validator.validate_input(request.initial_input)
         if security_issues:
@@ -68,7 +73,7 @@ async def start_ai_cofounder_conversation(
         
         # Start conversation session
         session = await conversation_engine.start_cofounder_conversation(
-            user_id=current_user.id,
+            user_id=user_id,
             initial_input=request.initial_input
         )
         
@@ -83,9 +88,11 @@ async def start_ai_cofounder_conversation(
             conversation_state=session.current_state.value
         )
         
-        db.add(db_conversation)
-        db.commit()
-        db.refresh(db_conversation)
+        # For demo mode, don't save to database if user is None
+        if current_user:
+            db.add(conversation_session)
+            db.commit()
+            db.refresh(conversation_session)
         
         logger.log_structured("info", "AI cofounder conversation started", {
             "session_id": session.session_id,

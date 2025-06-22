@@ -30,7 +30,7 @@ async def analyze_market_opportunity(
     request: MarketAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Comprehensive market opportunity analysis
@@ -38,6 +38,10 @@ async def analyze_market_opportunity(
     """
     
     try:
+        # Handle demo mode
+        user_id = current_user.get("id") if current_user else "demo_user"
+        user_email = current_user.get("email") if current_user else "demo@example.com"
+        
         # Initialize business intelligence if needed
         global business_intelligence
         if not business_intelligence:
@@ -47,6 +51,18 @@ async def analyze_market_opportunity(
         market_analysis = await business_intelligence.analyze_market_opportunity(
             business_idea=request.business_idea
         )
+        
+        # Store analysis result (only if user is authenticated)
+        if current_user:
+             analysis_record = MarketAnalysisRecord(
+                user_id=user_id,
+                business_idea=request.business_idea,
+                
+         # ... rest of the record
+            )
+        db.add(analysis_record)
+        db.commit()
+        db.refresh(analysis_record)
         
         # Store analysis in database
         db_validation = BusinessValidation(
