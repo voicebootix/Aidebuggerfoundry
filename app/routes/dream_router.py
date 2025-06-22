@@ -132,7 +132,7 @@ async def generate_production_code(
     request: CodeGenerationRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Generate production-ready code from strategic analysis
@@ -140,6 +140,13 @@ async def generate_production_code(
     """
     
     try:
+        # Handle demo mode
+        if not current_user:
+        # Return demo response for unauthenticated users
+            return {"status": "success", "message": "Demo code generation completed", "generation_id": "demo_123"}
+
+        user_id = current_user.get("id")
+         
         # Validate project and get strategic analysis
         dream_session = db.query(DreamSession).filter(
             DreamSession.id == request.analysis_id,
