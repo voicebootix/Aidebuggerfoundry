@@ -81,7 +81,7 @@ async def start_ai_cofounder_conversation(
         db_conversation = VoiceConversation(
             id=session.session_id,
             session_id=session.session_id,
-            user_id=current_user.id,
+            user_id=user_id,
             conversation_history=session.conversation_history,
             founder_type_detected=session.founder_profile.type.value if session.founder_profile else "unknown",
             business_validation_requested=session.validation_requested,
@@ -96,7 +96,7 @@ async def start_ai_cofounder_conversation(
         
         logger.log_structured("info", "AI cofounder conversation started", {
             "session_id": session.session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "founder_type": session.founder_profile.type.value if session.founder_profile else "unknown"
         })
         
@@ -111,7 +111,7 @@ async def start_ai_cofounder_conversation(
         
     except Exception as e:
         logger.log_structured("error", "Failed to start conversation", {
-            "user_id": current_user.id,
+            "user_id": user_id,
             "error": str(e)
         })
         raise HTTPException(
@@ -183,7 +183,7 @@ async def process_conversation_turn(
     except Exception as e:
         logger.log_structured("error", "Failed to process conversation turn", {
             "session_id": session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "error": str(e)
         })
         raise HTTPException(
@@ -245,7 +245,7 @@ async def transcribe_voice_input(
         
         logger.log_structured("info", "Voice transcription completed", {
             "session_id": session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "processing_time": transcription_result.processing_time,
             "confidence": transcription_result.confidence
         })
@@ -260,7 +260,7 @@ async def transcribe_voice_input(
     except Exception as e:
         logger.log_structured("error", "Voice transcription failed", {
             "session_id": session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "error": str(e)
         })
         raise HTTPException(
@@ -303,7 +303,7 @@ async def create_founder_ai_agreement(
         # Create project from agreement
         project = Project(
             project_name=agreement["business_specification"]["solution_description"][:100],
-            user_id=current_user.id,
+            user_id=user_id,
             conversation_session_id=session_id,
             founder_ai_agreement=agreement,
             technology_stack=agreement["ai_commitments"]["technology_stack"],
@@ -316,7 +316,7 @@ async def create_founder_ai_agreement(
         
         logger.log_structured("info", "Founder-AI agreement created", {
             "session_id": session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "project_id": project.id,
             "agreement_id": agreement["agreement_id"]
         })
@@ -333,7 +333,7 @@ async def create_founder_ai_agreement(
     except Exception as e:
         logger.log_structured("error", "Failed to create agreement", {
             "session_id": session_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "error": str(e)
         })
         raise HTTPException(
