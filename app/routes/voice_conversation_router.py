@@ -24,7 +24,8 @@ from app.utils.logger import get_logger
 from app.utils.security_validator import SecurityValidator
 from app.utils.auth_utils import get_current_user
 from typing import Dict
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
+from app.database.models import User  # Import User from models
 from app.utils.auth_utils import get_optional_current_user
 
 
