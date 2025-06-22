@@ -15,6 +15,8 @@ from datetime import datetime
 import openai
 from dataclasses import dataclass
 import re
+import uuid
+from datetime import datetime
 
 @dataclass
 class StrategicAnalysis:
@@ -49,7 +51,7 @@ class DreamEngine:
         self.security_validator = security_validator
         self.generation_templates = self._load_generation_templates()
         
-    async def analyze_strategic_requirements(self, founder_agreement: Dict) -> StrategicAnalysis:
+    async def analyze_strategic_requirements(self, founder_agreement: Dict, project_context: Dict) -> StrategicAnalysis:
         """Comprehensive strategic analysis of founder requirements"""
         
         business_spec = founder_agreement.get("business_specification", {})

@@ -4,12 +4,13 @@ Business Intelligence API Router (INTELLIGENT)
 Optional but intelligent business validation and strategy analysis
 Real market research and competitor analysis APIs
 """
-
+from typing import Union
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import asyncio
 from datetime import datetime
+import uuid
 from app.utils.auth_utils import get_current_user, get_optional_current_user
 
 from app.database.db import get_db
@@ -45,28 +46,35 @@ async def analyze_market_opportunity(
         # Initialize business intelligence if needed
         global business_intelligence
         if not business_intelligence:
-            business_intelligence = BusinessIntelligence(openai_client=None)
+            from app.utils.llm_provider import EnhancedLLMProvider
+            llm_provider = EnhancedLLMProvider()
+            business_intelligence = BusinessIntelligence(openai_client=llm_provider.openai_client)
+        
+        # Handle business_idea whether it's string or dict
+        if isinstance(request.business_idea, str):
+            business_idea_text = request.business_idea
+        else:
+            business_idea_text = request.business_idea.get("description", str(request.business_idea))
         
         # Perform market analysis
+        if isinstance(request.business_idea, dict):
+            business_idea_text = request.business_idea.get("description", str(request.business_idea))
+        else:
+            business_idea_text = str(request.business_idea)
+
         market_analysis = await business_intelligence.analyze_market_opportunity(
-            business_idea=request.business_idea
+            business_idea=business_idea_text
         )
         
-        # Store analysis result (only if user is authenticated)
-        if current_user:
-             analysis_record = MarketAnalysisRecord(
-                user_id=user_id,
-                business_idea=request.business_idea,
-                
-         # ... rest of the record
-            )
-        db.add(analysis_record)
-        db.commit()
-        db.refresh(analysis_record)
+        # Generate conversation ID if not provided
+        conversation_id = getattr(request, 'conversation_id', None)
+        if not conversation_id:
+            conversation_id = f"conv_{user_id}_{uuid.uuid4().hex[:8]}"
         
         # Store analysis in database
         db_validation = BusinessValidation(
-            conversation_id=request.conversation_id,
+            id=str(uuid.uuid4()),
+            conversation_id=conversation_id,
             market_analysis={
                 "market_size": market_analysis.market_size,
                 "growth_rate": market_analysis.growth_rate,
@@ -74,18 +82,15 @@ async def analyze_market_opportunity(
                 "opportunities": market_analysis.opportunities,
                 "threats": market_analysis.threats,
                 "confidence_score": market_analysis.confidence_score
-            }
+            },
+            created_at=datetime.utcnow()
         )
         
         db.add(db_validation)
         db.commit()
         db.refresh(db_validation)
         
-        logger.log_structured("info", "Market analysis completed", {
-            "user_id": current_user.id,
-            "conversation_id": request.conversation_id,
-            "confidence_score": market_analysis.confidence_score
-        })
+        logger.info(f"Market analysis completed for user: {user_id}, conversation: {conversation_id}")
         
         return MarketAnalysisResponse(
             analysis_id=db_validation.id,
@@ -99,10 +104,9 @@ async def analyze_market_opportunity(
         )
         
     except Exception as e:
-        logger.log_structured("error", "Market analysis failed", {
-            "user_id": current_user.id,
-            "error": str(e)
-        })
+        logger.error(f"Market analysis failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Market analysis failed: {str(e)}"

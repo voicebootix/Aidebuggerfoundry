@@ -22,6 +22,7 @@ from app.utils.security_validator import SecurityValidator
 from app.utils.smart_contract_system import SmartContractSystem
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_optional_current_user
+import uuid
 
 
 router = APIRouter(tags=["Layer 1 - Build"])
@@ -33,82 +34,92 @@ security_validator = SecurityValidator()
 smart_contract_system = None  # Will be initialized
 
 @router.post("/analyze-strategic-requirements", response_model=StrategicAnalysisResponse)
-async def start_debug_session(
-    request: StartDebugSessionRequest,
+async def analyze_strategic_requirements(
+    request: StrategicAnalysisRequest,
     db: Session = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
-    """Start professional debugging session with Monaco integration"""
-    
+    """
+    Comprehensive strategic analysis of founder requirements
+    Enhanced business and technical analysis
+    """
+    # Handle demo mode
     user_id = current_user.get("id") if current_user else "demo_user"
+    user_email = current_user.get("email") if current_user else "demo@example.com"
+
+    # Get or create project
+    project = db.query(Project).filter(
+        Project.id == request.project_id,
+        Project.user_id == user_id
+    ).first()
+    
+    if not project:
+        # Create new project
+        project = Project(
+            id=request.project_id,
+            project_name=f"Project {request.project_id[-6:]}",
+            user_id=user_id,
+            technology_stack=["FastAPI", "React", "PostgreSQL"],
+            status="planning",
+            created_at=datetime.utcnow()
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+    
+    # Store founder agreement if provided
+    if hasattr(request, 'founder_agreement') and request.founder_agreement:
+        project.founder_ai_agreement = request.founder_agreement
+        db.commit()
+    
+    # Initialize dream engine if needed
+    global dream_engine
+    if not dream_engine:
+        from app.utils.llm_provider import EnhancedLLMProvider
+        llm_provider = EnhancedLLMProvider()
+        dream_engine = DreamEngine(llm_provider=llm_provider)
+    
+    # Prepare founder agreement
+    founder_agreement = project.founder_ai_agreement or {}
+    if hasattr(request, 'additional_requirements') and request.additional_requirements:
+        founder_agreement['additional_requirements'] = request.additional_requirements
     
     try:
-        # Validate project access
-        project = db.query(Project).filter(
-            Project.id == request.project_id,
-            Project.user_id == user_id
-        ).first()
-        
-        if not project:
-            # For demo users, create demo project
-            if not current_user:
-                project = Project(
-                    id=request.project_id,
-                    user_id="demo_user",
-                    name="Demo Debug Project",
-                    description="Demo debugging project",
-                    status="active",
-                    project_type="demo"
-                )
-                db.add(project)
-                db.commit()
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Project not found"
-                )
-        # Initialize dream engine if needed
-        global dream_engine
-        if not dream_engine:
-            dream_engine = DreamEngine(
-                llm_provider=EnhancedLLMProvider({"openai": "your_key"}),
-                business_intelligence=None,
-                security_validator=security_validator
-            )
-        
         # Perform strategic analysis
+        founder_agreement = project.founder_ai_agreement or {}
+        if hasattr(request, 'additional_requirements') and request.additional_requirements:
+            founder_agreement['additional_requirements'] = request.additional_requirements
+
         strategic_analysis = await dream_engine.analyze_strategic_requirements(
-            founder_agreement=project.founder_ai_agreement
-        )
+            founder_agreement=founder_agreement,
+            project_context={
+             "project_id": project.id,
+             "project_name": project.project_name,
+             "user_id": user_id
+        }
+    )
         
-        # Create dream session record
+        # Create dream session
         dream_session = DreamSession(
+            id=str(uuid.uuid4()),
             project_id=project.id,
-            user_input=request.additional_requirements or "Strategic analysis request",
+            user_input=str(founder_agreement),
             strategic_analysis={
                 "business_context": strategic_analysis.business_context,
                 "technical_requirements": strategic_analysis.technical_requirements,
                 "architecture_recommendations": strategic_analysis.architecture_recommendations,
                 "implementation_strategy": strategic_analysis.implementation_strategy,
-                "risk_assessment": strategic_analysis.risk_assessment,
-                "timeline_estimate": strategic_analysis.timeline_estimate
+                "risk_assessment": strategic_analysis.risk_assessment
             },
-            status="analysis_completed"
+            status="analysis_complete",
+            created_at=datetime.utcnow()
         )
         
         db.add(dream_session)
         db.commit()
         db.refresh(dream_session)
         
-        # Update project status
-        project.status = "analyzed"
-        db.commit()
-        
-        logger.log_structured("info", "Strategic analysis completed", {
-            "project_id": project.id,
-            "user_id": current_user.id,
-            "session_id": dream_session.id
-        })
+        logger.info(f"Strategic analysis completed for project: {project.id}")
         
         return StrategicAnalysisResponse(
             analysis_id=dream_session.id,
@@ -123,11 +134,9 @@ async def start_debug_session(
         )
         
     except Exception as e:
-        logger.log_structured("error", "Strategic analysis failed", {
-            "project_id": request.project_id,
-            "user_id": current_user.id,
-            "error": str(e)
-        })
+        logger.error(f"Strategic analysis failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Strategic analysis failed: {str(e)}"

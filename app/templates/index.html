@@ -868,76 +868,103 @@
         // ==========================================
 
         async function startBusinessValidation() {
-            const businessIdea = document.getElementById('business-idea-input').value.trim();
-            
-            if (!businessIdea) {
-                showError('Input Required', 'Please describe your business idea first.');
-                return;
+        const businessIdea = document.getElementById('business-idea-input').value.trim();
+    
+    if (!businessIdea) {
+        showError('Input Required', 'Please describe your business idea first.');
+        return;
+    }
+    
+    // Show loading modal
+    showModal('Business Validation', `
+        <div style="margin-bottom: 16px;">
+            <strong>Analyzing:</strong> ${businessIdea}
+        </div>
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 16px;">🔄 Processing business intelligence analysis...</p>
+    `);
+    
+    try {
+        console.log('🧠 Starting business validation for:', businessIdea);
+        
+        // Create request with proper format
+        const requestData = {
+            business_idea: {
+                description: businessIdea,
+                problem_statement: businessIdea,
+                target_market: "To be determined through analysis",
+                solution_description: "AI-powered solution",
+                monetization: "To be determined"
             }
-            
-            // Show loading modal
-            showModal('Business Validation', `
-                <div style="margin-bottom: 16px;">
-                    <strong>Analyzing:</strong> ${businessIdea}
-                </div>
-                <div class="loading-spinner"></div>
-                <p style="margin-top: 16px;">🔄 Calling backend API for business intelligence analysis...</p>
-                <p style="font-size: 14px; color: var(--apple-text-secondary);">Endpoint: POST ${API_BASE}/api/v1/business-intelligence/analyze-market</p>
-            `);
-            
-            try {
-                console.log('🧠 Starting business validation for:', businessIdea);
-                const response = await fetch(`${API_BASE}/api/v1/business-intelligence/analyze-market`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
-                    },
-                    body: JSON.stringify({
-                        business_idea: businessIdea,
-                        analysis_depth: "comprehensive",
-                        include_market_research: true,
-                        include_competitor_analysis: true
-                    })
-                });
-                
-                console.log('📡 Business validation response status:', response.status);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Business validation failed (${response.status}): ${errorText}`);
-                }
-                
-                const validation = await response.json();
-                console.log('✅ Business validation result:', validation);
-                
-                // Show REAL validation results from backend
-                showModal('Business Validation Results', `
-                    <div style="text-align: left; max-height: 400px; overflow-y: auto;">
-                        <h3>✅ Analysis Complete</h3>
-                        <p><strong>Business Idea:</strong> ${businessIdea}</p>
-                        
-                        <div class="success-message">
-                            <strong>✅ Backend Response Received!</strong><br>
-                            Your business idea has been analyzed by the AI backend.
-                        </div>
-                        
-                        <h4>🔍 Backend Response:</h4>
-                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(validation, null, 2)}</pre>
-                        
-                        <div style="margin-top: 20px;">
-                            <button onclick="proceedToCodeGeneration('${validation.validation_id || validation.id || 'generated'}')" class="btn btn-primary">
-                                ✅ Proceed to Code Generation
-                            </button>
-                        </div>
-                    </div>
-                `);
-                
-            } catch (error) {
-                console.error('❌ Business validation failed:', error);
-                showError('Business Validation Error', `Business validation failed: ${error.message}`);
-            }
+        };
+        
+        const response = await fetch(`${API_BASE}/api/v1/business-intelligence/analyze-market`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        console.log('📡 Business validation response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Business validation error response:', errorText);
+            throw new Error(`Business validation failed (${response.status})`);
         }
+        
+        const validation = await response.json();
+        console.log('✅ Business validation result:', validation);
+        
+        // Show validation results
+        showModal('Business Validation Results', `
+            <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                <h3>✅ Market Analysis Complete</h3>
+                
+                <div class="success-message" style="margin: 16px 0;">
+                    <strong>Market Size:</strong> ${validation.market_size}<br>
+                    <strong>Growth Rate:</strong> ${validation.growth_rate}<br>
+                    <strong>Confidence Score:</strong> ${(validation.confidence_score * 100).toFixed(0)}%
+                </div>
+                
+                <h4>Key Opportunities:</h4>
+                <ul>
+                    ${validation.opportunities.map(opp => `<li>${opp}</li>`).join('')}
+                </ul>
+                
+                <h4>Potential Threats:</h4>
+                <ul>
+                    ${validation.threats.map(threat => `<li>${threat}</li>`).join('')}
+                </ul>
+                
+                <h4>Key Trends:</h4>
+                <ul>
+                    ${validation.key_trends.map(trend => `<li>${trend}</li>`).join('')}
+                </ul>
+                
+                <h4>Recommendations:</h4>
+                <ul>
+                    ${validation.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="proceedToCodeGeneration('${validation.analysis_id}')">
+                        ⚡ Proceed to Code Generation
+                    </button>
+                </div>
+            </div>
+        `);
+        
+        // Store the analysis ID for later use
+        window.lastAnalysisId = validation.analysis_id;
+        
+    } catch (error) {
+        console.error('❌ Business validation error:', error);
+        showError('Validation Failed', error.message);
+    }
+}
 
         // ==========================================
         // 4. CODE GENERATION (REAL BACKEND)
@@ -1537,6 +1564,169 @@
     } catch (error) {
         console.log('ℹ️ Guest mode (no auth check):', error.message);
         return false;
+    }
+}
+
+async function generateProductionCode() {
+    const buildRequest = document.getElementById('build-request-input').value.trim();
+    
+    if (!buildRequest) {
+        showError('Input Required', 'Please describe what you want to build.');
+        return;
+    }
+    
+    // Generate project ID
+    const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    showModal('Generating Code', `
+        <div class="loading-spinner"></div>
+        <p>🚀 Starting strategic analysis...</p>
+        <p style="font-size: 14px; color: var(--apple-text-secondary);">This may take 30-60 seconds</p>
+    `);
+    
+    try {
+        // Step 1: Strategic Analysis
+        console.log('📊 Starting strategic analysis...');
+        const analysisResponse = await fetch(`${API_BASE}/api/v1/dreamengine/analyze-strategic-requirements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+            },
+            body: JSON.stringify({
+                project_id: projectId,
+                founder_agreement: {
+                    business_description: buildRequest,
+                    technical_requirements: buildRequest,
+                    target_audience: "To be determined",
+                    key_features: buildRequest.split('.').filter(s => s.trim()),
+                    monetization_strategy: "To be determined"
+                },
+                additional_requirements: null
+            })
+        });
+        
+        if (!analysisResponse.ok) {
+            const errorText = await analysisResponse.text();
+            console.error('Strategic analysis error:', errorText);
+            throw new Error(`Strategic analysis failed: ${errorText}`);
+        }
+        
+        const analysis = await analysisResponse.json();
+        console.log('✅ Strategic analysis complete:', analysis);
+        
+        // Update modal
+        document.getElementById('modal-body').innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>✅ Strategic analysis complete!</p>
+            <p>🔨 Generating production code...</p>
+        `;
+        
+        // Step 2: Code Generation
+        const codeGenResponse = await fetch(`${API_BASE}/api/v1/dreamengine/generate-production-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+            },
+            body: JSON.stringify({
+                analysis_id: analysis.analysis_id,
+                custom_requirements: {}
+            })
+        });
+        
+        if (!codeGenResponse.ok) {
+            const errorText = await codeGenResponse.text();
+            console.error('Code generation error:', errorText);
+            throw new Error(`Code generation failed`);
+        }
+        
+        const codeResult = await codeGenResponse.json();
+        console.log('✅ Code generation complete:', codeResult);
+        
+        // Show results
+        showModal('Code Generation Complete!', `
+            <div style="text-align: left;">
+                <h3>✅ Your Application is Ready!</h3>
+                
+                <div class="success-message" style="margin: 16px 0;">
+                    <strong>Project ID:</strong> ${codeResult.project_id}<br>
+                    <strong>Files Generated:</strong> ${codeResult.generated_files.length}<br>
+                    <strong>Quality Score:</strong> ${(codeResult.quality_score * 100).toFixed(0)}%<br>
+                    <strong>Deployment Ready:</strong> ${codeResult.ready_for_github_upload ? 'Yes' : 'No'}
+                </div>
+                
+                <h4>Project Structure:</h4>
+                <pre style="background: var(--apple-grey-100); padding: 12px; border-radius: 8px; overflow-x: auto;">
+${JSON.stringify(codeResult.project_structure, null, 2)}
+                </pre>
+                
+                <h4>Deployment Instructions:</h4>
+                <p style="white-space: pre-wrap;">${codeResult.deployment_instructions}</p>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="proceedToDebugEngine('${codeResult.project_id}')">
+                        🔧 Proceed to Debug Engine
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadGeneratedCode('${codeResult.generation_id}')">
+                        📥 Download Code
+                    </button>
+                </div>
+            </div>
+        `);
+        
+        // Store the result for later use
+        window.lastGenerationResult = codeResult;
+        
+    } catch (error) {
+        console.error('❌ Code generation error:', error);
+        showError('Generation Failed', error.message);
+    }
+}
+// Add these helper functions before the closing </script> tag:
+
+function proceedToCodeGeneration(analysisId) {
+    // Switch to dream engine tab
+    showSection('dream-engine');
+    closeModal();
+}
+
+function proceedToDebugEngine(projectId) {
+    // Switch to debug engine tab
+    showSection('debug-engine');
+    closeModal();
+    // You can auto-populate the debug session with the project ID
+    if (window.lastGenerationResult) {
+        console.log('Project ready for debugging:', projectId);
+    }
+}
+
+async function downloadGeneratedCode(generationId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/v1/dreamengine/download/${generationId}`, {
+            headers: {
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+        
+        // Create download link
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-debugger-code-${generationId}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        showError('Download Failed', 'Could not download generated code');
     }
 }
     </script>

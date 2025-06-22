@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import re
 from dataclasses import dataclass
+from typing import Union
 
 @dataclass
 class MarketAnalysis:
@@ -45,12 +46,17 @@ class BusinessIntelligence:
         self.openai_client = openai_client
         self.validation_cache = {}
         
-    async def analyze_market_opportunity(self, business_idea: Dict) -> MarketAnalysis:
+    async def analyze_market_opportunity(self, business_idea: Union[str, Dict]) -> MarketAnalysis:
         """Comprehensive market opportunity analysis"""
         
-        problem = business_idea.get("problem", "")
-        solution = business_idea.get("solution", "")
-        target_market = business_idea.get("target_market", "")
+        if isinstance(business_idea, str):
+            problem = business_idea
+            solution = "AI-powered solution"
+            target_market = "To be determined"
+        else:
+            problem = business_idea.get("problem_statement", "")
+            solution = business_idea.get("solution_description", "")
+            target_market = business_idea.get("target_market", "")
         
         # Generate market analysis prompt
         analysis_prompt = f"""
