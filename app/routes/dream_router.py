@@ -49,7 +49,7 @@ async def analyze_strategic_requirements(
     # For demo mode, skip project validation
     if current_user:
     # Validate project access for authenticated users
-    project = db.query(Project).filter(
+        project = db.query(Project).filter(
         Project.id == request.project_id,
         Project.user_id == user_id
     ).first()
