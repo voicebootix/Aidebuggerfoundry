@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import json
 from datetime import datetime
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 
 from app.database.db import get_db
 from app.database.models import *
@@ -28,7 +28,7 @@ github_integration = None  # Will be initialized with token
 async def create_github_repository(
     request: CreateGitHubRepositoryRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Create new GitHub repository for project
@@ -39,7 +39,7 @@ async def create_github_repository(
         # Validate project access
         project = db.query(Project).filter(
             Project.id == request.project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project:
@@ -96,7 +96,7 @@ async def upload_generated_code_to_github(
     request: UploadCodeToGitHubRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Upload AI-generated code to GitHub repository
@@ -107,7 +107,7 @@ async def upload_generated_code_to_github(
         # Validate project and GitHub repo
         project = db.query(Project).filter(
             Project.id == project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project or not project.github_repo_url:
@@ -174,7 +174,7 @@ async def sync_debug_changes_to_github(
     project_id: str,
     request: SyncDebugChangesRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Sync Layer 2 debug changes back to GitHub
@@ -185,7 +185,7 @@ async def sync_debug_changes_to_github(
         # Validate project
         project = db.query(Project).filter(
             Project.id == project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project or not project.github_repo_url:
@@ -231,13 +231,13 @@ async def sync_debug_changes_to_github(
 async def get_github_repository_status(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get GitHub repository status and recent activity"""
     
     project = db.query(Project).filter(
         Project.id == project_id,
-        Project.user_id == current_user.id
+        Project.user_id == (current_user.get("id") if current_user else "demo_user")
     ).first()
     
     if not project:

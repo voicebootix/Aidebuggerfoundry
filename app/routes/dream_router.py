@@ -12,7 +12,7 @@ import json
 import asyncio
 import uuid
 from datetime import datetime
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 
 from app.database.db import get_db
 from app.database.models import *
@@ -255,7 +255,7 @@ async def generate_production_code(
 async def get_generation_status(
     generation_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get code generation status and progress"""
     
@@ -286,7 +286,7 @@ async def get_generation_status(
 async def stream_code_generation(
     request: StreamCodeGenerationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Stream code generation progress in real-time
@@ -336,7 +336,7 @@ async def stream_code_generation(
 async def download_generated_code(
     generation_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Download generated code as ZIP file"""
     

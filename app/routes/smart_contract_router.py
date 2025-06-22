@@ -13,7 +13,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.smart_contract_system import SmartContractSystem, SmartContract, RevenueTransaction
 from app.utils.logger import get_logger
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 from app.utils.auth_utils import get_optional_current_user
 
 
@@ -27,7 +27,7 @@ smart_contract_system = None  # Will be initialized with Web3 provider
 async def create_revenue_sharing_contract(
     request: CreateSmartContractRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Create smart contract for automated revenue sharing
@@ -115,7 +115,7 @@ async def track_project_revenue(
     contract_id: str,
     request: TrackRevenueRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Track revenue and execute automated distribution
@@ -182,7 +182,7 @@ async def track_project_revenue(
 async def detect_unauthorized_code_usage(
     request: DetectUnauthorizedUsageRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Detect unauthorized usage of AI-generated code
@@ -225,7 +225,7 @@ async def detect_unauthorized_code_usage(
 async def get_project_revenue_summary(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get comprehensive revenue summary for project"""
     

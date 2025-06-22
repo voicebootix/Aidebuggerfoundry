@@ -13,7 +13,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.project_manager import ProjectManager, ProjectMetadata, ProjectState, ProjectStatus
 from app.utils.logger import get_logger
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 from app.utils.auth_utils import get_optional_current_user
 
 
@@ -27,7 +27,7 @@ project_manager = None  # Will be initialized with database
 async def create_new_project(
     request: CreateProjectRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Create new AI Debugger Factory project
@@ -91,7 +91,7 @@ async def get_user_projects(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get all projects for current user with optional filtering"""
     
@@ -156,7 +156,7 @@ def _calculate_completion_percentage(project, conversation, dream, debug) -> int
 async def get_project_details(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get comprehensive project details and status"""
     
@@ -212,7 +212,7 @@ async def update_project_status(
     project_id: str,
     request: UpdateProjectStatusRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Update project status and metadata"""
     

@@ -13,7 +13,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.contract_method import ContractMethod, FounderContract, ComplianceMonitor, DeviationAlert
 from app.utils.logger import get_logger
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 from app.utils.auth_utils import get_optional_current_user
 
 
@@ -27,7 +27,7 @@ contract_method = None  # Will be initialized with LLM provider
 async def register_founder_agreement(
     request: RegisterAgreementRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Register founder agreement for AI compliance monitoring
@@ -103,7 +103,7 @@ async def monitor_ai_output_compliance(
     contract_id: str,
     request: MonitorComplianceRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Monitor AI output for compliance with founder contract
@@ -179,7 +179,7 @@ async def monitor_ai_output_compliance(
 async def get_compliance_report(
     project_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get comprehensive AI compliance report for project"""
     

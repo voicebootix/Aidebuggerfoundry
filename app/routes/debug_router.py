@@ -18,7 +18,7 @@ from app.utils.debug_engine import DebugEngine, CodeAnalysis, DebugSuggestion, D
 from app.utils.monaco_integration import MonacoIntegration, MonacoWorkspace
 from app.utils.github_integration import GitHubIntegration
 from app.utils.logger import get_logger
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 from app.utils.auth_utils import get_optional_current_user
 
 
@@ -34,7 +34,7 @@ github_integration = None  # Will be initialized
 async def start_debug_session(
     request: StartDebugSessionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Start professional debugging session with Monaco integration
@@ -156,7 +156,7 @@ async def process_debug_request(
     session_id: str,
     request: DebugRequestAnalysis,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Process AI debugging request with intelligent analysis
@@ -225,7 +225,7 @@ async def apply_debug_changes(
     session_id: str,
     request: ApplyDebugChangesRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Apply AI-suggested code changes to project
@@ -280,7 +280,7 @@ async def apply_debug_changes(
 async def realtime_collaboration(
     websocket: WebSocket,
     workspace_id: str,
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Real-time collaboration WebSocket for Monaco Editor
@@ -339,7 +339,7 @@ async def realtime_collaboration(
 async def get_debug_session_summary(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get comprehensive debug session summary and metrics"""
     
@@ -367,7 +367,7 @@ async def get_debug_session_summary(
 async def export_debug_report(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Export comprehensive debugging report"""
     

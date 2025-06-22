@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import asyncio
 from datetime import datetime
-from app.utils.auth_utils import get_current_user, User
+from app.utils.auth_utils import get_current_user, get_optional_current_user
 
 from app.database.db import get_db
 from app.database.models import *
@@ -112,8 +112,9 @@ async def analyze_market_opportunity(
 async def research_competitors(
     request: CompetitorResearchRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
+    
     """
     AI-powered competitor research and analysis
     Comprehensive competitive landscape analysis
@@ -164,7 +165,7 @@ async def research_competitors(
 async def validate_business_model(
     request: BusinessModelValidationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Comprehensive business model validation
@@ -234,7 +235,7 @@ async def validate_business_model(
 async def generate_comprehensive_business_plan(
     request: BusinessPlanRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Generate comprehensive AI-powered business plan
@@ -286,7 +287,7 @@ async def generate_comprehensive_business_plan(
 async def get_validation_summary(
     conversation_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_optional_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get complete business validation summary"""
     
