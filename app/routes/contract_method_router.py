@@ -38,7 +38,7 @@ async def register_founder_agreement(
         # Validate project access
         project = db.query(Project).filter(
             Project.id == request.project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project or not project.founder_ai_agreement:
@@ -114,7 +114,7 @@ async def monitor_ai_output_compliance(
         # Validate contract access
         db_compliance = db.query(ContractCompliance).filter(
             ContractCompliance.project_id.in_(
-                db.query(Project.id).filter(Project.user_id == current_user.id)
+                db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
             )
         ).first()
         
@@ -186,7 +186,7 @@ async def get_compliance_report(
     # Validate project access
     project = db.query(Project).filter(
         Project.id == project_id,
-        Project.user_id == current_user.id
+        Project.user_id == (current_user.get("id") if current_user else "demo_user")
     ).first()
     
     if not project:

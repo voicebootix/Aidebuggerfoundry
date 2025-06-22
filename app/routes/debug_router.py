@@ -45,7 +45,7 @@ async def start_debug_session(
         # Validate project access
         project = db.query(Project).filter(
             Project.id == request.project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project:
@@ -167,7 +167,7 @@ async def process_debug_request(
         # Validate session access
         db_debug_session = db.query(DebugSessionModel).filter(
             DebugSessionModel.project_id.in_(
-                db.query(Project.id).filter(Project.user_id == current_user.id)
+                db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
             )
         ).first()
         
@@ -242,7 +242,7 @@ async def apply_debug_changes(
         if apply_result["success"]:
             # Sync changes to GitHub if available
             project = db.query(Project).filter(
-                Project.user_id == current_user.id
+                Project.user_id == (current_user.get("id") if current_user else "demo_user")
             ).first()
             
             if project and project.github_repo_url and github_integration:

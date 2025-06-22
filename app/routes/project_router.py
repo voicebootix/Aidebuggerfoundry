@@ -95,7 +95,7 @@ async def get_user_projects(
 ):
     """Get all projects for current user with optional filtering"""
     
-    query = db.query(Project).filter(Project.user_id == current_user.id)
+    query = db.query(Project).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
     
     if status_filter:
         query = query.filter(Project.status == status_filter)
@@ -162,7 +162,7 @@ async def get_project_details(
     
     project = db.query(Project).filter(
         Project.id == project_id,
-        Project.user_id == current_user.id
+        Project.user_id == (current_user.get("id") if current_user else "demo_user")
     ).first()
     
     if not project:
@@ -218,7 +218,7 @@ async def update_project_status(
     
     project = db.query(Project).filter(
         Project.id == project_id,
-        Project.user_id == current_user.id
+        Project.user_id == (current_user.get("id") if current_user else "demo_user")
     ).first()
     
     if not project:

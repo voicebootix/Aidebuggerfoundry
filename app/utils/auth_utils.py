@@ -1,6 +1,6 @@
-
 """
 Emergency Authentication Fix for AI Debugger Factory
+Fixed version with proper optional authentication support
 """
 
 import os
@@ -11,17 +11,9 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import asyncpg
-from typing import Optional, Dict, Any
-
-
-# Import your existing config
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from app.config import settings
-
 from app.database.db import get_db
 from app.utils.logger import get_logger
-
+from app.config import settings
 
 logger = get_logger("auth_utils")
 
@@ -31,7 +23,7 @@ ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = getattr(settings, 'JWT_EXPIRATION_HOURS', 24) * 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)  # CRITICAL: auto_error=False for optional auth
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password"""
@@ -61,7 +53,14 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: asyncpg.Connection = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get current authenticated user"""
+    """Get current authenticated user - REQUIRES authentication"""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -96,14 +95,13 @@ async def get_current_user(
     except Exception as e:
         logger.error(f"Database error: {e}")
         raise credentials_exception
-    
-    # ✅ Optional user dependency (no token = None return)
+
 async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: asyncpg.Connection = Depends(get_db)
 ) -> Optional[Dict[str, Any]]:
-    """Get current user if token is provided, else return None"""
-    if credentials is None:
+    """Get current user if token is provided, else return None for guest access"""
+    if not credentials:
         return None
 
     try:
@@ -112,6 +110,7 @@ async def get_optional_current_user(
         if email is None:
             return None
     except JWTError:
+        # Invalid token = guest mode
         return None
 
     try:
@@ -119,42 +118,41 @@ async def get_optional_current_user(
             "SELECT id, email, full_name, is_active, is_verified, created_at FROM users WHERE email = $1",
             email
         )
-
-        if user is None or not user['is_active']:
-            return None
         
-        return dict(user)
-    
+        if user and user['is_active']:
+            return dict(user)
+        else:
+            return None
+            
     except Exception as e:
         logger.error(f"Database error in optional auth: {e}")
         return None
-    
+
+# Helper functions for asyncpg operations
 async def get_user_by_email(db: asyncpg.Connection, email: str) -> Optional[Dict[str, Any]]:
-    """Get user by email from database"""
+    """Get user by email"""
     try:
         user = await db.fetchrow(
-            "SELECT id, email, full_name, hashed_password, is_active, is_verified, created_at FROM users WHERE email = $1",
+            "SELECT * FROM users WHERE email = $1",
             email
         )
         return dict(user) if user else None
     except Exception as e:
-        logger.error(f"Error fetching user by email: {e}")
+        logger.error(f"Error fetching user: {e}")
         return None
 
 async def create_user(db: asyncpg.Connection, email: str, full_name: str, password: str) -> Dict[str, Any]:
-    """Create new user in database"""
+    """Create new user"""
     try:
         hashed_password = get_password_hash(password)
-        
         user = await db.fetchrow(
             """
             INSERT INTO users (email, full_name, hashed_password, is_active, is_verified, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, TRUE, FALSE, NOW())
             RETURNING id, email, full_name, is_active, is_verified, created_at
             """,
-            email, full_name, hashed_password, True, False, datetime.utcnow()
+            email, full_name, hashed_password
         )
-        
         return dict(user)
     except Exception as e:
         logger.error(f"Error creating user: {e}")
@@ -162,8 +160,3 @@ async def create_user(db: asyncpg.Connection, email: str, full_name: str, passwo
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create user"
         )
-# Create a simple User class for compatibility
-class User:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)

@@ -38,7 +38,7 @@ async def create_revenue_sharing_contract(
         # Validate project access
         project = db.query(Project).filter(
             Project.id == request.project_id,
-            Project.user_id == current_user.id
+            Project.user_id == (current_user.get("id") if current_user else "demo_user")
         ).first()
         
         if not project:
@@ -126,7 +126,7 @@ async def track_project_revenue(
         # Validate contract access
         db_revenue_sharing = db.query(RevenueSharing).filter(
             RevenueSharing.project_id.in_(
-                db.query(Project.id).filter(Project.user_id == current_user.id)
+                db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
             )
         ).first()
         
@@ -232,7 +232,7 @@ async def get_project_revenue_summary(
     # Validate project access
     project = db.query(Project).filter(
         Project.id == project_id,
-        Project.user_id == current_user.id
+        Project.user_id == (current_user.get("id") if current_user else "demo_user")
     ).first()
     
     if not project:

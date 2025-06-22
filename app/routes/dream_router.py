@@ -33,34 +33,40 @@ security_validator = SecurityValidator()
 smart_contract_system = None  # Will be initialized
 
 @router.post("/analyze-strategic-requirements", response_model=StrategicAnalysisResponse)
-async def analyze_strategic_requirements(
-    request: StrategicAnalysisRequest,
+async def start_debug_session(
+    request: StartDebugSessionRequest,
     db: Session = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
-    """
-    Comprehensive strategic analysis of founder requirements
-    Enhanced business and technical analysis
-    """
-    # Handle demo mode
-    user_id = current_user.get("id") if current_user else "demo_user"
-    user_email = current_user.get("email") if current_user else "demo@example.com"
-
-    # For demo mode, skip project validation
-    if current_user:
-    # Validate project access for authenticated users
-        project = db.query(Project).filter(
-        Project.id == request.project_id,
-        Project.user_id == user_id
-    ).first()
+    """Start professional debugging session with Monaco integration"""
     
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
+    user_id = current_user.get("id") if current_user else "demo_user"
     
     try:
+        # Validate project access
+        project = db.query(Project).filter(
+            Project.id == request.project_id,
+            Project.user_id == user_id
+        ).first()
+        
+        if not project:
+            # For demo users, create demo project
+            if not current_user:
+                project = Project(
+                    id=request.project_id,
+                    user_id="demo_user",
+                    name="Demo Debug Project",
+                    description="Demo debugging project",
+                    status="active",
+                    project_type="demo"
+                )
+                db.add(project)
+                db.commit()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Project not found"
+                )
         # Initialize dream engine if needed
         global dream_engine
         if not dream_engine:
@@ -151,7 +157,7 @@ async def generate_production_code(
         dream_session = db.query(DreamSession).filter(
             DreamSession.id == request.analysis_id,
             DreamSession.project_id.in_(
-                db.query(Project.id).filter(Project.user_id == current_user.id)
+                db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
             )
         ).first()
         
@@ -256,7 +262,7 @@ async def get_generation_status(
     dream_session = db.query(DreamSession).filter(
         DreamSession.id == generation_id,
         DreamSession.project_id.in_(
-            db.query(Project.id).filter(Project.user_id == current_user.id)
+            db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
         )
     ).first()
     
@@ -337,7 +343,7 @@ async def download_generated_code(
     dream_session = db.query(DreamSession).filter(
         DreamSession.id == generation_id,
         DreamSession.project_id.in_(
-            db.query(Project.id).filter(Project.user_id == current_user.id)
+            db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
         )
     ).first()
     

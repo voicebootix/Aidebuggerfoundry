@@ -1,6 +1,6 @@
 """
-Authentication API Router - UPDATED
-Production-ready authentication with asyncpg database operations
+Authentication API Router - FIXED VERSION
+Production-ready authentication with proper optional auth support
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,8 +17,6 @@ from app.utils.auth_utils import (
 )
 from app.utils.security_validator import SecurityValidator
 from app.utils.logger import get_logger
-from app.utils.auth_utils import get_optional_current_user
-
 
 router = APIRouter(tags=["Authentication"])
 logger = get_logger("authentication_api")
@@ -29,8 +27,7 @@ async def register_user(
     request: UserRegistrationRequest,
     db: asyncpg.Connection = Depends(get_db)
 ):
-    """Register new user account with asyncpg database operations"""
-    
+    """Register new user account"""
     try:
         # Validate input security
         security_issues = await security_validator.validate_input(request.email)
@@ -80,7 +77,6 @@ async def login_user(
     db: asyncpg.Connection = Depends(get_db)
 ):
     """User login with asyncpg database operations"""
-    
     try:
         # Get user from database
         user = await get_user_by_email(db, form_data.username)
@@ -124,10 +120,9 @@ async def login_user(
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_current_user_profile(
-    current_user: Dict = Depends(get_optional_current_user)
+    current_user: Dict = Depends(get_current_user)  # FIXED: Using get_current_user instead of optional
 ):
-    """Get current user profile"""
-    
+    """Get current user profile - REQUIRES authentication"""
     return UserProfileResponse(
         user_id=current_user['id'],
         email=current_user['email'],
@@ -138,3 +133,23 @@ async def get_current_user_profile(
         total_revenue=0.0,  # Would be calculated from revenue sharing
         account_status="active"
     )
+
+@router.get("/check", response_model=Dict[str, Any])
+async def check_auth_status(
+    current_user: Optional[Dict] = Depends(get_optional_current_user)
+):
+    """Check authentication status - works for both authenticated and guest users"""
+    if current_user:
+        return {
+            "authenticated": True,
+            "user_id": current_user['id'],
+            "email": current_user['email'],
+            "mode": "authenticated"
+        }
+    else:
+        return {
+            "authenticated": False,
+            "user_id": None,
+            "email": None,
+            "mode": "guest"
+        }
