@@ -12,7 +12,7 @@ from datetime import datetime
 from app.database.db import get_db
 from app.database.models import *
 from app.utils.auth_utils import (
-    get_current_user, create_access_token, verify_password, 
+    get_current_user, get_optional_current_user, create_access_token, verify_password, 
     get_password_hash, get_user_by_email, create_user
 )
 from app.utils.security_validator import SecurityValidator
