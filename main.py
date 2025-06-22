@@ -24,7 +24,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
-from app.dependencies.auth import get_optional_current_user
+from app.utils.auth_utils import get_optional_current_user
 
 
 # Database and models

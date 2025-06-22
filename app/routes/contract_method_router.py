@@ -14,7 +14,7 @@ from app.database.models import *
 from app.utils.contract_method import ContractMethod, FounderContract, ComplianceMonitor, DeviationAlert
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_current_user, User
-from app.dependencies.auth import get_optional_current_user
+from app.utils.auth_utils import get_optional_current_user
 
 
 router = APIRouter(tags=["AI Compliance System"])

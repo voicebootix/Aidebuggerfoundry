@@ -16,7 +16,7 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.business_intelligence import BusinessIntelligence, MarketAnalysis, CompetitorAnalysis, BusinessValidation
 from app.utils.logger import get_logger
-from app.dependencies.auth import get_optional_current_user
+from app.utils.auth_utils import get_optional_current_user
 
 
 router = APIRouter(tags=["Smart Business Validation"])

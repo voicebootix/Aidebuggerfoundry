@@ -25,7 +25,7 @@ from app.utils.security_validator import SecurityValidator
 from app.utils.auth_utils import get_current_user
 from typing import Dict
 from app.utils.auth_utils import get_current_user, User
-from app.dependencies.auth import get_optional_current_user
+from app.utils.auth_utils import get_optional_current_user
 
 
 router = APIRouter(tags=["VoiceBotics AI Cofounder"])

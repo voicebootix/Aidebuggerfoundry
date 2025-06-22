@@ -17,7 +17,7 @@ from app.utils.auth_utils import (
 )
 from app.utils.security_validator import SecurityValidator
 from app.utils.logger import get_logger
-from app.dependencies.auth import get_optional_current_user
+from app.utils.auth_utils import get_optional_current_user
 
 
 router = APIRouter(tags=["Authentication"])
