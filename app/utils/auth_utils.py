@@ -11,6 +11,9 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import asyncpg
+from typing import Optional, Dict, Any
+from app.dependencies.auth import get_optional_current_user
+
 
 # Import your existing config
 import sys

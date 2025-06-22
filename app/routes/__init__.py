@@ -12,6 +12,7 @@ from .smart_contract_router import router as smart_contract_router
 from .contract_method_router import router as contract_method_router
 from .project_router import router as project_router
 from .auth_router import router as auth_router
+from typing import Optional, Dict, Any
 
 __all__ = [
     "voice_conversation_router",

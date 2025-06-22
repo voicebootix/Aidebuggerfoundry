@@ -21,6 +21,8 @@ from app.utils.llm_provider import EnhancedLLMProvider
 from app.utils.security_validator import SecurityValidator
 from app.utils.smart_contract_system import SmartContractSystem
 from app.utils.logger import get_logger
+from app.dependencies.auth import get_optional_current_user
+
 
 router = APIRouter(tags=["Layer 1 - Build"])
 logger = get_logger("dream_engine_api")

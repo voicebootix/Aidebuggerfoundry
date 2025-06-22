@@ -15,6 +15,8 @@ from app.database.db import get_db
 from app.database.models import *
 from app.utils.github_integration import GitHubIntegration, GitHubRepository, GitHubDeployment
 from app.utils.logger import get_logger
+from app.dependencies.auth import get_optional_current_user
+
 
 router = APIRouter(tags=["GitHub Integration"])
 logger = get_logger("github_integration_api")

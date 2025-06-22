@@ -5,7 +5,7 @@ Production-ready authentication with asyncpg database operations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import Dict, Optional
+from typing import Optional, Dict, Any
 import asyncpg
 from datetime import datetime
 
@@ -17,6 +17,8 @@ from app.utils.auth_utils import (
 )
 from app.utils.security_validator import SecurityValidator
 from app.utils.logger import get_logger
+from app.dependencies.auth import get_optional_current_user
+
 
 router = APIRouter(tags=["Authentication"])
 logger = get_logger("authentication_api")

@@ -15,7 +15,7 @@ import os
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Dict, Any
+from typing import Optional, Dict, Any
 
 # FastAPI imports
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
@@ -24,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
+from app.dependencies.auth import get_optional_current_user
 
 # Database and models
 from app.database.db import DatabaseManager, get_db

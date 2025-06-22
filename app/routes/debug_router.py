@@ -19,6 +19,8 @@ from app.utils.monaco_integration import MonacoIntegration, MonacoWorkspace
 from app.utils.github_integration import GitHubIntegration
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_current_user, User
+from app.dependencies.auth import get_optional_current_user
+
 
 router = APIRouter(tags=["Layer 2 - Debug"])
 logger = get_logger("debug_engine_api")
