@@ -194,7 +194,7 @@ async def process_conversation_turn(
 async def transcribe_voice_input(
     session_id: str,
     audio_file: UploadFile = File(...),
-    db: asyncpg.Connection = Depends(get_db)
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
