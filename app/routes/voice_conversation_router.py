@@ -86,7 +86,9 @@ async def start_ai_cofounder_conversation(
             founder_type_detected=session.founder_profile.type.value if session.founder_profile else "unknown",
             business_validation_requested=session.validation_requested,
             conversation_state=session.current_state.value,
-            created_at=datetime.utcnow() 
+            founder_ai_agreement=None,  # ADD THIS LINE
+            created_at=datetime.utcnow(),  # ADD THIS LINE
+            updated_at=datetime.utcnow()   # ADD THIS LINE
         )
         
         # For demo mode, don't save to database if user is None
