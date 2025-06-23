@@ -6,7 +6,6 @@ Transforms voice/text conversations into deployable applications
 
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any
 import json
 import asyncio
@@ -40,7 +39,7 @@ business_intelligence = None  # Will be initialized with LLM provider
 @router.post("/start-conversation", response_model=VoiceConversationResponse)
 async def start_ai_cofounder_conversation(
     request: VoiceConversationRequest,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -77,25 +76,17 @@ async def start_ai_cofounder_conversation(
             initial_input=request.initial_input
         )
         
-        # Store conversation in database
-        db_conversation = VoiceConversation(
-            id=session.session_id,
-            session_id=session.session_id,
-            user_id=user_id,
-            conversation_history=session.conversation_history,
-            founder_type_detected=session.founder_profile.type.value if session.founder_profile else "unknown",
-            business_validation_requested=session.validation_requested,
-            conversation_state=session.current_state.value,
-            founder_ai_agreement=None,  # ADD THIS LINE
-            created_at=datetime.utcnow(),  # ADD THIS LINE
-            updated_at=datetime.utcnow()   # ADD THIS LINE
+        # REPLACE WITH:
+        await db.execute(
+                """INSERT INTO voice_conversations 
+                (id, session_id, user_id, conversation_history, founder_type_detected, 
+                business_validation_requested, conversation_state, founder_ai_agreement, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())""",
+            session.session_id, session.session_id, user_id, 
+            json.dumps(session.conversation_history),
+            session.founder_profile.type.value if session.founder_profile else "unknown",
+            session.validation_requested, session.current_state.value, None
         )
-        
-        # For demo mode, don't save to database if user is None
-        if current_user:
-            db.add(conversation_session)
-            db.commit()
-            db.refresh(conversation_session)
         
         logger.log_structured("info", "AI cofounder conversation started", {
             "session_id": session.session_id,
@@ -126,7 +117,7 @@ async def start_ai_cofounder_conversation(
 async def process_conversation_turn(
     session_id: str,
     request: ConversationTurnRequest,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Process user response in ongoing conversation"""
@@ -174,9 +165,12 @@ async def process_conversation_turn(
             }
         ]
         
-        db_conversation.conversation_history = updated_history
-        db_conversation.conversation_state = response["conversation_state"]
-        db.commit()
+        await db.execute(
+            """UPDATE voice_conversations 
+               SET conversation_history = $1, conversation_state = $2, updated_at = NOW()
+               WHERE session_id = $3""",
+            json.dumps(updated_history), response["conversation_state"], session_id
+        )
         
         return ConversationTurnResponse(
             ai_response=response["ai_response"],
