@@ -159,12 +159,10 @@ async def generate_production_code(
     """
     
     try:
-        # Handle demo mode
-        if not current_user:
-            # Return demo response for unauthenticated users
-            return {"status": "success", "message": "Demo code generation completed", "generation_id": "demo_123"}
-
-        user_id = current_user.get("id")
+        # Handle authentication
+        user_id = current_user.get("id") if current_user else "demo_user"
+        
+        # user_id = current_user.get("id")
          
         # Validate project and get strategic analysis
         dream_session = db.query(DreamSession).filter(
