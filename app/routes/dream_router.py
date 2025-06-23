@@ -77,7 +77,11 @@ async def analyze_strategic_requirements(
     if not dream_engine:
         from app.utils.llm_provider import EnhancedLLMProvider
         llm_provider = EnhancedLLMProvider()
-        dream_engine = DreamEngine(llm_provider=llm_provider)
+        dream_engine = DreamEngine(
+        llm_provider=llm_provider,
+        business_intelligence=None,  # Will initialize when needed
+        security_validator=security_validator
+    )
     
     # Prepare founder agreement
     founder_agreement = project.founder_ai_agreement or {}

@@ -45,11 +45,19 @@ class CodeGenerationResult:
 class DreamEngine:
     """Enhanced strategic analysis and code generation engine"""
     
-    def __init__(self, llm_provider, business_intelligence, security_validator):
+    def __init__(self, llm_provider, business_intelligence=None, security_validator=None):
         self.llm_provider = llm_provider
         self.business_intelligence = business_intelligence
-        self.security_validator = security_validator
+        self.security_validator = security_validator or SecurityValidator()
         self.generation_templates = self._load_generation_templates()
+        
+    def _load_generation_templates(self) -> Dict[str, Any]:
+        """Load code generation templates"""
+        return {
+        "fastapi_template": "FastAPI application template",
+        "react_template": "React frontend template",
+        "database_template": "Database schema template"
+    }
         
     async def analyze_strategic_requirements(self, founder_agreement: Dict, project_context: Dict) -> StrategicAnalysis:
         """Comprehensive strategic analysis of founder requirements"""
