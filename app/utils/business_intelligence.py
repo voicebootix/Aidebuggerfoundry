@@ -42,7 +42,7 @@ class BusinessValidation:
 class BusinessIntelligence:
     """Advanced business intelligence and validation system"""
     
-    def __init__(self, openai_client):
+    def __init__(self, llm_provider, business_intelligence=None, security_validator=None):
         self.openai_client = openai_client
         self.validation_cache = {}
         

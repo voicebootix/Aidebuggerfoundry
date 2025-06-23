@@ -51,12 +51,6 @@ async def analyze_market_opportunity(
             business_intelligence = BusinessIntelligence(openai_client=llm_provider.openai_client)
         
         # Handle business_idea whether it's string or dict
-        if isinstance(request.business_idea, str):
-            business_idea_text = request.business_idea
-        else:
-            business_idea_text = request.business_idea.get("description", str(request.business_idea))
-        
-        # Perform market analysis
         if isinstance(request.business_idea, dict):
             business_idea_text = request.business_idea.get("description", str(request.business_idea))
         else:

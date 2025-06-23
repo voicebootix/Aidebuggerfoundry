@@ -128,7 +128,7 @@ class ConversationHistoryResponse(BaseModel):
 # ==========================================
 
 class MarketAnalysisRequest(BaseModel):
-    conversation_id: str
+    conversation_id: Optional[str] = None  # ← Made optional with default None
     business_idea: Dict[str, Any] = Field(..., description="Structured business idea from conversation")
 
 class MarketAnalysisResponse(BaseModel):
@@ -192,6 +192,7 @@ class BusinessValidationSummaryResponse(BaseModel):
 
 class StrategicAnalysisRequest(BaseModel):
     project_id: str
+    founder_agreement: Optional[Dict[str, Any]] = None  # ← ADD THIS LINE
     additional_requirements: Optional[str] = Field(None, description="Additional technical or business requirements")
 
 class StrategicAnalysisResponse(BaseModel):

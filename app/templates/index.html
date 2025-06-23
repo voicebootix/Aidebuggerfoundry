@@ -887,15 +887,18 @@
     try {
         console.log('🧠 Starting business validation for:', businessIdea);
         
-        // Create request with proper format
+        // Generate a conversation ID
+        const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
         const requestData = {
+            conversation_id: conversationId,  // ← ADDED THIS LINE
             business_idea: {
                 description: businessIdea,
                 problem_statement: businessIdea,
                 target_market: "To be determined through analysis",
                 solution_description: "AI-powered solution",
                 monetization: "To be determined"
-            }
+             }       
         };
         
         const response = await fetch(`${API_BASE}/api/v1/business-intelligence/analyze-market`, {
