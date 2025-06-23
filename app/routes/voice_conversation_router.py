@@ -135,7 +135,7 @@ async def process_conversation_turn(
         # Validate session ownership
         db_conversation = db.query(VoiceConversation).filter(
             VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == current_user.id
+            VoiceConversation.user_id == user_id
         ).first()
         
         if not db_conversation:
