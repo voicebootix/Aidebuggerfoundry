@@ -765,9 +765,8 @@
                             ...(authToken && { 'Authorization': `Bearer ${authToken}` })
                         },
                         body: JSON.stringify({
-                            initial_input: "Voice conversation started",
-                            founder_type: "technical",
-                            conversation_context: "new_project"
+                        initial_input: "Voice conversation started",
+                        voice_mode: true
                         })
                     });
                     
@@ -831,8 +830,8 @@
                         ...(authToken && { 'Authorization': `Bearer ${authToken}` })
                     },
                     body: JSON.stringify({
-                        user_input: userInput,
-                        conversation_state: "active"
+                    user_response: userInput,
+                    voice_mode: false
                     })
                 });
                 
@@ -1089,10 +1088,10 @@
                             ...(authToken && { 'Authorization': `Bearer ${authToken}` })
                         },
                         body: JSON.stringify({
-                            initial_input: message,
-                            founder_type: "technical",
-                            conversation_context: "text_chat"
+                        initial_input: message,
+                        voice_mode: false
                         })
+
                     });
                     
                     console.log('📡 Text session response status:', sessionResponse.status);
