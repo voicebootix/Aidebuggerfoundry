@@ -49,7 +49,6 @@ async def analyze_market_opportunity(
             from app.utils.llm_provider import EnhancedLLMProvider
             llm_provider = EnhancedLLMProvider()
             await llm_provider.initialize()  # ✅ Initialize first
-    
             # Use the provider itself, not just openai_client
             business_intelligence = BusinessIntelligence(llm_provider)  # ✅ Pass the whole provider
 
