@@ -78,7 +78,7 @@ class UserProfileResponse(BaseModel):
 # ==========================================
 
 class VoiceConversationRequest(BaseModel):
-    initial_input: str = Field(..., min_length=10, max_length=2000, description="Founder's initial business idea or technical requirement")
+    initial_input: str = Field(..., min_length=1, max_length=2000, description="Founder's initial business idea or technical requirement")
     voice_mode: bool = Field(default=False, description="Whether input came from voice")
     founder_background: Optional[str] = Field(None, description="Optional founder background information")
 

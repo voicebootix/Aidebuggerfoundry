@@ -119,32 +119,16 @@ class VoiceConversationEngine:
         
         # Advanced AI classification
         classification_prompt = f"""
-        Analyze this founder input and classify the founder type:
-        
-        Input: "{input_text}"
-        
-        Technical Score: {technical_score}
-        Business Score: {business_score}
-        
-        Classify as:
-        - TECHNICAL: Focuses on implementation, mentions specific technologies
-        - BUSINESS: Focuses on market, customers, business strategy
-        - HYBRID: Strong in both technical and business aspects
-        - UNKNOWN: Unclear or insufficient information
-        
-        Also extract:
-        - Technical skills mentioned
-        - Business experience level
-        - Confidence level (0.0-1.0)
-        
         Return JSON format:
-        {
-            "founder_type": "TECHNICAL|BUSINESS|HYBRID|UNKNOWN",
-            "technical_skills": ["skill1", "skill2"],
-            "business_experience": "beginner|intermediate|advanced",
-            "confidence_level": 0.8,
-            "reasoning": "explanation"
-        }
+        {{
+        
+         "founder_type": "TECHNICAL|BUSINESS|HYBRID|UNKNOWN",
+         "technical_skills": ["skill1", "skill2"],
+         "business_experience": "beginner|intermediate|advanced",
+         "confidence_level": 0.8,
+         "reasoning": "explanation"
+    
+        }}
         """
         
         try:

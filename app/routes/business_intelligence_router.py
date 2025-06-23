@@ -48,7 +48,7 @@ async def analyze_market_opportunity(
         if not business_intelligence:
             from app.utils.llm_provider import EnhancedLLMProvider
             llm_provider = EnhancedLLMProvider()
-            business_intelligence = BusinessIntelligence(openai_client=llm_provider.openai_client)
+            business_intelligence = BusinessIntelligence(llm_provider.openai_client)
         
         # Handle business_idea whether it's string or dict
         if isinstance(request.business_idea, dict):
