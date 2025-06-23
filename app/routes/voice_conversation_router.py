@@ -210,7 +210,7 @@ async def transcribe_voice_input(
         # Validate session
         db_conversation = db.query(VoiceConversation).filter(
             VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == current_user.id
+            VoiceConversation.user_id == user_id
         ).first()
         
         if not db_conversation:
@@ -286,7 +286,7 @@ async def create_founder_ai_agreement(
         # Validate session
         db_conversation = db.query(VoiceConversation).filter(
             VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == current_user.id
+            VoiceConversation.user_id == user_id
         ).first()
         
         if not db_conversation:
@@ -354,7 +354,7 @@ async def get_conversation_history(
     
     db_conversation = db.query(VoiceConversation).filter(
         VoiceConversation.session_id == session_id,
-        VoiceConversation.user_id == current_user.id
+        VoiceConversation.user_id == user_id
     ).first()
     
     if not db_conversation:
