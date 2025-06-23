@@ -132,6 +132,7 @@ async def process_conversation_turn(
     """Process user response in ongoing conversation"""
     
     try:
+        user_id = current_user.get("id") if current_user else "demo_user"
         # Validate session ownership
         db_conversation = db.query(VoiceConversation).filter(
             VoiceConversation.session_id == session_id,
