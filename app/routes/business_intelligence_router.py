@@ -44,11 +44,15 @@ async def analyze_market_opportunity(
         user_email = current_user.get("email") if current_user else "demo@example.com"
         
         # Initialize business intelligence if needed
-        global business_intelligence
-        if not business_intelligence:
-            from app.utils.llm_provider import EnhancedLLMProvider
-            llm_provider = EnhancedLLMProvider()
-            business_intelligence = BusinessIntelligence(llm_provider.openai_client)
+    global business_intelligence
+    if not business_intelligence:
+        from app.utils.llm_provider import EnhancedLLMProvider
+        llm_provider = EnhancedLLMProvider()
+        await llm_provider.initialize()  # ✅ Initialize first
+    
+        # Use the provider itself, not just openai_client
+        business_intelligence = BusinessIntelligence(llm_provider)  # ✅ Pass the whole provider
+
         
         # Handle business_idea whether it's string or dict
         if isinstance(request.business_idea, dict):
