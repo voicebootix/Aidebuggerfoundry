@@ -194,7 +194,7 @@ async def process_conversation_turn(
 async def transcribe_voice_input(
     session_id: str,
     audio_file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db)
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -204,10 +204,11 @@ async def transcribe_voice_input(
     
     try:
         # Validate session
-        db_conversation = db.query(VoiceConversation).filter(
-            VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == user_id
-        ).first()
+        user_id = current_user.get("id") if current_user else "demo_user"
+        db_conversation = await db.fetchrow(
+            "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
+            session_id, user_id
+        )
         
         if not db_conversation:
             raise HTTPException(
@@ -270,7 +271,7 @@ async def transcribe_voice_input(
 @router.post("/create-agreement/{session_id}")
 async def create_founder_ai_agreement(
     session_id: str,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -280,10 +281,11 @@ async def create_founder_ai_agreement(
     
     try:
         # Validate session
-        db_conversation = db.query(VoiceConversation).filter(
-            VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == user_id
-        ).first()
+        user_id = current_user.get("id") if current_user else "demo_user"
+        db_conversation = await db.fetchrow(
+            "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
+            session_id, user_id
+        )
         
         if not db_conversation:
             raise HTTPException(
@@ -343,15 +345,16 @@ async def create_founder_ai_agreement(
 @router.get("/conversation/{session_id}")
 async def get_conversation_history(
     session_id: str,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get complete conversation history"""
     
-    db_conversation = db.query(VoiceConversation).filter(
-        VoiceConversation.session_id == session_id,
-        VoiceConversation.user_id == user_id
-    ).first()
+    user_id = current_user.get("id") if current_user else "demo_user"
+    db_conversation = await db.fetchrow(
+        "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
+        session_id, user_id
+    )
     
     if not db_conversation:
         raise HTTPException(
@@ -371,7 +374,7 @@ async def get_conversation_history(
 
 @router.get("/sessions")
 async def get_user_conversation_sessions(
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get all conversation sessions for user"""
