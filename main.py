@@ -52,6 +52,26 @@ logger = logging.getLogger(__name__)
 # Database manager instance
 db_manager = None
 
+async def create_tables():
+    """Create database tables if they don't exist"""
+    global db_manager
+    if db_manager:
+        async with db_manager.get_connection() as conn:
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS voice_conversations (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    session_id VARCHAR(255) UNIQUE NOT NULL,
+                    user_id VARCHAR(255) NOT NULL,
+                    conversation_history JSONB NOT NULL DEFAULT '[]',
+                    founder_type_detected VARCHAR(50),
+                    business_validation_requested BOOLEAN DEFAULT FALSE,
+                    conversation_state VARCHAR(50) DEFAULT 'active',
+                    founder_ai_agreement JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -64,6 +84,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         await db_manager.initialize()
+        await create_tables()
         logger.info("⏭️ Database already has tables - skipping migrations")
         logger.info("✅ Database initialized successfully")
     except Exception as e:
