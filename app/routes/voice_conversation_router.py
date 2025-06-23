@@ -134,10 +134,11 @@ async def process_conversation_turn(
     try:
         user_id = current_user.get("id") if current_user else "demo_user"
         # Validate session ownership
-        db_conversation = db.query(VoiceConversation).filter(
-            VoiceConversation.session_id == session_id,
-            VoiceConversation.user_id == user_id
-        ).first()
+        db_conversation = await db.fetchrow(
+            "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
+            session_id, user_id
+        )
+
         
         if not db_conversation:
             raise HTTPException(
