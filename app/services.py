@@ -10,7 +10,9 @@ from typing import Optional, Dict, Any
 import openai
 import anthropic
 import asyncpg
+from typing import Optional, Dict, Any
 from datetime import datetime
+
 
 # Import all service classes
 from app.utils.voice_processor import VoiceProcessor
@@ -63,7 +65,7 @@ class ServiceManager:
             self.contract_method: Optional[ContractMethod] = None
             
             # Database connection pool
-            self.db_pool: Optional[asyncpg.Pool] = None
+            self.db_manager: Optional[Any] = None
             
             # Service status tracking
             self.service_status: Dict[str, bool] = {}
@@ -163,21 +165,21 @@ class ServiceManager:
     async def _initialize_database(self, config: Dict[str, Any]):
         """Initialize database using existing DatabaseManager"""
         try:
-                from app.database.db import db_manager
-                
-                # Initialize the global database manager
-                await db_manager.initialize()
-                await db_manager.run_migrations()
-                
-                # Store reference for other services
-                self.db_manager = db_manager
-                self.service_status['database'] = True
-                logger.info("✅ Database connection initialized via DatabaseManager")
-                
+            from app.database.db import db_manager
+        
+            # Initialize the global database manager
+            await db_manager.initialize()
+            await db_manager.run_migrations()
+        
+            # Store reference for other services
+            self.db_manager = db_manager
+            self.service_status['database'] = True
+            logger.info("✅ Database connection initialized via DatabaseManager")
+        
         except Exception as e:
-                logger.error(f"❌ Database initialization failed: {e}")
-                self.service_status['database'] = False
-                raise
+            logger.error(f"❌ Database initialization failed: {e}")
+            self.service_status['database'] = False
+            raise
     
     async def _initialize_llm_provider(self, config: Dict[str, Any]):
         """Initialize LLM provider with fallback support"""
@@ -325,11 +327,17 @@ class ServiceManager:
     async def _initialize_project_management(self):
         """Initialize project and deployment managers"""
         try:
-            # Project Manager - use db_manager instead of self.db_pool
-            self.project_manager = ProjectManager(
-            db_manager=self.db_manager,
-            github_integration=self.github_integration
-            )
+            # Project Manager
+            if hasattr(self, 'db_manager') and self.db_manager:
+                self.project_manager = ProjectManager(
+                    db_manager=self.db_manager,
+                    github_integration=self.github_integration
+                )
+                self.service_status['project_manager'] = True
+                logger.info("✅ Project Manager initialized")
+            else:
+                logger.warning("⚠️ Project Manager skipped (no database)")
+                self.service_status['project_manager'] = False
             self.service_status['project_manager'] = True
             logger.info("✅ Project Manager initialized")
             
@@ -383,11 +391,6 @@ class ServiceManager:
             logger.error("❌ No services initialized - check configuration!")
         logger.info("="*50 + "\n")
     
-    async def get_db_connection(self) -> asyncpg.Connection:
-        """Get a database connection from the pool"""
-        if not self.db_pool:
-            raise RuntimeError("Database pool not initialized")
-        return await self.db_pool.acquire()
     
     def check_service(self, service_name: str) -> bool:
         """Check if a service is available"""
@@ -396,13 +399,12 @@ class ServiceManager:
     async def cleanup(self):
         """Cleanup resources on shutdown"""
         logger.info("🧹 Cleaning up services...")
-        
-        if self.db_pool:
-            await self.db_pool.close()
-            logger.info("✅ Database pool closed")
-        
+    
+        if self.db_manager:
+            await self.db_manager.close()
+            logger.info("✅ Database manager closed")
+    
         # Add other cleanup as needed
         logger.info("✅ Cleanup complete")
-
 # Create singleton instance
 service_manager = ServiceManager()
