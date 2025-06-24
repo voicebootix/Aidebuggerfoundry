@@ -233,7 +233,7 @@ async def transcribe_voice_input(
         audio_data = await audio_file.read()
         
         # Transcribe audio
-        transcription_result = await voice_processor.transcribe_audio(
+        transcription_result = await service_manager.oice_processor.transcribe_audio(
             audio_data=audio_data,
             audio_format=audio_file.content_type.split('/')[-1]
         )
