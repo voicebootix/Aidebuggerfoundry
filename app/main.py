@@ -16,6 +16,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
+from app.services import service_manager
 
 # FastAPI imports
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
@@ -66,7 +67,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         await db_manager.initialize()
-        logger.info("⏭️ Database already has tables - skipping migrations")
+        await create_tables()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
@@ -74,29 +75,19 @@ async def lifespan(app: FastAPI):
     
     # Initialize other services
     try:
-        # Initialize LLM providers
-        from app.utils.llm_provider import llm_provider
-        await llm_provider.initialize()
-        logger.info("✅ LLM providers initialized")
-        
-        # Initialize voice processor
-        from app.utils.voice_processor import voice_processor
-        await voice_processor.initialize()
-        logger.info("✅ Voice processor initialized")
-        
-        
-        logger.info("🎉 AI Debugger Factory startup complete!")
-        
+        await service_manager.initialize()
     except Exception as e:
-        logger.error(f"❌ Service initialization failed: {e}")
-        # Continue startup even if some services fail
+        logger.error(f"❌ Service initialization error: {e}")
+        # Continue running - services will show as unavailable
+    
+    logger.info("🎉 AI Debugger Factory startup complete!")
+        
     
     yield
     
     # Shutdown
-    logger.info("🛑 Shutting down AI Debugger Factory...")
-    if db_manager:
-        await db_manager.close()
+    logger.info("👋 Shutting down AI Debugger Factory...")
+    await service_manager.cleanup()
     logger.info("✅ Shutdown complete")
 
 # Create FastAPI application

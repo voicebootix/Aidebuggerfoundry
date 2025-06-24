@@ -12,6 +12,7 @@ import asyncio
 from datetime import datetime
 import uuid
 import asyncpg
+from app.services import service_manager
 
 from app.database.db import get_db
 from app.database.models import *
@@ -32,9 +33,9 @@ logger = get_logger("voice_conversation_api")
 security_validator = SecurityValidator()
 
 # Initialize core components (these would be dependency injected in production)
-voice_processor = None  # Will be initialized with API keys
-conversation_engine = None  # Will be initialized with dependencies
-business_intelligence = None  # Will be initialized with LLM provider
+#voice_processor = None  # Will be initialized with API keys
+#conversation_engine = None  # Will be initialized with dependencies
+#business_intelligence = None  # Will be initialized with LLM provider
 
 @router.post("/start-conversation", response_model=VoiceConversationResponse)
 async def start_ai_cofounder_conversation(
@@ -203,6 +204,13 @@ async def transcribe_voice_input(
     """
     
     try:
+        # Check if voice processor is available
+        if not service_manager.voice_processor:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Voice transcription service is not available. Please ensure OPENAI_API_KEY is configured."
+            )
+        
         # Validate session
         user_id = current_user.get("id") if current_user else "demo_user"
         db_conversation = await db.fetchrow(
@@ -220,17 +228,24 @@ async def transcribe_voice_input(
         if not audio_file.content_type.startswith('audio/'):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid audio file format"
+                detail=f"Invalid audio file format: {audio_file.content_type}"
             )
         
         # Read audio data
         audio_data = await audio_file.read()
         
-        # Initialize voice processor if needed
-        global voice_processor
-        if not voice_processor:
-            voice_processor = VoiceProcessor(openai_api_key="your_openai_key")
+        # Transcribe audio using initialized voice processor
+        transcription_result = await service_manager.voice_processor.transcribe_audio(
+            audio_data=audio_data,
+            audio_format=audio_file.content_type.split('/')[-1]
+        )
         
+        if not transcription_result.success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Transcription failed: {transcription_result.error_message}"
+            )
+            
         # Transcribe audio
         transcription_result = await voice_processor.transcribe_audio(
             audio_data=audio_data,
