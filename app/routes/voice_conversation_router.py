@@ -55,7 +55,7 @@ async def start_ai_cofounder_conversation(
         user_email = current_user.get("email") if current_user else "demo@example.com"
 
         # Validate and sanitize input
-        security_issues = await security_validator.validate_input(request.initial_input)
+        security_issues = await service_manager.security_validator.validate_input(request.initial_input)
         if security_issues:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -63,16 +63,15 @@ async def start_ai_cofounder_conversation(
             )
         
         # Initialize conversation engine if needed
-        global conversation_engine
-        if not conversation_engine:
-            conversation_engine = VoiceConversationEngine(
+        # CHECK: Ensure conversation engine is available
+        if not service_manager.conversation_engine:
                 openai_client=None,  # Initialize with actual client
                 business_intelligence=business_intelligence,
                 contract_method=ContractMethod(None)
             )
         
         # Start conversation session
-        session = await conversation_engine.start_cofounder_conversation(
+        session = await service_manager.conversation_engine.start_cofounder_conversation(
             user_id=user_id,
             initial_input=request.initial_input
         )
@@ -139,15 +138,14 @@ async def process_conversation_turn(
             )
         
         # Validate input
-        security_issues = await security_validator.validate_input(request.user_response)
+        security_issues = await service_manager.security_validator.validate_input(request.user_response)
         if security_issues:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Security validation failed: {security_issues[0].description}"
             )
         
-        # Process conversation turn
-        response = await conversation_engine.process_conversation_turn(
+        response = await service_manager.conversation_engine.process_conversation_turn(
             session_id=session_id,
             user_response=request.user_response
         )
@@ -234,8 +232,8 @@ async def transcribe_voice_input(
         # Read audio data
         audio_data = await audio_file.read()
         
-        # Transcribe audio using initialized voice processor
-        transcription_result = await service_manager.voice_processor.transcribe_audio(
+        # Transcribe audio
+        transcription_result = await voice_processor.transcribe_audio(
             audio_data=audio_data,
             audio_format=audio_file.content_type.split('/')[-1]
         )
