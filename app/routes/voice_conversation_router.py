@@ -68,7 +68,7 @@ async def start_ai_cofounder_conversation(
                 openai_client=None,  # Initialize with actual client
                 business_intelligence=business_intelligence,
                 contract_method=ContractMethod(None)
-            )
+        )
         
         # Start conversation session
         session = await service_manager.conversation_engine.start_cofounder_conversation(
