@@ -13,6 +13,9 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
+# In __init__ method, add after anthropic_client initialization:
+self.openai_client = openai.AsyncOpenAI(api_key=api_keys.get("openai")) if api_keys.get("openai") else None
+
 class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -40,6 +43,8 @@ class EnhancedLLMProvider:
         }
         
         self.anthropic_client = anthropic.AsyncAnthropic(api_key=api_keys.get("anthropic")) if api_keys.get("anthropic") else None
+        self.openai_client = openai.AsyncOpenAI(api_key=api_keys.get("openai")) if api_keys.get("openai") else None
+
         
         # KimiDev client சேர்க்கவும்
         import httpx
@@ -64,6 +69,11 @@ class EnhancedLLMProvider:
                 logging.info("✅ OpenAI client initialized")
             if self.kimidev_client:
                 logging.info("✅ KimiDev client initialized")
+            if self.anthropic_client:
+                logging.info("✅ Anthropic client initialized")
+            if self.openai_client:
+                logging.info("✅ OpenAI client initialized")    
+                
             
             self.initialized = True
             logging.info("✅ LLM Provider initialized successfully")
@@ -82,6 +92,7 @@ class EnhancedLLMProvider:
         
         for provider in self.providers:
             try:
+                # REPLACE the KimiDev case in generate_completion with:
                 if provider == LLMProvider.KIMIDEV and self.kimidev_client:
                     response = await self.kimidev_client.post(
                         "/chat/completions",
@@ -95,14 +106,32 @@ class EnhancedLLMProvider:
                     )
                     response.raise_for_status()
                     response_data = response.json()
-                    return response_data["choices"][0]["message"]["content"]
                     
+                    # Enhanced error handling
+                    if "choices" not in response_data or not response_data["choices"]:
+                        raise Exception("Invalid response format from KimiDev API")
+                    
+                    choice = response_data["choices"][0]
+                    if "message" not in choice or "content" not in choice["message"]:
+                        raise Exception("Missing content in KimiDev API response")
+                    
+                    return choice["message"]["content"]
+
+                # REPLACE the Anthropic case with:
                 elif provider == LLMProvider.ANTHROPIC and self.anthropic_client:
                     response = await self.anthropic_client.messages.create(
                         model="claude-3-sonnet-20240229",
                         max_tokens=4000,
                         messages=[{"role": "user", "content": prompt}]
                     )
+                    
+                    # Enhanced error handling
+                    if not response.content or not response.content[0]:
+                        raise Exception("Empty response from Anthropic API")
+                    
+                    if not hasattr(response.content[0], 'text'):
+                        raise Exception("Invalid response format from Anthropic API")
+                    
                     return response.content[0].text
                     
             except Exception as e:

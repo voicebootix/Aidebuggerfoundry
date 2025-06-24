@@ -142,9 +142,32 @@ class DatabaseManager:
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }
+            
+    # ADD this method inside DatabaseManager class, after health_check method:
+async def run_migrations(self):
+    """Run database migrations"""
+    try:
+        async with self.pool.acquire() as conn:
+            # Check if tables exist and create them if needed
+            tables = await conn.fetch("""
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """)
+            table_names = [row['table_name'] for row in tables]
+            logger.info(f"📋 Existing tables: {', '.join(table_names)}")
+            
+            # Run init_db to create missing tables
+            await init_db()
+            
+            logger.info("✅ Database migrations completed")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {e}")
+        raise        
     
 # Global database manager instance
-db_manager = DatabaseManager()
+#db_manager = DatabaseManager()
 
 async def run_migrations(self):
         """Run database migrations - FIXED INDENTATION"""

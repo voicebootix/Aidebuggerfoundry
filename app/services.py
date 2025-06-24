@@ -161,22 +161,23 @@ class ServiceManager:
         return config
     
     async def _initialize_database(self, config: Dict[str, Any]):
-        """Initialize asyncpg connection pool"""
+        """Initialize database using existing DatabaseManager"""
         try:
-            self.db_pool = await asyncpg.create_pool(
-                config['database_url'],
-                min_size=10,
-                max_size=20,
-                command_timeout=60,
-                max_queries=50000,
-                max_cacheable_statement_size=1024
-            )
-            self.service_status['database'] = True
-            logger.info("✅ Database connection pool initialized")
+                from app.database.db import db_manager
+                
+                # Initialize the global database manager
+                await db_manager.initialize()
+                await db_manager.run_migrations()
+                
+                # Store reference for other services
+                self.db_manager = db_manager
+                self.service_status['database'] = True
+                logger.info("✅ Database connection initialized via DatabaseManager")
+                
         except Exception as e:
-            logger.error(f"❌ Database initialization failed: {e}")
-            self.service_status['database'] = False
-            raise
+                logger.error(f"❌ Database initialization failed: {e}")
+                self.service_status['database'] = False
+                raise
     
     async def _initialize_llm_provider(self, config: Dict[str, Any]):
         """Initialize LLM provider with fallback support"""
@@ -324,10 +325,10 @@ class ServiceManager:
     async def _initialize_project_management(self):
         """Initialize project and deployment managers"""
         try:
-            # Project Manager
+            # Project Manager - use db_manager instead of self.db_pool
             self.project_manager = ProjectManager(
-                db_pool=self.db_pool,
-                github_integration=self.github_integration
+            db_manager=self.db_manager,
+            github_integration=self.github_integration
             )
             self.service_status['project_manager'] = True
             logger.info("✅ Project Manager initialized")
@@ -339,7 +340,7 @@ class ServiceManager:
             )
             self.service_status['deployment_manager'] = True
             logger.info("✅ Deployment Manager initialized")
-            
+        
         except Exception as e:
             logger.error(f"❌ Project management initialization failed: {e}")
             self.service_status['project_manager'] = False

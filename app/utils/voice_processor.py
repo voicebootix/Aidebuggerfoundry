@@ -125,15 +125,26 @@ class VoiceProcessor:
                 error_message=error_msg
             )
             
+        # REPLACE initialize method with:
     async def initialize(self):
-        """Initialize voice processor - missing method causing error"""
+        """Initialize voice processor with proper validation"""
         try:
-            # Test OpenAI API connection
+            # Validate OpenAI API key
             if not self.client.api_key:
                 self.logger.warning("⚠️ OpenAI API key not provided for voice processing")
                 return False
             
-            # Simple connection test
+            # Test API connection with a simple request
+            try:
+                # Test with a minimal audio transcription call
+                test_response = await self.client.models.list()
+                if not test_response:
+                    raise Exception("Failed to connect to OpenAI API")
+                    
+            except Exception as e:
+                self.logger.error(f"❌ OpenAI API connection test failed: {e}")
+                return False
+            
             self.logger.info("✅ Voice processor initialized successfully")
             return True
             
