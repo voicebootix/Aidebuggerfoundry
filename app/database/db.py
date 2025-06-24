@@ -169,26 +169,6 @@ async def run_migrations(self):
 # Global database manager instance
 #db_manager = DatabaseManager()
 
-async def run_migrations(self):
-        """Run database migrations - FIXED INDENTATION"""
-        try:
-            async with self.pool.acquire() as conn:
-                # Check if tables exist and create them if needed
-                tables = await conn.fetch("""
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public'
-                """)
-                table_names = [row['table_name'] for row in tables]
-                logger.info(f"📋 Existing tables: {', '.join(table_names)}")
-                
-                # Basic migration - ensure core tables exist
-                logger.info("✅ Database migrations completed")
-                return True
-                
-        except Exception as e:
-            logger.error(f"❌ Migration failed: {e}")
-            raise
-
 async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
     """FastAPI dependency for database connections"""
     async with db_manager.get_connection() as conn:
@@ -332,21 +312,3 @@ async def init_db():
         
         logger.info("✅ Database schema initialized successfully")
         
-async def run_migrations(self):
-    """Run database migrations"""
-    try:
-        async with self.pool.acquire() as conn:
-            # Check if tables exist and create them if needed
-            tables = await conn.fetch("""
-                SELECT table_name FROM information_schema.tables 
-                WHERE table_schema = 'public'
-            """)
-            table_names = [row['table_name'] for row in tables]
-            logger.info(f"📋 Existing tables: {', '.join(table_names)}")
-            
-            # Basic migration - ensure core tables exist
-            logger.info("✅ Database migrations completed")
-            
-    except Exception as e:
-        logger.error(f"❌ Migration failed: {e}")
-        raise
