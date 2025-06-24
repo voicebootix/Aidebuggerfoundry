@@ -13,9 +13,6 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
-# In __init__ method, add after anthropic_client initialization:
-self.openai_client = openai.AsyncOpenAI(api_key=api_keys.get("openai")) if api_keys.get("openai") else None
-
 class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -43,8 +40,9 @@ class EnhancedLLMProvider:
         }
         
         self.anthropic_client = anthropic.AsyncAnthropic(api_key=api_keys.get("anthropic")) if api_keys.get("anthropic") else None
+        
+        # ADD THE OPENAI CLIENT LINE HERE:
         self.openai_client = openai.AsyncOpenAI(api_key=api_keys.get("openai")) if api_keys.get("openai") else None
-
         
         # KimiDev client சேர்க்கவும்
         import httpx
@@ -67,13 +65,10 @@ class EnhancedLLMProvider:
             # Test connections if API keys are available
             if self.openai_client:
                 logging.info("✅ OpenAI client initialized")
+            if self.anthropic_client:
+                logging.info("✅ Anthropic client initialized")  # ADD THIS
             if self.kimidev_client:
                 logging.info("✅ KimiDev client initialized")
-            if self.anthropic_client:
-                logging.info("✅ Anthropic client initialized")
-            if self.openai_client:
-                logging.info("✅ OpenAI client initialized")    
-                
             
             self.initialized = True
             logging.info("✅ LLM Provider initialized successfully")
@@ -116,6 +111,15 @@ class EnhancedLLMProvider:
                         raise Exception("Missing content in KimiDev API response")
                     
                     return choice["message"]["content"]
+                
+                elif provider == LLMProvider.OPENAI and self.openai_client:
+                    response = await self.openai_client.chat.completions.create(
+                        model="gpt-4-turbo",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature,
+                        max_tokens=4000
+                    )
+                    return response.choices[0].message.content
 
                 # REPLACE the Anthropic case with:
                 elif provider == LLMProvider.ANTHROPIC and self.anthropic_client:
