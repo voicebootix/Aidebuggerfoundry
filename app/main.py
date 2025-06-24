@@ -17,8 +17,8 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 from app.services import service_manager
-from app.database.db import create_tables
-
+from app.database.db import init_db
+from app.services import service_manager
 
 # FastAPI imports
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
