@@ -148,14 +148,14 @@ async def create_tables():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
+    """Application lifespan manager - UNIFIED SERVICE APPROACH"""
     # Startup
     logger.info("🚀 Starting AI Debugger Factory...")
     
     global db_manager
     db_manager = DatabaseManager()
     
-    # Initialize database
+    # Initialize database FIRST
     try:
         await db_manager.initialize()
         await create_tables()
@@ -164,7 +164,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Database initialization failed: {e}")
         raise
     
-    # Initialize other services
+    # Initialize ALL services through service manager
     try:
         await service_manager.initialize()
         logger.info("✅ All services initialized through service manager")
@@ -173,25 +173,15 @@ async def lifespan(app: FastAPI):
         # Continue running - services will show as unavailable
     
     logger.info("🎉 AI Debugger Factory startup complete!")
-        
     
     yield
     
     # Shutdown
-    logger.info("👋 Shutting down AI Debugger Factory...")
-    
-    # Cleanup services
-    try:
-        await service_manager.cleanup()
-        logger.info("✅ Services cleaned up successfully")
-    except Exception as e:
-        logger.error(f"⚠️ Service cleanup error: {e}")
-    
-    # Close database connections
+    logger.info("🛑 Shutting down AI Debugger Factory...")
     if db_manager:
         await db_manager.close()
-        logger.info("✅ Database connections closed")
-    
+    if service_manager.db_pool:
+        await service_manager.db_pool.close()
     logger.info("✅ Shutdown complete")
 
 # Create FastAPI application

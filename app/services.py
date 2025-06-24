@@ -122,39 +122,30 @@ class ServiceManager:
             # Still mark as initialized to prevent re-initialization attempts
             self.initialized = True
     
-    def _load_configuration(self) -> Dict[str, Any]:
-        """Load all configuration from environment variables"""
-        config = {
+        def _load_configuration(self) -> Dict[str, Any]:
+            """Load configuration with all necessary environment variables"""
+            return {
             # Database
-            'database_url': os.getenv('DATABASE_URL', 'postgresql://localhost:5432/ai_debugger_factory'),
+            'database_url': os.getenv('DATABASE_URL', 
+                'postgresql://ai_debugger:secure_password@localhost:5432/ai_debugger_factory'),
             
             # LLM APIs
-            'openai_api_key': os.getenv('OPENAI_API_KEY'),
+            'openai_api_key': os.getenv('OPENAI_API_KEY') or os.getenv('VOICE_API_KEY'),
             'anthropic_api_key': os.getenv('ANTHROPIC_API_KEY'),
-            'openai_model': os.getenv('OPENAI_MODEL', 'gpt-4'),
-            'openai_temperature': float(os.getenv('OPENAI_TEMPERATURE', '0.7')),
             
             # Voice processing
-            'voice_api_key': os.getenv('VOICE_API_KEY', os.getenv('OPENAI_API_KEY')),
             'elevenlabs_api_key': os.getenv('ELEVENLABS_API_KEY'),
+            'voice_timeout': int(os.getenv('VOICE_TIMEOUT', '60')),
             
-            # GitHub
+            # GitHub integration
             'github_token': os.getenv('GITHUB_TOKEN'),
-            'github_client_id': os.getenv('GITHUB_CLIENT_ID'),
-            'github_client_secret': os.getenv('GITHUB_CLIENT_SECRET'),
             
             # Smart contracts
             'web3_provider_url': os.getenv('WEB3_PROVIDER_URL'),
             'smart_contract_address': os.getenv('SMART_CONTRACT_ADDRESS'),
-            'platform_wallet_key': os.getenv('PLATFORM_WALLET_KEY'),
             
-            # Business intelligence
-            'serpapi_key': os.getenv('SERPAPI_KEY'),
-            'rapid_api_key': os.getenv('RAPID_API_KEY'),
-            
-            # Application settings
-            'environment': os.getenv('ENVIRONMENT', 'development'),
-            'debug': os.getenv('DEBUG', 'false').lower() == 'true',
+            # Security
+            'secret_key': os.getenv('SECRET_KEY'),
         }
         
         # Log configuration status (without exposing keys)
