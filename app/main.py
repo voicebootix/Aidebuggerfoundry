@@ -61,101 +61,90 @@ logger = logging.getLogger(__name__)
 db_manager = None
 
 async def create_tables():
-    """Create database tables if they don't exist"""
+    """Missing tables- - Fixed version"""
     global db_manager
-    if db_manager:
-        async with db_manager.get_connection() as conn:
-            # Create voice_conversations table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS voice_conversations (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    session_id VARCHAR(255) UNIQUE NOT NULL,
-                    user_id VARCHAR(255) NOT NULL,
-                    conversation_history JSONB NOT NULL DEFAULT '[]',
-                    founder_type_detected VARCHAR(50),
-                    business_validation_requested BOOLEAN DEFAULT FALSE,
-                    conversation_state VARCHAR(50) DEFAULT 'active',
-                    founder_ai_agreement JSONB,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
+    if db_manager and db_manager.pool:
+        async with db_manager.pool.acquire() as conn:
+            # Check existing tables
+            existing = await conn.fetch("""
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """)
+            existing_tables = {row['table_name'] for row in existing}
+            logger.info(f"📋  tables: {', '.join(existing_tables)}")
             
-            # Create business_validations table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS business_validations (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    conversation_id VARCHAR(255) UNIQUE,
-                    user_id VARCHAR(255) NOT NULL,
-                    market_analysis JSONB,
-                    competitor_research JSONB,
-                    business_model_validation JSONB,
-                    strategy_recommendations JSONB,
-                    validation_score FLOAT,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
+            # users table
+            if 'users' not in existing_tables:
+                await conn.execute('''
+                    CREATE TABLE IF NOT EXISTS users (
+                        id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        hashed_password VARCHAR(255),
+                        full_name VARCHAR(255),
+                        is_active BOOLEAN DEFAULT TRUE,
+                        is_verified BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    )
+                ''')
+                logger.info("✅ users table ")
             
-            # Create projects table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS projects (
-                    id VARCHAR(255) PRIMARY KEY,
-                    project_name VARCHAR(255) NOT NULL,
-                    user_id VARCHAR(255) NOT NULL,
-                    technology_stack TEXT[],
-                    status VARCHAR(50) DEFAULT 'planning',
-                    founder_ai_agreement JSONB,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
+            # code_generations table - FIXED VERSION
+            if 'code_generations' not in existing_tables:
+                # First check dream_sessions id type
+                dream_sessions_info = await conn.fetchrow("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'dream_sessions' 
+                    AND column_name = 'id'
+                """)
+                
+                if dream_sessions_info:
+                    dream_id_type = dream_sessions_info['data_type']
+                    logger.info(f"📊 dream_sessions.id type: {dream_id_type}")
+                    
+                    # Create table based on existing type
+                    if dream_id_type == 'integer':
+                        await conn.execute('''
+                            CREATE TABLE IF NOT EXISTS code_generations (
+                                id SERIAL PRIMARY KEY,
+                                dream_session_id INTEGER REFERENCES dream_sessions(id),
+                                project_id VARCHAR(255),
+                                status VARCHAR(50) DEFAULT 'pending',
+                                metadata JSONB,
+                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                            )
+                        ''')
+                    else:
+                        await conn.execute('''
+                            CREATE TABLE IF NOT EXISTS code_generations (
+                                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                dream_session_id VARCHAR(255) REFERENCES dream_sessions(id),
+                                project_id VARCHAR(255),
+                                status VARCHAR(50) DEFAULT 'pending',
+                                metadata JSONB,
+                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                            )
+                        ''')
+                    logger.info("✅ code_generations table ")
+                else:
+                    # No foreign key if dream_sessions doesn't exist
+                    await conn.execute('''
+                        CREATE TABLE IF NOT EXISTS code_generations (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            dream_session_id VARCHAR(255),
+                            project_id VARCHAR(255),
+                            status VARCHAR(50) DEFAULT 'pending',
+                            metadata JSONB,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                        )
+                    ''')
+                    logger.info("✅ code_generations table  (foreign key )")
             
-            # Create dream_sessions table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS dream_sessions (
-                    id VARCHAR(255) PRIMARY KEY,
-                    project_id VARCHAR(255) REFERENCES projects(id),
-                    user_input TEXT,
-                    strategic_analysis JSONB,
-                    generated_files JSONB,
-                    deployment_instructions TEXT,
-                    testing_guide TEXT,
-                    quality_score FLOAT,
-                    status VARCHAR(50) DEFAULT 'pending',
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
-            
-            # Create code_generations table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS code_generations (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    dream_session_id VARCHAR(255) REFERENCES dream_sessions(id),
-                    project_id VARCHAR(255) REFERENCES projects(id),
-                    status VARCHAR(50) DEFAULT 'pending',
-                    metadata JSONB,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
-            
-            # Create users table (if needed)
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    hashed_password VARCHAR(255),
-                    full_name VARCHAR(255),
-                    is_active BOOLEAN DEFAULT TRUE,
-                    is_verified BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
-            
-            logger.info("✅ Database tables created/verified successfully")
+            logger.info("✅ tables")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
