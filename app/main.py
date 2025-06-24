@@ -28,17 +28,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from app.utils.auth_utils import get_optional_current_user
-
+from app.services import service_manager
+from app.config import settings, get_settings
 
 
 # Database and models
 from app.database.db import DatabaseManager, get_db
 from app.database.models import *
+from contextlib import asynccontextmanager
+from app.services import service_manager  # Add this import
 
 # Core utilities
 
 logger = logging.getLogger(__name__)
-from app.config import settings, get_settings
+
 
 # Route imports - Import all revolutionary features
 from app.routes.voice_conversation_router import router as voice_conversation_router
@@ -56,6 +59,103 @@ logger = logging.getLogger(__name__)
 
 # Database manager instance
 db_manager = None
+
+async def create_tables():
+    """Create database tables if they don't exist"""
+    global db_manager
+    if db_manager:
+        async with db_manager.get_connection() as conn:
+            # Create voice_conversations table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS voice_conversations (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    session_id VARCHAR(255) UNIQUE NOT NULL,
+                    user_id VARCHAR(255) NOT NULL,
+                    conversation_history JSONB NOT NULL DEFAULT '[]',
+                    founder_type_detected VARCHAR(50),
+                    business_validation_requested BOOLEAN DEFAULT FALSE,
+                    conversation_state VARCHAR(50) DEFAULT 'active',
+                    founder_ai_agreement JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Create business_validations table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS business_validations (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    conversation_id VARCHAR(255) UNIQUE,
+                    user_id VARCHAR(255) NOT NULL,
+                    market_analysis JSONB,
+                    competitor_research JSONB,
+                    business_model_validation JSONB,
+                    strategy_recommendations JSONB,
+                    validation_score FLOAT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Create projects table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS projects (
+                    id VARCHAR(255) PRIMARY KEY,
+                    project_name VARCHAR(255) NOT NULL,
+                    user_id VARCHAR(255) NOT NULL,
+                    technology_stack TEXT[],
+                    status VARCHAR(50) DEFAULT 'planning',
+                    founder_ai_agreement JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Create dream_sessions table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS dream_sessions (
+                    id VARCHAR(255) PRIMARY KEY,
+                    project_id VARCHAR(255) REFERENCES projects(id),
+                    user_input TEXT,
+                    strategic_analysis JSONB,
+                    generated_files JSONB,
+                    deployment_instructions TEXT,
+                    testing_guide TEXT,
+                    quality_score FLOAT,
+                    status VARCHAR(50) DEFAULT 'pending',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Create code_generations table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS code_generations (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    dream_session_id VARCHAR(255) REFERENCES dream_sessions(id),
+                    project_id VARCHAR(255) REFERENCES projects(id),
+                    status VARCHAR(50) DEFAULT 'pending',
+                    metadata JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Create users table (if needed)
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    hashed_password VARCHAR(255),
+                    full_name VARCHAR(255),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    is_verified BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            logger.info("✅ Database tables created/verified successfully")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,6 +178,7 @@ async def lifespan(app: FastAPI):
     # Initialize other services
     try:
         await service_manager.initialize()
+        logger.info("✅ All services initialized through service manager")
     except Exception as e:
         logger.error(f"❌ Service initialization error: {e}")
         # Continue running - services will show as unavailable
@@ -89,7 +190,19 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("👋 Shutting down AI Debugger Factory...")
-    await service_manager.cleanup()
+    
+    # Cleanup services
+    try:
+        await service_manager.cleanup()
+        logger.info("✅ Services cleaned up successfully")
+    except Exception as e:
+        logger.error(f"⚠️ Service cleanup error: {e}")
+    
+    # Close database connections
+    if db_manager:
+        await db_manager.close()
+        logger.info("✅ Database connections closed")
+    
     logger.info("✅ Shutdown complete")
 
 # Create FastAPI application

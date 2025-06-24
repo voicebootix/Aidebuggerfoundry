@@ -17,6 +17,7 @@ class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
+    KIMIDEV = "kimidev"
 
 @dataclass
 class LLMResponse:
@@ -32,16 +33,28 @@ class EnhancedLLMProvider:
     
     def __init__(self, api_keys: Dict[str, str] = None):
         if api_keys is None:
-            api_keys = {
-                "openai": os.getenv("OPENAI_API_KEY"),
-                "anthropic": os.getenv("ANTHROPIC_API_KEY")
-            }
+         api_keys = {
+            "openai": os.getenv("OPENAI_API_KEY"),
+            "anthropic": os.getenv("ANTHROPIC_API_KEY"),
+            "openrouter": os.getenv("OPENROUTER_API_KEY")
+        }
         
-        self.openai_client = openai.AsyncOpenAI(api_key=api_keys.get("openai")) if api_keys.get("openai") else None
         self.anthropic_client = anthropic.AsyncAnthropic(api_key=api_keys.get("anthropic")) if api_keys.get("anthropic") else None
-        self.providers = [LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
-        self.current_provider = 0
-        self.initialized = False
+        
+        # KimiDev client சேர்க்கவும்
+        import httpx
+        self.kimidev_client = httpx.AsyncClient(
+            base_url="https://openrouter.ai/api/v1",
+            headers={
+                "Authorization": f"Bearer {api_keys.get('openrouter')}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://mydreamengine.com",
+                "X-Title": "MyDreamEngine"
+            },
+            timeout=60.0
+        ) if api_keys.get("openrouter") else None
+        
+        self.providers = [LLMProvider.KIMIDEV, LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
         
     async def initialize(self):
         """Initialize the LLM provider"""
@@ -49,8 +62,8 @@ class EnhancedLLMProvider:
             # Test connections if API keys are available
             if self.openai_client:
                 logging.info("✅ OpenAI client initialized")
-            if self.anthropic_client:
-                logging.info("✅ Anthropic client initialized")
+            if self.kimidev_client:
+                logging.info("✅ KimiDev client initialized")
             
             self.initialized = True
             logging.info("✅ LLM Provider initialized successfully")
@@ -69,13 +82,20 @@ class EnhancedLLMProvider:
         
         for provider in self.providers:
             try:
-                if provider == LLMProvider.OPENAI and self.openai_client:
-                    response = await self.openai_client.chat.completions.create(
-                        model="gpt-4" if model == "auto" else model,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=temperature
+                if provider == LLMProvider.KIMIDEV and self.kimidev_client:
+                    response = await self.kimidev_client.post(
+                        "/chat/completions",
+                        json={
+                            "model": "moonshotai/kimi-dev-72b:free",
+                            "messages": [{"role": "user", "content": prompt}],
+                            "temperature": temperature,
+                            "max_tokens": 4000,
+                            "top_p": 0.8
+                        }
                     )
-                    return response.choices[0].message.content
+                    response.raise_for_status()
+                    response_data = response.json()
+                    return response_data["choices"][0]["message"]["content"]
                     
                 elif provider == LLMProvider.ANTHROPIC and self.anthropic_client:
                     response = await self.anthropic_client.messages.create(
