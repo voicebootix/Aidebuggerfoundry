@@ -150,26 +150,28 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager - UNIFIED SERVICE APPROACH"""
     # Startup
     logger.info("🚀 Starting AI Debugger Factory...")
-    
+
     # Initialize database FIRST
     try:
+        await db_manager.initialize()
         await create_tables()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
         raise
-    
-    # Initialize ALL services through service manager
+
+    # ✅ CRITICAL: Initialize ALL services through service manager
     try:
         await service_manager.initialize()
         logger.info("✅ All services initialized through service manager")
     except Exception as e:
         logger.error(f"❌ Service initialization error: {e}")
+        logger.error(f"Full error details: {e}", exc_info=True)
         # Continue running - services will show as unavailable
-    
+
     yield
-        
-        # Shutdown
+    
+    # Shutdown
     logger.info("🛑 Shutting down AI Debugger Factory...")
     await service_manager.cleanup()
     if db_manager:

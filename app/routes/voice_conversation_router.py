@@ -43,32 +43,30 @@ async def start_ai_cofounder_conversation(
     db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
-    """
-    Start revolutionary AI cofounder conversation
-    PATENT-WORTHY: Natural business conversations → deployed applications
-    """
+    """Start revolutionary AI cofounder conversation"""
     
     try:
-        
         # Handle demo mode when user is not authenticated
         user_id = current_user.get("id") if current_user else "demo_user"
         user_email = current_user.get("email") if current_user else "demo@example.com"
 
+        # ✅ FIX: Use fallback security validator if service_manager one is None
+        validator = service_manager.security_validator if service_manager.security_validator else SecurityValidator()
+        
         # Validate and sanitize input
-        security_issues = await service_manager.security_validator.validate_input(request.initial_input)
+        security_issues = await validator.validate_input(request.initial_input)
         if security_issues:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Security validation failed: {security_issues[0].description}"
             )
         
-        # Initialize conversation engine if needed
         # CHECK: Ensure conversation engine is available
         if not service_manager.conversation_engine:
-                openai_client=None,  # Initialize with actual client
-                business_intelligence=business_intelligence,
-                contract_method=ContractMethod(None)
-        
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI cofounder service is not available. Please ensure services are properly configured."
+            )
         
         # Start conversation session
         session = await service_manager.conversation_engine.start_cofounder_conversation(
@@ -124,21 +122,24 @@ async def process_conversation_turn(
     
     try:
         user_id = current_user.get("id") if current_user else "demo_user"
+        
         # Validate session ownership
         db_conversation = await db.fetchrow(
             "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
             session_id, user_id
         )
 
-        
         if not db_conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation session not found"
             )
         
+        # ✅ FIX: Use fallback security validator if service_manager one is None
+        validator = service_manager.security_validator if service_manager.security_validator else SecurityValidator()
+        
         # Validate input
-        security_issues = await service_manager.security_validator.validate_input(request.user_response)
+        security_issues = await validator.validate_input(request.user_response)
         if security_issues:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

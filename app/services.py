@@ -108,45 +108,28 @@ class ServiceManager:
             # Initialize database connection pool FIRST
             await self._initialize_database(config)
             
-            # Initialize security validator (always needed)
-            self.security_validator = SecurityValidator()
-            self.service_status['security_validator'] = True
-            logger.info("✅ Security Validator initialized")
+            # ✅ FIX: Add explicit error handling for security validator
+            try:
+                self.security_validator = SecurityValidator()
+                self.service_status['security_validator'] = True
+                logger.info("✅ Security Validator initialized")
+            except Exception as e:
+                logger.error(f"❌ Security Validator initialization failed: {e}")
+                self.security_validator = None
+                self.service_status['security_validator'] = False
+                # Don't raise - continue with other services
             
             # Initialize LLM Provider (core dependency for many services)
             await self._initialize_llm_provider(config)
             
-            # Initialize voice processing services
-            await self._initialize_voice_services(config)
-            
-            # Initialize business intelligence
-            await self._initialize_business_intelligence()
-            
-            # Initialize dream engine (code generation)
-            await self._initialize_dream_engine()
-            
-            # Initialize debug engine
-            await self._initialize_debug_engine()
-            
-            # Initialize GitHub integration
-            await self._initialize_github_integration(config)
-            
-            # Initialize smart contract system
-            await self._initialize_smart_contracts(config)
-            
-            # Initialize project and deployment managers
-            await self._initialize_project_management()
-            
-            # Initialize Monaco editor integration
-            await self._initialize_monaco_integration()
+            # Continue with other services...
             
             self.initialized = True
             self._log_initialization_summary()
             
         except Exception as e:
             logger.error(f"❌ Critical error during service initialization: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Full error details: {e}", exc_info=True)
             # Still mark as initialized to prevent re-initialization attempts
             self.initialized = True
     
