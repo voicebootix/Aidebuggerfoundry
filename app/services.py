@@ -129,7 +129,7 @@ class ServiceManager:
             
         except Exception as e:
             logger.error(f"❌ Critical error during service initialization: {e}")
-            logger.error(f"Full error details: {e}", exc_info=True)
+            logger.error(f"Full error details: {e}")
             # Still mark as initialized to prevent re-initialization attempts
             self.initialized = True
     
@@ -154,7 +154,7 @@ class ServiceManager:
         
             # Initialize the global database manager
             await db_manager.initialize()
-            await db_manager.run_migrations()
+            # await db_manager.run_migrations()
         
             # Store reference for other services
             self.db_manager = db_manager
