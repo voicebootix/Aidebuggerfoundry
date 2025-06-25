@@ -29,15 +29,23 @@ class VoiceProcessor:
     def __init__(self, openai_api_key: str):
         self.client = openai.AsyncOpenAI(api_key=openai_api_key)
         self.logger = logging.getLogger(__name__)
-        
-        # Audio processing configuration
         self.supported_formats = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm']
-        self.max_file_size = 25 * 1024 * 1024  # 25MB limit for Whisper   
+        self.max_file_size = 25 * 1024 * 1024
+        self._initialized = False 
         
     async def transcribe_audio(self, audio_data: bytes, audio_format: str = "webm") -> VoiceProcessingResult:
         """Transcribe audio using OpenAI Whisper"""
         
         start_time = datetime.now()
+        
+        if not self._initialized:
+            return VoiceProcessingResult(
+                success=False,
+                transcription=None,
+                confidence=None,
+                processing_time=0,
+                error_message="Voice processor not initialized"
+            )
         
         try:
             # Validate audio format
@@ -125,31 +133,45 @@ class VoiceProcessor:
                 error_message=error_msg
             )
             
-        # REPLACE initialize method with:
     async def initialize(self):
-        """Initialize voice processor with proper validation"""
+        """Initialize voice processor with actual transcription test"""
         try:
-            # Validate OpenAI API key
             if not self.client.api_key:
-                self.logger.warning("⚠️ OpenAI API key not provided for voice processing")
+                self.logger.warning("OpenAI API key not provided for voice processing")
                 return False
             
-            # Test API connection with a simple request
             try:
-                # Test with a minimal audio transcription call
-                test_response = await self.client.models.list()
-                if not test_response:
-                    raise Exception("Failed to connect to OpenAI API")
-                    
+                test_audio = b'\x00' * 1024
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+                    temp_file.write(test_audio)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    with open(temp_file_path, 'rb') as audio_file:
+                        response = await self.client.audio.transcriptions.create(
+                            model="whisper-1",
+                            file=audio_file,
+                            response_format="json"
+                        )
+                except openai.APIError as e:
+                    if "audio" in str(e).lower() or "whisper" in str(e).lower():
+                        self.logger.error(f"Voice API not accessible: {e}")
+                        return False
+                    pass
+                finally:
+                    if os.path.exists(temp_file_path):
+                        os.unlink(temp_file_path)
+                        
             except Exception as e:
-                self.logger.error(f"❌ OpenAI API connection test failed: {e}")
+                self.logger.error(f"Voice processor test failed: {e}")
                 return False
             
-            self.logger.info("✅ Voice processor initialized successfully")
+            self._initialized = True
+            self.logger.info("Voice processor initialized successfully")
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ Voice processor initialization failed: {e}")
+            self.logger.error(f"Voice processor initialization failed: {e}")
             return False
     
     async def transcribe_base64_audio(self, base64_audio: str, audio_format: str = "webm") -> VoiceProcessingResult:

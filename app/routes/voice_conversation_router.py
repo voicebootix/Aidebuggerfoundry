@@ -232,20 +232,8 @@ async def transcribe_voice_input(
         # Read audio data
         audio_data = await audio_file.read()
         
-        # Transcribe audio
-        transcription_result = await service_manager.oice_processor.transcribe_audio(
-            audio_data=audio_data,
-            audio_format=audio_file.content_type.split('/')[-1]
-        )
-        
-        if not transcription_result.success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Transcription failed: {transcription_result.error_message}"
-            )
-            
-        # Transcribe audio
-        transcription_result = await voice_processor.transcribe_audio(
+        # Transcribe audio using initialized voice processor
+        transcription_result = await service_manager.voice_processor.transcribe_audio(
             audio_data=audio_data,
             audio_format=audio_file.content_type.split('/')[-1]
         )

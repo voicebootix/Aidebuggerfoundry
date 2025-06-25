@@ -716,16 +716,33 @@
                 try {
                     console.log('🎤 Requesting microphone access...');
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    let mimeType = 'audio/webm';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        mimeType = 'audio/mp4';
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                        mimeType = 'audio/ogg;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+                        mimeType = 'audio/wav';
+                    }
+                    
+                    console.log('🎵 Using MIME type:', mimeType);
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
                     
                     const audioChunks = [];
                     mediaRecorder.ondataavailable = (event) => {
-                        audioChunks.push(event.data);
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
                     };
                     
                     mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        console.log('🎵 Audio recorded, size:', audioBlob.size, 'bytes');
+                        const audioBlob = new Blob(audioChunks, { type: mimeType });
+                        console.log('🎵 Audio recorded, size:', audioBlob.size, 'bytes, type:', mimeType);
+                        
+                        stream.getTracks().forEach(track => track.stop());
                         await processVoiceInput(audioBlob);
                     };
                     
@@ -785,7 +802,16 @@
                 // STEP 2: Transcribe audio
                 console.log('🔄 Transcribing audio...');
                 const formData = new FormData();
-                formData.append('audio_file', audioBlob, 'voice_input.wav');
+                let filename = 'voice_input.webm';
+                if (audioBlob.type.includes('mp4')) {
+                    filename = 'voice_input.mp4';
+                } else if (audioBlob.type.includes('ogg')) {
+                    filename = 'voice_input.ogg';
+                } else if (audioBlob.type.includes('wav')) {
+                    filename = 'voice_input.wav';
+                }
+                
+                formData.append('audio_file', audioBlob, filename);
                 
                 const transcribeResponse = await fetch(`${API_BASE}/api/v1/voice-conversation/transcribe-audio/${currentSessionId}`, {
                     method: 'POST',
