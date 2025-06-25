@@ -153,7 +153,6 @@ async def lifespan(app: FastAPI):
     
     # Initialize database FIRST
     try:
-        await db_manager.initialize()
         await create_tables()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
