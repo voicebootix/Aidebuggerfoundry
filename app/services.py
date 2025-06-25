@@ -70,6 +70,32 @@ class ServiceManager:
             # Service status tracking
             self.service_status: Dict[str, bool] = {}
             self.initialized = False
+            
+    def _load_configuration(self) -> Dict[str, Any]:
+            """Load configuration with all necessary environment variables"""
+            return {
+            # Database
+            'database_url': os.getenv('DATABASE_URL', 
+                'postgresql://ai_debugger:secure_password@localhost:5432/ai_debugger_factory'),
+            
+            # LLM APIs
+            'openai_api_key': os.getenv('OPENAI_API_KEY') or os.getenv('VOICE_API_KEY'),
+            'anthropic_api_key': os.getenv('ANTHROPIC_API_KEY'),
+            
+            # Voice processing
+            'elevenlabs_api_key': os.getenv('ELEVENLABS_API_KEY'),
+            'voice_timeout': int(os.getenv('VOICE_TIMEOUT', '60')),
+            
+            # GitHub integration
+            'github_token': os.getenv('GITHUB_TOKEN'),
+            
+            # Smart contracts
+            'web3_provider_url': os.getenv('WEB3_PROVIDER_URL'),
+            'smart_contract_address': os.getenv('SMART_CONTRACT_ADDRESS'),
+            
+            # Security
+            'secret_key': os.getenv('SECRET_KEY'),
+        }        
     
     async def initialize(self):
         """Initialize all services with comprehensive error handling"""
@@ -124,31 +150,7 @@ class ServiceManager:
             # Still mark as initialized to prevent re-initialization attempts
             self.initialized = True
     
-        def _load_configuration(self) -> Dict[str, Any]:
-            """Load configuration with all necessary environment variables"""
-            return {
-            # Database
-            'database_url': os.getenv('DATABASE_URL', 
-                'postgresql://ai_debugger:secure_password@localhost:5432/ai_debugger_factory'),
-            
-            # LLM APIs
-            'openai_api_key': os.getenv('OPENAI_API_KEY') or os.getenv('VOICE_API_KEY'),
-            'anthropic_api_key': os.getenv('ANTHROPIC_API_KEY'),
-            
-            # Voice processing
-            'elevenlabs_api_key': os.getenv('ELEVENLABS_API_KEY'),
-            'voice_timeout': int(os.getenv('VOICE_TIMEOUT', '60')),
-            
-            # GitHub integration
-            'github_token': os.getenv('GITHUB_TOKEN'),
-            
-            # Smart contracts
-            'web3_provider_url': os.getenv('WEB3_PROVIDER_URL'),
-            'smart_contract_address': os.getenv('SMART_CONTRACT_ADDRESS'),
-            
-            # Security
-            'secret_key': os.getenv('SECRET_KEY'),
-        }
+        
         
         # Log configuration status (without exposing keys)
         logger.info("📋 Configuration loaded:")
