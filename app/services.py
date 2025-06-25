@@ -399,10 +399,14 @@ class ServiceManager:
     async def cleanup(self):
         """Cleanup resources on shutdown"""
         logger.info("🧹 Cleaning up services...")
-    
-        if self.db_manager:
+
+        if hasattr(self, 'db_manager') and self.db_manager:
             await self.db_manager.close()
             logger.info("✅ Database manager closed")
+            
+        if hasattr(self, 'db_pool') and self.db_pool:
+            await self.db_pool.close()
+            logger.info("✅ Database pool closed")
     
         # Add other cleanup as needed
         logger.info("✅ Cleanup complete")

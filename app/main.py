@@ -33,7 +33,7 @@ from app.config import settings, get_settings
 
 
 # Database and models
-from app.database.db import DatabaseManager, get_db
+from app.database.db import db_manager, get_db
 from app.database.models import *
 from contextlib import asynccontextmanager
 from app.services import service_manager  # Add this import
@@ -61,10 +61,9 @@ logger = logging.getLogger(__name__)
 db_manager = None
 
 async def create_tables():
-    """Missing tables- - Fixed version"""
-    global db_manager
-    if db_manager and db_manager.pool:
-        async with db_manager.pool.acquire() as conn:
+    """Create database tables if they don't exist"""
+    if db_manager:
+        async with db_manager.get_connection() as conn:
             # Check existing tables
             existing = await conn.fetch("""
                 SELECT table_name FROM information_schema.tables 
@@ -152,9 +151,6 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting AI Debugger Factory...")
     
-    global db_manager
-    db_manager = DatabaseManager()
-    
     # Initialize database FIRST
     try:
         await db_manager.initialize()
@@ -172,16 +168,13 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Service initialization error: {e}")
         # Continue running - services will show as unavailable
     
-    logger.info("🎉 AI Debugger Factory startup complete!")
-    
     yield
-    
-    # Shutdown
+        
+        # Shutdown
     logger.info("🛑 Shutting down AI Debugger Factory...")
+    await service_manager.cleanup()
     if db_manager:
         await db_manager.close()
-    if service_manager.db_pool:
-        await service_manager.db_pool.close()
     logger.info("✅ Shutdown complete")
 
 # Create FastAPI application

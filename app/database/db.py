@@ -167,10 +167,13 @@ async def run_migrations(self):
         raise        
     
 # Global database manager instance
-#db_manager = DatabaseManager()
+db_manager = DatabaseManager()
 
 async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
     """FastAPI dependency for database connections"""
+    # Ensure database is initialized
+    if not db_manager.pool:
+        await db_manager.initialize()
     async with db_manager.get_connection() as conn:
         yield conn
 
