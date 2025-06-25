@@ -770,43 +770,85 @@
             }
         }
 
-        async function processVoiceInput(audioBlob) {
-            try {
-                // Check if audio blob is too small
-                if (audioBlob.size < 1000) {
-                    showError('Recording Error', 'Audio recording too short. Please record for at least 1 second.');
-                    return;
-                }
-                
-                // Rest of your existing code...
-                
-                const transcribeResponse = await fetch(transcribeUrl, {
-                    method: 'POST',
-                    headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
-                    body: formData
-                });
-                
-                if (!transcribeResponse.ok) {
-                    const errorData = await transcribeResponse.json();
-                    
-                    // Handle different error types
-                    if (transcribeResponse.status === 503) {
-                        showError('Service Unavailable', 'Voice transcription service is temporarily unavailable. Please try again later.');
-                    } else if (transcribeResponse.status === 400) {
-                        showError('Audio Error', errorData.detail || 'Invalid audio file. Please try recording again.');
-                    } else {
-                        showError('Transcription Error', 'Failed to process voice input. Please try again.');
-                    }
-                    return;
-                }
-                
-                // Success handling...
-                
-            } catch (error) {
-                console.error('Voice processing failed:', error);
-                showError('Voice Processing Error', 'An unexpected error occurred. Please try again.');
+    async function processVoiceInput(audioBlob) {
+        try {
+        // STEP 1: Start conversation session (if not exists)
+        if (!currentSessionId) {
+            console.log('🚀 Starting new conversation session...');
+            const sessionResponse = await fetch(`${API_BASE}/api/v1/voice-conversation/start-conversation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                },
+                body: JSON.stringify({
+                    initial_input: "Voice conversation started",
+                    voice_mode: true
+                })
+            });
+            
+            console.log('📡 Session response status:', sessionResponse.status);
+            
+            if (!sessionResponse.ok) {
+                const errorText = await sessionResponse.text();
+                throw new Error(`Session start failed (${sessionResponse.status}): ${errorText}`);
             }
+            
+            const sessionData = await sessionResponse.json();
+            currentSessionId = sessionData.session_id;
+            console.log('✅ Session started:', currentSessionId);
         }
+        
+        // STEP 2: Transcribe audio
+        console.log('🔄 Transcribing audio...');
+        const formData = new FormData();
+        let filename = 'voice_input.webm';
+        if (audioBlob.type.includes('mp4')) {
+            filename = 'voice_input.mp4';
+        } else if (audioBlob.type.includes('ogg')) {
+            filename = 'voice_input.ogg';
+        } else if (audioBlob.type.includes('wav')) {
+            filename = 'voice_input.wav';
+        }
+        
+        formData.append('audio_file', audioBlob, filename);
+        
+        // ✅ FIX: Use proper URL construction instead of undefined transcribeUrl
+        const transcribeResponse = await fetch(`${API_BASE}/api/v1/voice-conversation/transcribe-audio/${currentSessionId}`, {
+            method: 'POST',
+            headers: authToken ? {
+                'Authorization': `Bearer ${authToken}`
+            } : {},
+            body: formData
+        });
+        
+        console.log('📡 Transcribe response status:', transcribeResponse.status);
+        
+        if (!transcribeResponse.ok) {
+            const errorText = await transcribeResponse.text();
+            throw new Error(`Transcription failed (${transcribeResponse.status}): ${errorText}`);
+        }
+        
+        const transcriptionData = await transcribeResponse.json();
+        console.log('✅ Transcription result:', transcriptionData);
+        
+        // Add transcription to conversation
+        addMessageToConversation('user', `🎤 ${transcriptionData.transcription}`);
+        
+        // STEP 3: Continue conversation
+        await continueConversation(currentSessionId, transcriptionData.transcription);
+        
+    } catch (error) {
+        console.error('❌ Voice processing failed:', error);
+        showError('Voice Processing Error', `Voice processing failed: ${error.message}`);
+        
+        // Reset status for user to try again
+        const status = document.getElementById('voiceStatus');
+        if (status) {
+            status.textContent = 'Ready to record voice input';
+        }
+    }
+    }
 
         async function continueConversation(sessionId, userInput) {
             try {
