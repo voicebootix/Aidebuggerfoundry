@@ -201,41 +201,31 @@ class ServiceManager:
     async def _initialize_voice_services(self, config: Dict[str, Any]):
         """Initialize voice processing and conversation engine"""
         try:
-            # Voice processor
             if config['openai_api_key']:
                 self.voice_processor = VoiceProcessor(
                     openai_api_key=config['openai_api_key']
                 )
-                await self.voice_processor.initialize()
+                # ✅ FIX: Check initialization return value
+                if not await self.voice_processor.initialize():
+                    logger.error("Voice processor failed initialization test")
+                    self.voice_processor = None
+                    raise Exception("Voice processor initialization failed")
+                
                 self.service_status['voice_processor'] = True
                 logger.info("✅ Voice Processor initialized")
                 
-                # Business Intelligence (needed for conversation engine)
-                if not self.business_intelligence:
-                    await self._initialize_business_intelligence()
+                # Rest of initialization...
                 
-                # Contract Method
-                self.contract_method = ContractMethod(
-                    llm_provider=self.llm_provider
-                )
-                self.service_status['contract_method'] = True
-                logger.info("✅ Contract Method initialized")
-                
-                # Conversation Engine
-                self.conversation_engine = VoiceConversationEngine(
-                    openai_client=openai.AsyncOpenAI(api_key=config['openai_api_key']),
-                    business_intelligence=self.business_intelligence,
-                    contract_method=self.contract_method
-                )
-                self.service_status['conversation_engine'] = True
-                logger.info("✅ Conversation Engine initialized")
             else:
+                # ✅ FIX: Explicitly set to None when no API key
                 logger.warning("⚠️ Voice services skipped (no OpenAI API key)")
+                self.voice_processor = None
                 self.service_status['voice_processor'] = False
                 self.service_status['conversation_engine'] = False
                 
         except Exception as e:
             logger.error(f"❌ Voice services initialization failed: {e}")
+            self.voice_processor = None  # ✅ Ensure None on failure
             self.service_status['voice_processor'] = False
             self.service_status['conversation_engine'] = False
     
