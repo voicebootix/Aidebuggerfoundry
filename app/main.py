@@ -269,18 +269,12 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected exceptions"""
-    logger.error(f"Unexpected error: {exc}", exc_info=True)
-    
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    logger.error(f"Global exception: {exc}\n{traceback.format_exc()}")
     return JSONResponse(
         status_code=500,
-        content={
-            "status": "error", 
-            "message": "Internal server error" if not settings.DEBUG else str(exc),
-            "timestamp": asyncio.get_event_loop().time(),
-            "path": str(request.url.path)
-        }
+        content={"detail": f"Internal server error: {str(exc)}"}
     )
 
 # Templates
