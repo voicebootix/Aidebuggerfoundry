@@ -255,6 +255,81 @@ class VoiceConversationEngine:
         except:
             return "Have you thought about how this differentiates from existing solutions?"
     
+    async def _generate_validation_response(self, session: ConversationSession) -> str:
+        """Generate business validation response"""
+        
+        business_idea = session.business_idea or {}
+        
+        validation_prompt = f"""
+        As an AI cofounder, provide business validation feedback for this idea:
+        
+        Problem: {business_idea.get('problem', 'Not specified')}
+        Solution: {business_idea.get('solution', 'Not specified')}
+        Target Market: {business_idea.get('target_market', 'Not specified')}
+        Monetization: {business_idea.get('monetization', 'Not specified')}
+        
+        Provide constructive feedback focusing on:
+        1. Market opportunity assessment
+        2. Competitive landscape analysis
+        3. Monetization strategy validation
+        4. Technical feasibility considerations
+        5. Next steps for validation
+        
+        Be encouraging but realistic. Format as a conversational response.
+        """
+        
+        try:
+            response = await self.openai_client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": validation_prompt}],
+                temperature=0.7
+            )
+            return response.choices[0].message.content.strip()
+        except:
+            return "I'd love to help validate your business idea! Could you tell me more about the problem you're solving and your target customers?"
+    
+    async def _generate_agreement_response(self, session: ConversationSession) -> str:
+        """Generate founder-AI agreement response"""
+        
+        return """
+        Perfect! I'm excited to be your AI cofounder. Let me create a binding agreement that outlines our partnership.
+        
+        This agreement will specify:
+        • Your business requirements and vision
+        • My technical commitments and delivery timeline
+        • Success criteria for our collaboration
+        • Quality standards for the final application
+        
+        Once you review and approve the agreement, I'll start generating production-ready code immediately.
+        
+        Should I create the founder-AI agreement now?
+        """
+    
+    async def _generate_contextual_response(self, session: ConversationSession) -> str:
+        """Generate contextual response based on conversation state"""
+        
+        last_message = session.conversation_history[-1]["content"] if session.conversation_history else ""
+        
+        contextual_prompt = f"""
+        As an AI cofounder, respond to this message in the context of our conversation:
+        
+        Current state: {session.current_state.value}
+        Last message: "{last_message}"
+        
+        Provide a helpful, encouraging response that moves our conversation forward.
+        Focus on being collaborative and solution-oriented.
+        """
+        
+        try:
+            response = await self.openai_client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": contextual_prompt}],
+                temperature=0.7
+            )
+            return response.choices[0].message.content.strip()
+        except:
+            return "I'm here to help you build your vision! What would you like to focus on next?"
+    
     async def process_conversation_turn(self, session_id: str, user_response: str) -> Dict:
         """Process user response and advance conversation"""
         

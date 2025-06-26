@@ -91,8 +91,51 @@ class VoiceProcessor:
                     error_message="Audio file is empty"
                 )
             
-            # Rest of transcription logic remains the same...
-            # (Create temp file, call Whisper API, handle errors)
+            # Create temporary file for OpenAI API
+            with tempfile.NamedTemporaryFile(suffix=audio_format, delete=False) as temp_file:
+                temp_file.write(audio_data)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Call OpenAI Whisper API
+                with open(temp_file_path, 'rb') as audio_file:
+                    response = await self.client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="json"
+                    )
+                
+                # Extract transcription and confidence
+                transcription = response.text if hasattr(response, 'text') else ""
+                confidence = getattr(response, 'confidence', None)
+                
+                processing_time = (datetime.now() - start_time).total_seconds()
+                
+                return VoiceProcessingResult(
+                    success=True,
+                    transcription=transcription,
+                    confidence=confidence,
+                    processing_time=processing_time,
+                    error_message=None
+                )
+                
+            except openai.APIError as e:
+                processing_time = (datetime.now() - start_time).total_seconds()
+                error_msg = f"OpenAI API error: {str(e)}"
+                self.logger.error(error_msg)
+                
+                return VoiceProcessingResult(
+                    success=False,
+                    transcription=None,
+                    confidence=None,
+                    processing_time=processing_time,
+                    error_message=error_msg
+                )
+                
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
             
         except Exception as e:
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -237,6 +280,7 @@ class VoiceProcessor:
         
         return validation_result
 
-# Create the global instance that main.py expects
-voice_processor = VoiceProcessor(openai_api_key=os.getenv("OPENAI_API_KEY", ""))
+# Global instance removed - all voice processing goes through ServiceManager
+# Use service_manager.voice_processor instead of importing this module's instance
+# This ensures proper initialization and prevents 400 errors from uninitialized instances
 
