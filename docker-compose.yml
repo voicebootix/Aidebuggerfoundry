@@ -12,7 +12,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:dreamengine123@db:5432/dreamengine_db
+      - DATABASE_URL=postgresql://ai_debugger_factory_user:Nz7YsUqQdmYSU62GghoWcV4xaeW3OXqc@dpg-d15csb6uk2gs73c2ubng-a/ai_debugger_factory
       - REDIS_URL=redis://redis:6379/0
       - ENVIRONMENT=development
       - DEBUG=true
