@@ -24,7 +24,7 @@ class DatabaseManager:
         self.pool: Optional[asyncpg.Pool] = None
         self.database_url = os.getenv(
             'DATABASE_URL', 
-            'postgresql:postgresql://ai_debugger_factory_user:Nz7YsUqQdmYSU62GghoWcV4xaeW3OXqc@dpg-d15csb6uk2gs73c2ubng-a/ai_debugger_factory
+            'postgresql:postgresql://ai_debugger_factory_user:Nz7YsUqQdmYSU62GghoWcV4xaeW3OXqc@dpg-d15csb6uk2gs73c2ubng-a/ai_debugger_factory'
         )
         self.min_connections = int(os.getenv('DB_MIN_CONNECTIONS', '5'))
         self.max_connections = int(os.getenv('DB_MAX_CONNECTIONS', '20'))
