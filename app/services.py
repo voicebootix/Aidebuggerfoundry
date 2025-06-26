@@ -76,7 +76,7 @@ class ServiceManager:
             return {
             # Database
             'database_url': os.getenv('DATABASE_URL', 
-                'postgresql://ai_debugger:secure_password@localhost:5432/ai_debugger_factory'),
+                'postgresql://ai_debugger_factory_user:Nz7YsUqQdmYSU62GghoWcV4xaeW3OXqc@dpg-d15csb6uk2gs73c2ubng-a/ai_debugger_factory'),
             
             # LLM APIs
             'openai_api_key': os.getenv('OPENAI_API_KEY') or os.getenv('VOICE_API_KEY'),
