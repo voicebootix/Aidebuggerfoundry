@@ -102,9 +102,11 @@ async def start_ai_cofounder_conversation(
         )
         
     except Exception as e:
+        import traceback
         logger.log_structured("error", "Failed to start conversation", {
             "user_id": user_id,
-            "error": str(e)
+            "error": str(e),
+            "traceback": traceback.format_exc()
         })
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
