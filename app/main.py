@@ -37,6 +37,7 @@ from app.database.db import db_manager, get_db
 from app.database.models import *
 from contextlib import asynccontextmanager
 from app.services import service_manager  # Add this import
+import asyncpg
 
 # Core utilities
 
@@ -59,6 +60,23 @@ logger = logging.getLogger(__name__)
 
 # Database manager instance
 db_manager = None
+
+DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
+
+async def ensure_demo_user():
+    """Ensure the demo user with a valid UUID exists in the users table."""
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        logger.warning("DATABASE_URL not set; skipping demo user creation.")
+        return
+    conn = await asyncpg.connect(database_url)
+    await conn.execute(
+        "INSERT INTO users (id, email, hashed_password, full_name, is_active, is_verified) "
+        "VALUES ($1, $2, $3, $4, $5, $6) "
+        "ON CONFLICT (id) DO NOTHING;",
+        DEMO_USER_ID, 'demo@example.com', '', 'Demo User', True, True
+    )
+    await conn.close()
 
 async def create_tables():
     """Create database tables if they don't exist"""
@@ -150,6 +168,9 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager - UNIFIED SERVICE APPROACH"""
     # Startup
     logger.info("🚀 Starting AI Debugger Factory...")
+
+    # Ensure demo user exists before anything else
+    await ensure_demo_user()
 
     # Initialize database FIRST
     try:

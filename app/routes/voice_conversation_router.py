@@ -37,6 +37,8 @@ security_validator = SecurityValidator()
 #conversation_engine = None  # Will be initialized with dependencies
 #business_intelligence = None  # Will be initialized with LLM provider
 
+DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
+
 @router.post("/start-conversation", response_model=VoiceConversationResponse)
 async def start_ai_cofounder_conversation(
     request: VoiceConversationRequest,
@@ -47,7 +49,7 @@ async def start_ai_cofounder_conversation(
     
     try:
         # Handle demo mode when user is not authenticated
-        user_id = current_user.get("id") if current_user else "demo_user"
+        user_id = current_user.get("id") if current_user else DEMO_USER_ID
         user_email = current_user.get("email") if current_user else "demo@example.com"
 
         # ✅ FIX: Use fallback security validator if service_manager one is None
@@ -123,7 +125,7 @@ async def process_conversation_turn(
     """Process user response in ongoing conversation"""
     
     try:
-        user_id = current_user.get("id") if current_user else "demo_user"
+        user_id = current_user.get("id") if current_user else DEMO_USER_ID
         
         # Validate session ownership
         db_conversation = await db.fetchrow(
@@ -213,7 +215,7 @@ async def transcribe_voice_input(
             )
         
         # Validate session
-        user_id = current_user.get("id") if current_user else "demo_user"
+        user_id = current_user.get("id") if current_user else DEMO_USER_ID
         db_conversation = await db.fetchrow(
             "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
             session_id, user_id
@@ -285,7 +287,7 @@ async def create_founder_ai_agreement(
     
     try:
         # Validate session
-        user_id = current_user.get("id") if current_user else "demo_user"
+        user_id = current_user.get("id") if current_user else DEMO_USER_ID
         db_conversation = await db.fetchrow(
             "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
             session_id, user_id
@@ -354,7 +356,7 @@ async def get_conversation_history(
 ):
     """Get complete conversation history"""
     
-    user_id = current_user.get("id") if current_user else "demo_user"
+    user_id = current_user.get("id") if current_user else DEMO_USER_ID
     db_conversation = await db.fetchrow(
         "SELECT * FROM voice_conversations WHERE session_id = $1 AND user_id = $2",
         session_id, user_id
