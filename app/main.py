@@ -604,3 +604,8 @@ if __name__ == "__main__":
         workers=1 if settings.DEBUG else settings.API_WORKERS,
         log_level="info"
     )
+
+# ✅ Add health check endpoint
+@app.get("/healthz")
+async def health_check():
+    return {"status": "ok"}
