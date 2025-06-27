@@ -100,15 +100,9 @@ class ServiceManager:
     async def initialize(self):
         """Initialize all services with comprehensive error handling"""
         logger.info("🚀 Starting service initialization...")
-        
         try:
-            # Load configuration from environment
             config = self._load_configuration()
-            
-            # Initialize database connection pool FIRST
             await self._initialize_database(config)
-            
-            # ✅ FIX: Add explicit error handling for security validator
             try:
                 self.security_validator = SecurityValidator()
                 self.service_status['security_validator'] = True
@@ -117,25 +111,51 @@ class ServiceManager:
                 logger.error(f"❌ Security Validator initialization failed: {e}")
                 self.security_validator = None
                 self.service_status['security_validator'] = False
-                # Don't raise - continue with other services
-            
-            # Initialize LLM Provider (core dependency for many services)
             await self._initialize_llm_provider(config)
-            
-            # Continue with other services...
-            
+            await self._initialize_voice_services(config)
+            await self._initialize_business_intelligence()
+            await self._initialize_dream_engine()
+            await self._initialize_debug_engine()
+            await self._initialize_github_integration(config)
+            await self._initialize_smart_contracts(config)
+            await self._initialize_project_management()
+            await self._initialize_monaco_integration()
+
+            # ✅ Ensure contract_method is always initialized
+            try:
+                self.contract_method = ContractMethod()
+                self.service_status['contract_method'] = True
+                logger.info("✅ Contract Method initialized")
+            except Exception as e:
+                logger.error(f"❌ Contract Method initialization failed: {e}")
+                self.contract_method = None
+                self.service_status['contract_method'] = False
+
+            # ✅ Initialize conversation_engine only if all dependencies are ready
+            try:
+                if self.llm_provider and self.business_intelligence and self.contract_method:
+                    self.conversation_engine = VoiceConversationEngine(
+                        openai_client=self.llm_provider,
+                        business_intelligence=self.business_intelligence,
+                        contract_method=self.contract_method
+                    )
+                    self.service_status['conversation_engine'] = True
+                    logger.info("✅ Conversation Engine initialized")
+                else:
+                    logger.error("❌ Conversation Engine dependencies missing (llm_provider, business_intelligence, contract_method)")
+                    self.conversation_engine = None
+                    self.service_status['conversation_engine'] = False
+            except Exception as e:
+                logger.error(f"❌ Conversation Engine initialization failed: {e}")
+                self.conversation_engine = None
+                self.service_status['conversation_engine'] = False
+
             self.initialized = True
             self._log_initialization_summary()
-            
         except Exception as e:
             logger.error(f"❌ Critical error during service initialization: {e}")
-            logger.error(f"Full error details: {e}")
-            # Still mark as initialized to prevent re-initialization attempts
+            logger.error(f"Full error details: {e}", exc_info=True)
             self.initialized = True
-    
-        
-        
-        # Log configuration status (without exposing keys)
         logger.info("📋 Configuration loaded:")
         for key, value in config.items():
             if value and 'key' in key.lower():
@@ -144,7 +164,6 @@ class ServiceManager:
                 logger.info(f"  - {key}: {value.split('@')[1] if '@' in value else value}")
             else:
                 logger.info(f"  - {key}: {value}")
-        
         return config
     
     async def _initialize_database(self, config: Dict[str, Any]):
