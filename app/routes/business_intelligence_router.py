@@ -36,7 +36,8 @@ async def analyze_market_opportunity(
     Real-time market research and validation
     """
     try:
-        user_id = current_user.get("id") if current_user else "demo_user"
+        DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
+        user_id = current_user.get("id") if current_user and current_user.get("id") else DEMO_USER_ID
         user_email = current_user.get("email") if current_user else "demo@example.com"
         business_intelligence = service_manager.business_intelligence
         if not business_intelligence:
@@ -49,15 +50,15 @@ async def analyze_market_opportunity(
         conversation_id = getattr(request, 'conversation_id', None)
         if not conversation_id:
             conversation_id = f"conv_{user_id}_{uuid.uuid4().hex[:8]}"
-        # Store analysis in database (asyncpg)
         validation_id = str(uuid.uuid4())
         await db.execute(
             """
-            INSERT INTO business_validations (id, conversation_id, market_analysis, created_at)
-            VALUES ($1, $2, $3, NOW())
+            INSERT INTO business_validations (id, conversation_id, user_id, market_analysis, created_at)
+            VALUES ($1, $2, $3, $4, NOW())
             """,
             validation_id,
             conversation_id,
+            user_id,
             json.dumps({
                 "market_size": market_analysis.market_size,
                 "growth_rate": market_analysis.growth_rate,
