@@ -43,7 +43,7 @@ class BusinessIntelligence:
     """Advanced business intelligence and validation system"""
     
     def __init__(self, llm_provider, business_intelligence=None, security_validator=None):
-        self.openai_client = openai_client
+        self.llm_provider = llm_provider
         self.validation_cache = {}
         
     async def analyze_market_opportunity(self, business_idea: Union[str, Dict]) -> MarketAnalysis:
@@ -88,7 +88,7 @@ class BusinessIntelligence:
         """
         
         try:
-            response = await self.openai_client.chat.completions.create(
+            response = await self.llm_provider.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": analysis_prompt}],
                 temperature=0.2
@@ -156,7 +156,7 @@ class BusinessIntelligence:
         """
         
         try:
-            response = await self.openai_client.chat.completions.create(
+            response = await self.llm_provider.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": research_prompt}],
                 temperature=0.3
@@ -240,7 +240,7 @@ class BusinessIntelligence:
         """
         
         try:
-            response = await self.openai_client.chat.completions.create(
+            response = await self.llm_provider.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": validation_prompt}],
                 temperature=0.2
@@ -321,7 +321,7 @@ class BusinessIntelligence:
         """
         
         try:
-            response = await self.openai_client.chat.completions.create(
+            response = await self.llm_provider.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": improvement_prompt}],
                 temperature=0.4

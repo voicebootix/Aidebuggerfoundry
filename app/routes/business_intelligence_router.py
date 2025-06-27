@@ -1,4 +1,3 @@
-
 """
 Business Intelligence API Router (INTELLIGENT)
 Optional but intelligent business validation and strategy analysis
@@ -18,79 +17,59 @@ from app.database.models import *
 from app.utils.business_intelligence import BusinessIntelligence, MarketAnalysis, CompetitorAnalysis, BusinessValidation
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_optional_current_user
+from app.services import service_manager
+import asyncpg
+import json
 
 
 router = APIRouter(tags=["Smart Business Validation"])
 logger = get_logger("business_intelligence_api")
 
-# Initialize business intelligence engine
-business_intelligence = None  # Will be initialized with LLM provider
-
 @router.post("/analyze-market", response_model=MarketAnalysisResponse)
 async def analyze_market_opportunity(
     request: MarketAnalysisRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
     Comprehensive market opportunity analysis
     Real-time market research and validation
     """
-    
     try:
-        # Handle demo mode
         user_id = current_user.get("id") if current_user else "demo_user"
         user_email = current_user.get("email") if current_user else "demo@example.com"
-        
-        # Initialize business intelligence if needed
-        global business_intelligence
+        business_intelligence = service_manager.business_intelligence
         if not business_intelligence:
-            from app.utils.llm_provider import EnhancedLLMProvider
-            llm_provider = EnhancedLLMProvider()
-            await llm_provider.initialize()  # ✅ Initialize first
-            # Use the provider itself, not just openai_client
-            business_intelligence = BusinessIntelligence(llm_provider)  # ✅ Pass the whole provider
-
-        
-        # Handle business_idea whether it's string or dict
+            raise HTTPException(status_code=503, detail="Business intelligence service unavailable.")
         if isinstance(request.business_idea, dict):
             business_idea_text = request.business_idea.get("description", str(request.business_idea))
         else:
             business_idea_text = str(request.business_idea)
-
-        market_analysis = await business_intelligence.analyze_market_opportunity(
-            business_idea=business_idea_text
-        )
-        
-        # Generate conversation ID if not provided
+        market_analysis = await business_intelligence.analyze_market_opportunity(business_idea=business_idea_text)
         conversation_id = getattr(request, 'conversation_id', None)
         if not conversation_id:
             conversation_id = f"conv_{user_id}_{uuid.uuid4().hex[:8]}"
-        
-        # Store analysis in database
-        db_validation = BusinessValidation(
-            id=str(uuid.uuid4()),
-            conversation_id=conversation_id,
-            market_analysis={
+        # Store analysis in database (asyncpg)
+        validation_id = str(uuid.uuid4())
+        await db.execute(
+            """
+            INSERT INTO business_validations (id, conversation_id, market_analysis, created_at)
+            VALUES ($1, $2, $3, NOW())
+            """,
+            validation_id,
+            conversation_id,
+            json.dumps({
                 "market_size": market_analysis.market_size,
                 "growth_rate": market_analysis.growth_rate,
                 "key_trends": market_analysis.key_trends,
                 "opportunities": market_analysis.opportunities,
                 "threats": market_analysis.threats,
                 "confidence_score": market_analysis.confidence_score
-            },
-            created_at=datetime.utcnow()
+            })
         )
-        
-        db.add(db_validation)
-        db.commit()
-        db.refresh(db_validation)
-        
         logger.info(f"Market analysis completed for user: {user_id}, conversation: {conversation_id}")
-        
         return MarketAnalysisResponse(
-            analysis_id=db_validation.id,
+            analysis_id=validation_id,
             market_size=market_analysis.market_size,
             growth_rate=market_analysis.growth_rate,
             key_trends=market_analysis.key_trends,
@@ -99,7 +78,6 @@ async def analyze_market_opportunity(
             confidence_score=market_analysis.confidence_score,
             recommendations=["Proceed with MVP development", "Validate with target customers", "Monitor competition closely"]
         )
-        
     except Exception as e:
         logger.error(f"Market analysis failed: {str(e)}")
         import traceback
