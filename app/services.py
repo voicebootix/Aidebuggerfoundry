@@ -12,6 +12,7 @@ import anthropic
 import asyncpg
 from typing import Optional, Dict, Any
 from datetime import datetime
+import traceback
 
 
 # Import all service classes
@@ -147,6 +148,7 @@ class ServiceManager:
                     self.service_status['conversation_engine'] = False
             except Exception as e:
                 logger.error(f"❌ Conversation Engine initialization failed: {e}")
+                logger.error(traceback.format_exc())
                 self.conversation_engine = None
                 self.service_status['conversation_engine'] = False
 
