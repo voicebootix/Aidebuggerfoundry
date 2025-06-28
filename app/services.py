@@ -133,6 +133,7 @@ class ServiceManager:
                 self.service_status['contract_method'] = False
 
             # ✅ Initialize conversation_engine only if all dependencies are ready
+            logger.info(f"Conversation Engine dependencies: llm_provider={self.llm_provider is not None}, business_intelligence={self.business_intelligence is not None}, contract_method={self.contract_method is not None}")
             try:
                 if self.llm_provider and self.business_intelligence and self.contract_method:
                     self.conversation_engine = VoiceConversationEngine(
