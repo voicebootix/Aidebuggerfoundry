@@ -6,13 +6,12 @@ Transforms founder agreements into production-ready applications
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import StreamingResponse, JSONResponse
-from sqlalchemy.orm import Session
 from typing import Dict, List, Optional, Any, AsyncGenerator
 import json
 import asyncio
 import uuid
 from datetime import datetime
-from app.utils.auth_utils import get_current_user, get_optional_current_user
+import asyncpg
 
 from app.database.db import get_db
 from app.database.models import *
@@ -22,21 +21,18 @@ from app.utils.security_validator import SecurityValidator
 from app.utils.smart_contract_system import SmartContractSystem
 from app.utils.logger import get_logger
 from app.utils.auth_utils import get_optional_current_user
-import uuid
+from app.services import service_manager
 
 
 router = APIRouter(tags=["Layer 1 - Build"])
 logger = get_logger("dream_engine_api")
 
-# Initialize core components
-dream_engine = None  # Will be initialized with dependencies
-security_validator = SecurityValidator()
-smart_contract_system = None  # Will be initialized
+DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
 
 @router.post("/analyze-strategic-requirements", response_model=StrategicAnalysisResponse)
 async def analyze_strategic_requirements(
     request: StrategicAnalysisRequest,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -44,90 +40,88 @@ async def analyze_strategic_requirements(
     Enhanced business and technical analysis
     """
     # Handle demo mode
-    user_id = current_user.get("id") if current_user else "demo_user"
+    user_id = current_user.get("id") if current_user else DEMO_USER_ID
     user_email = current_user.get("email") if current_user else "demo@example.com"
 
+    # Check if dream engine is available
+    if not service_manager.dream_engine:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Dream Engine service is not available. Please ensure LLM provider is configured."
+        )
+
     # Get or create project
-    project = db.query(Project).filter(
-        Project.id == request.project_id,
-        Project.user_id == user_id
-    ).first()
+    project = await db.fetchrow(
+        "SELECT * FROM projects WHERE id = $1 AND user_id = $2",
+        request.project_id, user_id
+    )
     
     if not project:
         # Create new project
-        project = Project(
-            id=request.project_id,
-            project_name=f"Project {request.project_id[-6:]}",
-            user_id=user_id,
-            technology_stack=["FastAPI", "React", "PostgreSQL"],
-            status="planning",
-            created_at=datetime.utcnow()
+        project_id = request.project_id or str(uuid.uuid4())
+        await db.execute(
+            """INSERT INTO projects 
+            (id, project_name, user_id, technology_stack, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, NOW(), NOW())""",
+            project_id,
+            f"Project {project_id[-6:]}",
+            user_id,
+            json.dumps(["FastAPI", "React", "PostgreSQL"]),
+            "planning"
         )
-        db.add(project)
-        db.commit()
-        db.refresh(project)
+        
+        project = await db.fetchrow(
+            "SELECT * FROM projects WHERE id = $1", project_id
+        )
     
     # Store founder agreement if provided
     if hasattr(request, 'founder_agreement') and request.founder_agreement:
-        project.founder_ai_agreement = request.founder_agreement
-        db.commit()
-    
-    # Initialize dream engine if needed
-    global dream_engine
-    if not dream_engine:
-        from app.utils.llm_provider import EnhancedLLMProvider
-        llm_provider = EnhancedLLMProvider()
-        dream_engine = DreamEngine(
-        llm_provider=llm_provider,
-        business_intelligence=None,  # Will initialize when needed
-        security_validator=security_validator
-    )
-    
-    # Prepare founder agreement
-    founder_agreement = project.founder_ai_agreement or {}
-    if hasattr(request, 'additional_requirements') and request.additional_requirements:
-        founder_agreement['additional_requirements'] = request.additional_requirements
+        await db.execute(
+            "UPDATE projects SET founder_ai_agreement = $1, updated_at = NOW() WHERE id = $2",
+            json.dumps(request.founder_agreement), project['id']
+        )
     
     try:
-        # Perform strategic analysis
-        founder_agreement = project.founder_ai_agreement or {}
+        # Prepare founder agreement
+        founder_agreement = json.loads(project['founder_ai_agreement']) if project['founder_ai_agreement'] else {}
         if hasattr(request, 'additional_requirements') and request.additional_requirements:
             founder_agreement['additional_requirements'] = request.additional_requirements
 
-        strategic_analysis = await dream_engine.analyze_strategic_requirements(
+        # Perform strategic analysis
+        strategic_analysis = await service_manager.dream_engine.analyze_strategic_requirements(
             founder_agreement=founder_agreement,
             project_context={
-             "project_id": project.id,
-             "project_name": project.project_name,
-             "user_id": user_id
-        }
-    )
+                "project_id": project['id'],
+                "project_name": project['project_name'],
+                "user_id": user_id
+            }
+        )
         
         # Create dream session
-        dream_session = DreamSession(
-            id=str(uuid.uuid4()),
-            project_id=project.id,
-            user_input=str(founder_agreement),
-            strategic_analysis={
+        dream_session_id = str(uuid.uuid4())
+        await db.execute(
+            """INSERT INTO dream_sessions 
+            (id, project_id, user_input, strategic_analysis, status, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW())""",
+            dream_session_id,
+            project['id'],
+            json.dumps(founder_agreement),
+            json.dumps({
                 "business_context": strategic_analysis.business_context,
                 "technical_requirements": strategic_analysis.technical_requirements,
                 "architecture_recommendations": strategic_analysis.architecture_recommendations,
                 "implementation_strategy": strategic_analysis.implementation_strategy,
-                "risk_assessment": strategic_analysis.risk_assessment
-            },
-            status="analysis_complete",
-            created_at=datetime.utcnow()
+                "risk_assessment": strategic_analysis.risk_assessment,
+                "timeline_estimate": strategic_analysis.timeline_estimate
+            }),
+            "analysis_complete"
         )
         
-        db.add(dream_session)
-        db.commit()
-        db.refresh(dream_session)
-        
-        logger.info(f"Strategic analysis completed for project: {project.id}")
+        logger.info(f"Strategic analysis completed for project: {project['id']}")
         
         return StrategicAnalysisResponse(
-            analysis_id=dream_session.id,
-            project_id=project.id,
+            analysis_id=dream_session_id,
+            project_id=project['id'],
             business_context=strategic_analysis.business_context,
             technical_requirements=strategic_analysis.technical_requirements,
             architecture_recommendations=strategic_analysis.architecture_recommendations,
@@ -150,7 +144,7 @@ async def analyze_strategic_requirements(
 async def generate_production_code(
     request: CodeGenerationRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -160,17 +154,23 @@ async def generate_production_code(
     
     try:
         # Handle authentication
-        user_id = current_user.get("id") if current_user else "demo_user"
+        user_id = current_user.get("id") if current_user else DEMO_USER_ID
         
-        # user_id = current_user.get("id")
+        # Check if dream engine is available
+        if not service_manager.dream_engine:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Dream Engine service is not available."
+            )
          
         # Validate project and get strategic analysis
-        dream_session = db.query(DreamSession).filter(
-            DreamSession.id == request.analysis_id,
-            DreamSession.project_id.in_(
-                db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
-            )
-        ).first()
+        dream_session = await db.fetchrow(
+            """SELECT ds.*, p.founder_ai_agreement, p.project_name
+            FROM dream_sessions ds
+            JOIN projects p ON ds.project_id = p.id
+            WHERE ds.id = $1 AND p.user_id = $2""",
+            request.analysis_id, user_id
+        )
         
         if not dream_session:
             raise HTTPException(
@@ -178,70 +178,79 @@ async def generate_production_code(
                 detail="Strategic analysis not found"
             )
         
-        project = db.query(Project).filter(Project.id == dream_session.project_id).first()
-        
         # Create strategic analysis object
+        strategic_analysis_data = json.loads(dream_session['strategic_analysis'])
         strategic_analysis = StrategicAnalysis(
-            business_context=dream_session.strategic_analysis["business_context"],
-            technical_requirements=dream_session.strategic_analysis["technical_requirements"],
-            architecture_recommendations=dream_session.strategic_analysis["architecture_recommendations"],
-            implementation_strategy=dream_session.strategic_analysis["implementation_strategy"],
-            risk_assessment=dream_session.strategic_analysis["risk_assessment"],
-            timeline_estimate=dream_session.strategic_analysis["timeline_estimate"]
+            business_context=strategic_analysis_data["business_context"],
+            technical_requirements=strategic_analysis_data["technical_requirements"],
+            architecture_recommendations=strategic_analysis_data["architecture_recommendations"],
+            implementation_strategy=strategic_analysis_data["implementation_strategy"],
+            risk_assessment=strategic_analysis_data["risk_assessment"],
+            timeline_estimate=strategic_analysis_data["timeline_estimate"]
         )
         
         # Generate production code
-        code_generation_result = await dream_engine.generate_production_code(
+        founder_agreement = json.loads(dream_session['founder_ai_agreement']) if dream_session['founder_ai_agreement'] else {}
+        code_generation_result = await service_manager.dream_engine.generate_production_code(
             strategic_analysis=strategic_analysis,
-            founder_agreement=project.founder_ai_agreement
+            founder_agreement=founder_agreement
         )
         
-        # Add digital watermarks (Patent-worthy)
-        global smart_contract_system
-        if not smart_contract_system:
-            smart_contract_system = SmartContractSystem(
-                web3_provider_url="your_web3_url",
-                platform_wallet_address="your_platform_address"
-            )
-        
+        # Add digital watermarks if smart contract system is available
         watermarked_files = []
-        for generated_file in code_generation_result.generated_files:
-            watermarked_content = await smart_contract_system.add_digital_watermark(
-                code_content=generated_file.content,
-                project_id=project.id
-            )
-            watermarked_files.append({
-                "filename": generated_file.filename,
-                "content": watermarked_content,
-                "file_type": generated_file.file_type,
-                "description": generated_file.description
-            })
+        if service_manager.smart_contract_system:
+            for generated_file in code_generation_result.generated_files:
+                watermarked_content = await service_manager.smart_contract_system.add_digital_watermark(
+                    code_content=generated_file.content,
+                    project_id=dream_session['project_id']
+                )
+                watermarked_files.append({
+                    "filename": generated_file.filename,
+                    "content": watermarked_content,
+                    "file_type": generated_file.file_type,
+                    "description": generated_file.description
+                })
+        else:
+            # No watermarking if smart contract system unavailable
+            watermarked_files = [{
+                "filename": f.filename,
+                "content": f.content,
+                "file_type": f.file_type,
+                "description": f.description
+            } for f in code_generation_result.generated_files]
         
         # Update dream session with results
-        dream_session.generated_files = {
-            "files": watermarked_files,
-            "project_structure": code_generation_result.project_structure,
-            "deployment_instructions": code_generation_result.deployment_instructions,
-            "testing_guide": code_generation_result.testing_guide
-        }
-        dream_session.generation_quality_score = code_generation_result.quality_score
-        dream_session.status = "code_generated"
+        await db.execute(
+            """UPDATE dream_sessions 
+            SET generated_files = $1, generation_quality_score = $2, status = $3
+            WHERE id = $4""",
+            json.dumps({
+                "files": watermarked_files,
+                "project_structure": code_generation_result.project_structure,
+                "deployment_instructions": code_generation_result.deployment_instructions,
+                "testing_guide": code_generation_result.testing_guide
+            }),
+            code_generation_result.quality_score,
+            "code_generated",
+            request.analysis_id
+        )
         
         # Update project status
-        project.status = "built"
-        
-        db.commit()
+        await db.execute(
+            "UPDATE projects SET status = 'built', updated_at = NOW() WHERE id = $1",
+            dream_session['project_id']
+        )
         
         logger.log_structured("info", "Code generation completed", {
-            "project_id": project.id,
-            "user_id": current_user.id,
+            "project_id": dream_session['project_id'],
+            "user_id": user_id,
             "files_generated": len(watermarked_files),
             "quality_score": code_generation_result.quality_score
         })
         
         return CodeGenerationResponse(
-            generation_id=dream_session.id,
-            project_id=project.id,
+            generation_id=request.analysis_id,
+            project_id=dream_session['project_id'],
             generated_files=watermarked_files,
             project_structure=code_generation_result.project_structure,
             deployment_instructions=code_generation_result.deployment_instructions,
@@ -251,10 +260,12 @@ async def generate_production_code(
             estimated_deployment_time="15-30 minutes"
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.log_structured("error", "Code generation failed", {
             "analysis_id": request.analysis_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "error": str(e)
         })
         raise HTTPException(
@@ -265,17 +276,18 @@ async def generate_production_code(
 @router.get("/generation-status/{generation_id}")
 async def get_generation_status(
     generation_id: str,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get code generation status and progress"""
     
-    dream_session = db.query(DreamSession).filter(
-        DreamSession.id == generation_id,
-        DreamSession.project_id.in_(
-            db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
-        )
-    ).first()
+    dream_session = await db.fetchrow(
+        """SELECT ds.*, p.founder_ai_agreement, p.project_name
+        FROM dream_sessions ds
+        JOIN projects p ON ds.project_id = p.id
+        WHERE ds.id = $1 AND p.user_id = $2""",
+        generation_id, current_user.get("id") if current_user else DEMO_USER_ID
+    )
     
     if not dream_session:
         raise HTTPException(
@@ -285,18 +297,18 @@ async def get_generation_status(
     
     return CodeGenerationStatusResponse(
         generation_id=generation_id,
-        project_id=dream_session.project_id,
-        status=dream_session.status,
-        progress_percentage=100 if dream_session.status == "code_generated" else 50,
-        quality_score=dream_session.generation_quality_score,
-        files_generated=len(dream_session.generated_files.get("files", [])) if dream_session.generated_files else 0,
-        estimated_completion="Completed" if dream_session.status == "code_generated" else "In progress"
+        project_id=dream_session['project_id'],
+        status=dream_session['status'],
+        progress_percentage=100 if dream_session['status'] == "code_generated" else 50,
+        quality_score=dream_session['generation_quality_score'],
+        files_generated=len(json.loads(dream_session['generated_files'])['files']) if dream_session['generated_files'] else 0,
+        estimated_completion="Completed" if dream_session['status'] == "code_generated" else "In progress"
     )
 
 @router.post("/stream-generation")
 async def stream_code_generation(
     request: StreamCodeGenerationRequest,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """
@@ -346,19 +358,20 @@ async def stream_code_generation(
 @router.get("/download-code/{generation_id}")
 async def download_generated_code(
     generation_id: str,
-    db: Session = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Download generated code as ZIP file"""
     
-    dream_session = db.query(DreamSession).filter(
-        DreamSession.id == generation_id,
-        DreamSession.project_id.in_(
-            db.query(Project.id).filter(Project.user_id == (current_user.get("id") if current_user else "demo_user"))
-        )
-    ).first()
+    dream_session = await db.fetchrow(
+        """SELECT ds.*, p.founder_ai_agreement, p.project_name
+        FROM dream_sessions ds
+        JOIN projects p ON ds.project_id = p.id
+        WHERE ds.id = $1 AND p.user_id = $2""",
+        generation_id, current_user.get("id") if current_user else DEMO_USER_ID
+    )
     
-    if not dream_session or not dream_session.generated_files:
+    if not dream_session or not dream_session['generated_files']:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Generated code not found"
@@ -371,7 +384,7 @@ async def download_generated_code(
     zip_buffer = io.BytesIO()
     
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for file_data in dream_session.generated_files["files"]:
+        for file_data in json.loads(dream_session['generated_files'])['files']:
             zip_file.writestr(file_data["filename"], file_data["content"])
     
     zip_buffer.seek(0)

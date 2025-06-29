@@ -349,13 +349,14 @@ async def init_db():
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS business_validations (
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                conversation_id UUID REFERENCES voice_conversations(id),
+                conversation_id VARCHAR(255) NOT NULL,
                 market_analysis JSONB,
                 competitor_research JSONB,
                 business_model_validation JSONB,
                 strategy_recommendations JSONB,
                 validation_score DECIMAL(3,2),
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         ''')
         

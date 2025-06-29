@@ -211,15 +211,14 @@ class ServiceManager:
                     openai_api_key=config['openai_api_key']
                 )
                 # ✅ FIX: Check initialization return value
-                if not await self.voice_processor.initialize():
+                init_result = await self.voice_processor.initialize()
+                if not init_result:
                     logger.error("Voice processor failed initialization test")
                     self.voice_processor = None
-                    raise Exception("Voice processor initialization failed")
-                
-                self.service_status['voice_processor'] = True
-                logger.info("✅ Voice Processor initialized")
-                
-                # Rest of initialization...
+                    self.service_status['voice_processor'] = False
+                else:
+                    self.service_status['voice_processor'] = True
+                    logger.info("✅ Voice Processor initialized")
                 
             else:
                 # ✅ FIX: Explicitly set to None when no API key

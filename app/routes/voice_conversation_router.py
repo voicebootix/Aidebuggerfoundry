@@ -22,10 +22,7 @@ from app.utils.business_intelligence import BusinessIntelligence
 from app.utils.contract_method import ContractMethod
 from app.utils.logger import get_logger
 from app.utils.security_validator import SecurityValidator
-from app.utils.auth_utils import get_current_user
-from typing import Dict
 from app.utils.auth_utils import get_current_user, get_optional_current_user
-from app.utils.auth_utils import get_optional_current_user
 
 
 router = APIRouter(tags=["VoiceBotics AI Cofounder"])
@@ -76,16 +73,23 @@ async def start_ai_cofounder_conversation(
             initial_input=request.initial_input
         )
         
-        # REPLACE WITH:
+        # Create conversation record in database
+        conversation_id = str(uuid.uuid4())
         await db.execute(
-                """INSERT INTO voice_conversations 
-                (id, session_id, user_id, conversation_history, founder_type_detected, 
-                business_validation_requested, conversation_state, founder_ai_agreement, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())""",
-            session.session_id, session.session_id, user_id, 
+            """INSERT INTO voice_conversations 
+            (id, session_id, user_id, conversation_history, founder_type_detected, 
+            business_validation_requested, strategy_validated, conversation_state, 
+            founder_ai_agreement, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())""",
+            conversation_id,
+            session.session_id, 
+            user_id, 
             json.dumps(session.conversation_history),
             session.founder_profile.type.value if session.founder_profile else "unknown",
-            session.validation_requested, session.current_state.value, None
+            session.validation_requested,
+            False,  # strategy_validated
+            session.current_state.value,
+            None  # founder_ai_agreement
         )
         
         logger.log_structured("info", "AI cofounder conversation started", {
@@ -103,10 +107,12 @@ async def start_ai_cofounder_conversation(
             next_actions=["Continue conversation", "Request business validation", "Proceed to code generation"]
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         logger.log_structured("error", "Failed to start conversation", {
-            "user_id": user_id,
+            "user_id": user_id if 'user_id' in locals() else 'unknown',
             "error": str(e),
             "traceback": traceback.format_exc()
         })
@@ -139,6 +145,13 @@ async def process_conversation_turn(
                 detail="Conversation session not found"
             )
         
+        # CHECK: Ensure conversation engine is available
+        if not service_manager.conversation_engine:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI cofounder service is not available."
+            )
+        
         # ✅ FIX: Use fallback security validator if service_manager one is None
         validator = service_manager.security_validator if service_manager.security_validator else SecurityValidator()
         
@@ -156,7 +169,8 @@ async def process_conversation_turn(
         )
         
         # Update database
-        updated_history = db_conversation.conversation_history + [
+        current_history = json.loads(db_conversation['conversation_history'])
+        updated_history = current_history + [
             {
                 "role": "user",
                 "content": request.user_response,
@@ -183,10 +197,12 @@ async def process_conversation_turn(
             session_id=session_id
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.log_structured("error", "Failed to process conversation turn", {
             "session_id": session_id,
-            "user_id": user_id,
+            "user_id": user_id if 'user_id' in locals() else 'unknown',
             "error": str(e)
         })
         raise HTTPException(
@@ -299,48 +315,64 @@ async def create_founder_ai_agreement(
                 detail="Conversation session not found"
             )
         
+        # CHECK: Ensure conversation engine is available
+        if not service_manager.conversation_engine:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI cofounder service is not available."
+            )
+        
         # Create founder-AI agreement
-        agreement = await conversation_engine.create_founder_ai_agreement(session_id)
+        agreement = await service_manager.conversation_engine.create_founder_ai_agreement(session_id)
         
         # Update conversation with agreement
-        db_conversation.founder_ai_agreement = agreement
-        db_conversation.conversation_state = "agreement_created"
-        db.commit()
-        
-        # Create project from agreement
-        project = Project(
-            project_name=agreement["business_specification"]["solution_description"][:100],
-            user_id=user_id,
-            conversation_session_id=session_id,
-            founder_ai_agreement=agreement,
-            technology_stack=agreement["ai_commitments"]["technology_stack"],
-            status="planning"
+        await db.execute(
+            """UPDATE voice_conversations 
+               SET founder_ai_agreement = $1, conversation_state = $2, updated_at = NOW()
+               WHERE session_id = $3""",
+            json.dumps(agreement), "agreement_created", session_id
         )
         
-        db.add(project)
-        db.commit()
-        db.refresh(project)
+        # Create project from agreement
+        project_id = str(uuid.uuid4())
+        project_name = agreement["business_specification"]["solution_description"][:100]
+        
+        await db.execute(
+            """INSERT INTO projects 
+            (id, project_name, user_id, conversation_session_id, founder_ai_agreement,
+             technology_stack, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())""",
+            project_id,
+            project_name,
+            user_id,
+            session_id,
+            json.dumps(agreement),
+            json.dumps(agreement["ai_commitments"]["technology_stack"]),
+            "planning"
+        )
         
         logger.log_structured("info", "Founder-AI agreement created", {
             "session_id": session_id,
             "user_id": user_id,
-            "project_id": project.id,
+            "project_id": project_id,
             "agreement_id": agreement["agreement_id"]
         })
         
         return FounderAgreementResponse(
             agreement_id=agreement["agreement_id"],
-            project_id=project.id,
+            project_id=project_id,
             business_specification=agreement["business_specification"],
             ai_commitments=agreement["ai_commitments"],
             success_criteria=agreement["success_criteria"],
             ready_for_code_generation=True
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.log_structured("error", "Failed to create agreement", {
             "session_id": session_id,
-            "user_id": user_id,
+            "user_id": user_id if 'user_id' in locals() else 'unknown',
             "error": str(e)
         })
         raise HTTPException(
@@ -370,12 +402,12 @@ async def get_conversation_history(
     
     return ConversationHistoryResponse(
         session_id=session_id,
-        conversation_history=db_conversation.conversation_history,
-        founder_type_detected=db_conversation.founder_type_detected,
-        conversation_state=db_conversation.conversation_state,
-        business_validation_requested=db_conversation.business_validation_requested,
-        strategy_validated=db_conversation.strategy_validated,
-        founder_ai_agreement=db_conversation.founder_ai_agreement
+        conversation_history=json.loads(db_conversation['conversation_history']),
+        founder_type_detected=db_conversation['founder_type_detected'],
+        conversation_state=db_conversation['conversation_state'],
+        business_validation_requested=db_conversation['business_validation_requested'],
+        strategy_validated=db_conversation['strategy_validated'],
+        founder_ai_agreement=json.loads(db_conversation['founder_ai_agreement']) if db_conversation['founder_ai_agreement'] else None
     )
 
 @router.get("/sessions")
@@ -385,29 +417,28 @@ async def get_user_conversation_sessions(
 ):
     """Get all conversation sessions for user"""
     
-    conversations = db.query(VoiceConversation).filter(
-        VoiceConversation.user_id == current_user.id
-    ).order_by(VoiceConversation.created_at.desc()).all()
+    user_id = current_user.get("id") if current_user else DEMO_USER_ID
     
-    return {
-        "sessions": [
-            {
-                "session_id": conv.session_id,
-                "conversation_state": conv.conversation_state,
-                "founder_type_detected": conv.founder_type_detected,
-                "created_at": conv.created_at.isoformat(),
-                "last_message": conv.conversation_history[-1]["content"] if conv.conversation_history else None
-            }
-            for conv in conversations
-        ]
-    }
-    # UPDATE ALL ROUTE DEPENDENCIES
-async def example_route(
-    db: asyncpg.Connection = Depends(get_db),  # Changed from Session
-    current_user: Dict = Depends(get_optional_current_user)  # Changed from User
-):
-    # Use asyncpg operations instead of SQLAlchemy
-    # Example:
-    # OLD: db.query(User).filter(User.id == user_id).first()
-    # NEW: await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
-    pass
+    conversations = await db.fetch(
+        """SELECT session_id, conversation_state, founder_type_detected, 
+           created_at, conversation_history
+           FROM voice_conversations 
+           WHERE user_id = $1 
+           ORDER BY created_at DESC""",
+        user_id
+    )
+    
+    sessions = []
+    for conv in conversations:
+        history = json.loads(conv['conversation_history'])
+        last_message = history[-1]["content"] if history else None
+        
+        sessions.append({
+            "session_id": conv['session_id'],
+            "conversation_state": conv['conversation_state'],
+            "founder_type_detected": conv['founder_type_detected'],
+            "created_at": conv['created_at'].isoformat(),
+            "last_message": last_message
+        })
+    
+    return {"sessions": sessions}
