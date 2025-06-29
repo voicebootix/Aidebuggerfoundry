@@ -189,6 +189,15 @@ async def lifespan(app: FastAPI):
         logger.error(f"Full error details: {e}", exc_info=True)
         # Continue running - services will show as unavailable
 
+    # Log all registered routes for debugging
+    from fastapi.routing import APIRoute
+    route_info = []
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            methods = ','.join(route.methods)
+            route_info.append(f"{methods} {route.path}")
+    logger.info(f"[ROUTES] Registered routes: {route_info}")
+
     yield
     
     # Shutdown
