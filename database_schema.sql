@@ -369,3 +369,29 @@ LEFT JOIN revenue_sharing rs ON p.id = rs.project_id
 GROUP BY u.id, u.email, u.founder_type, u.created_at;
 
 COMMENT ON DATABASE dreamengine_db IS 'AI Debugger Factory - Revolutionary AI-powered development platform with patent-worthy innovations';
+
+-- ==========================================
+-- MIGRATION: Add missing columns for platform compatibility
+-- ==========================================
+
+-- Add strategy_validated to voice_conversations if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='voice_conversations' AND column_name='strategy_validated'
+    ) THEN
+        ALTER TABLE voice_conversations ADD COLUMN strategy_validated BOOLEAN DEFAULT FALSE;
+    END IF;
+END$$;
+
+-- Add project_id to dream_sessions if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='dream_sessions' AND column_name='project_id'
+    ) THEN
+        ALTER TABLE dream_sessions ADD COLUMN project_id UUID REFERENCES projects(id) ON DELETE CASCADE;
+    END IF;
+END$$;
