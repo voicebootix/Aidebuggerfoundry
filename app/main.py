@@ -349,6 +349,12 @@ app.include_router(
 )
 
 # ==========================================
+# STATIC FILES (Frontend SPA catch-all)
+# ==========================================
+from fastapi.staticfiles import StaticFiles
+app.mount("/static", StaticFiles(directory="app/templates", html=True), name="static")
+
+# ==========================================
 # CORE APPLICATION ROUTES
 # ==========================================
 
