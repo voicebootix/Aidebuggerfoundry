@@ -37,9 +37,8 @@ from app.config import settings, get_settings
 import asyncpg
 
 # Core utilities
-
-logger = logging.getLogger(__name__)
-
+from app.utils.logger import get_logger
+logger = get_logger("service_manager")
 
 # Route imports - Import all revolutionary features
 from app.routes.voice_conversation_router import router as voice_conversation_router
@@ -233,28 +232,21 @@ app.add_middleware(
 async def logging_middleware(request: Request, call_next):
     """Log all requests and responses"""
     start_time = asyncio.get_event_loop().time()
-    
-    # Process request
-    response = await call_next(request)
-    
-    # Calculate processing time
+    logger.info(f"[MIDDLEWARE] Incoming request: {request.method} {request.url}")
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        logger.error(f"[MIDDLEWARE] Exception during request: {e}")
+        raise
     process_time = asyncio.get_event_loop().time() - start_time
-    
-    # Log request/response
-    logger.info(f"{request.method} {request.url} - {response.status_code} - {process_time:.3f}s")
-
-    
-    # Add processing time header
+    logger.info(f"[MIDDLEWARE] {request.method} {request.url} - {response.status_code} - {process_time:.3f}s")
     response.headers["X-Process-Time"] = str(process_time)
-    
     return response
 
 # Error handling middleware
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handle HTTP exceptions with proper logging"""
-    logger.warning(f"HTTP {exc.status_code}: {exc.detail} - {request.method} {request.url}")
-    
+    logger.warning(f"[EXCEPTION] HTTP {exc.status_code}: {exc.detail} - {request.method} {request.url}")
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -268,7 +260,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
-    logger.error(f"Global exception: {exc}\n{traceback.format_exc()}")
+    logger.error(f"[EXCEPTION] Global exception: {exc}\n{traceback.format_exc()}")
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {str(exc)}"}
