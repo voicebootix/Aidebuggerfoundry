@@ -16,9 +16,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
-from app.services import service_manager
-from app.database.db import init_db
-from app.services import service_manager
+from datetime import datetime
 
 # FastAPI imports
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
@@ -27,16 +25,15 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
-from app.utils.auth_utils import get_optional_current_user
+
+# Core imports
 from app.services import service_manager
-from app.config import settings, get_settings
-
-
-# Database and models
 from app.database.db import db_manager, get_db
 from app.database.models import *
-from contextlib import asynccontextmanager
-from app.services import service_manager  # Add this import
+from app.utils.auth_utils import get_optional_current_user
+from app.config import settings, get_settings
+
+# Database and models
 import asyncpg
 
 # Core utilities
@@ -605,7 +602,4 @@ if __name__ == "__main__":
         log_level="info"
     )
 
-# ✅ Add health check endpoint
-@app.get("/healthz")
-async def health_check():
-    return {"status": "ok"}
+
