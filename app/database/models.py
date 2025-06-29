@@ -207,7 +207,7 @@ class StrategicAnalysisResponse(BaseModel):
     ready_for_code_generation: bool
 
 class CodeGenerationRequest(BaseModel):
-    analysis_id: str
+    analysis_id: Optional[str] = None
     custom_requirements: Optional[Dict[str, Any]] = Field(None, description="Custom technical requirements")
 
 class CodeGenerationResponse(BaseModel):
@@ -222,7 +222,7 @@ class CodeGenerationResponse(BaseModel):
     estimated_deployment_time: str
 
 class StreamCodeGenerationRequest(BaseModel):
-    analysis_id: str
+    analysis_id: Optional[str] = None
     stream_updates: bool = Field(default=True)
 
 class CodeGenerationStatusResponse(BaseModel):

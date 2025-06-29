@@ -116,23 +116,30 @@ class ServiceManager:
             await self._initialize_voice_services(config)
             await self._initialize_business_intelligence()
             await self._initialize_dream_engine()
-            await self._initialize_debug_engine()
+            await self._initialize_monaco_integration()
             await self._initialize_github_integration(config)
             await self._initialize_smart_contracts(config)
             await self._initialize_project_management()
-            await self._initialize_monaco_integration()
 
-            # ✅ Ensure contract_method is always initialized
+            # ContractMethod requires llm_provider
             try:
-                self.contract_method = ContractMethod()
-                self.service_status['contract_method'] = True
-                logger.info("✅ Contract Method initialized")
+                if self.llm_provider:
+                    self.contract_method = ContractMethod(self.llm_provider)
+                    self.service_status['contract_method'] = True
+                    logger.info("✅ Contract Method initialized")
+                else:
+                    logger.warning("⚠️ Contract Method skipped (no llm_provider)")
+                    self.contract_method = None
+                    self.service_status['contract_method'] = False
             except Exception as e:
                 logger.error(f"❌ Contract Method initialization failed: {e}")
                 self.contract_method = None
                 self.service_status['contract_method'] = False
 
-            # ✅ Initialize conversation_engine only if all dependencies are ready
+            # DebugEngine requires llm_provider, monaco_integration, github_integration
+            await self._initialize_debug_engine()
+
+            # ConversationEngine only if all dependencies are ready
             logger.info(f"Conversation Engine dependencies: llm_provider={self.llm_provider is not None}, business_intelligence={self.business_intelligence is not None}, contract_method={self.contract_method is not None}")
             try:
                 if self.llm_provider and self.business_intelligence and self.contract_method:
@@ -270,18 +277,21 @@ class ServiceManager:
     async def _initialize_debug_engine(self):
         """Initialize debug engine"""
         try:
-            if self.llm_provider:
+            if self.llm_provider and self.monaco_integration and self.github_integration:
                 self.debug_engine = DebugEngine(
                     llm_provider=self.llm_provider,
-                    github_integration=None  # Will be set after GitHub init
+                    monaco_integration=self.monaco_integration,
+                    github_integration=self.github_integration
                 )
                 self.service_status['debug_engine'] = True
                 logger.info("✅ Debug Engine initialized")
             else:
-                logger.warning("⚠️ Debug Engine skipped (no LLM provider)")
+                logger.warning("⚠️ Debug Engine skipped (missing llm_provider, monaco_integration, or github_integration)")
+                self.debug_engine = None
                 self.service_status['debug_engine'] = False
         except Exception as e:
             logger.error(f"❌ Debug Engine initialization failed: {e}")
+            self.debug_engine = None
             self.service_status['debug_engine'] = False
     
     async def _initialize_github_integration(self, config: Dict[str, Any]):
@@ -326,17 +336,14 @@ class ServiceManager:
             # Project Manager
             if hasattr(self, 'db_manager') and self.db_manager:
                 self.project_manager = ProjectManager(
-                    db_manager=self.db_manager,
-                    github_integration=self.github_integration
+                    database_manager=self.db_manager
                 )
                 self.service_status['project_manager'] = True
                 logger.info("✅ Project Manager initialized")
             else:
                 logger.warning("⚠️ Project Manager skipped (no database)")
+                self.project_manager = None
                 self.service_status['project_manager'] = False
-            self.service_status['project_manager'] = True
-            logger.info("✅ Project Manager initialized")
-            
             # Deployment Manager
             self.deployment_manager = DeploymentManager(
                 github_integration=self.github_integration,
@@ -344,23 +351,28 @@ class ServiceManager:
             )
             self.service_status['deployment_manager'] = True
             logger.info("✅ Deployment Manager initialized")
-        
         except Exception as e:
             logger.error(f"❌ Project management initialization failed: {e}")
+            self.project_manager = None
+            self.deployment_manager = None
             self.service_status['project_manager'] = False
             self.service_status['deployment_manager'] = False
     
     async def _initialize_monaco_integration(self):
         """Initialize Monaco editor integration"""
         try:
+            # MonacoIntegration expects a redis_client
+            import redis
+            redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+            redis_client = redis.from_url(redis_url, decode_responses=True)
             self.monaco_integration = MonacoIntegration(
-                github_integration=self.github_integration,
-                debug_engine=self.debug_engine
+                redis_client=redis_client
             )
             self.service_status['monaco_integration'] = True
             logger.info("✅ Monaco Integration initialized")
         except Exception as e:
             logger.error(f"❌ Monaco Integration initialization failed: {e}")
+            self.monaco_integration = None
             self.service_status['monaco_integration'] = False
     
     def _log_initialization_summary(self):

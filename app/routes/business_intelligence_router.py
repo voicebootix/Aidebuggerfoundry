@@ -89,13 +89,14 @@ async def analyze_market_opportunity(
             )
             validation_id = existing['id']
         else:
-            # Insert new record
+            # Insert new record with user_id
             await db.execute(
                 """INSERT INTO business_validations 
-                (id, conversation_id, market_analysis, created_at)
-                VALUES ($1, $2, $3, NOW())""",
+                (id, conversation_id, user_id, market_analysis, created_at)
+                VALUES ($1, $2, $3, $4, NOW())""",
                 validation_id,
                 conversation_id,
+                user_id,
                 json.dumps({
                     "market_size": market_analysis.market_size,
                     "growth_rate": market_analysis.growth_rate,
