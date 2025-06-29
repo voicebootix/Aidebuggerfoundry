@@ -156,11 +156,17 @@ async def generate_production_code(
         # Handle authentication
         user_id = current_user.get("id") if current_user else DEMO_USER_ID
 
-        # Log incoming analysis_id
+        # Deep debug: Log incoming request and analysis_id
         logger.info(f"[DEBUG] Incoming analysis_id: {request.analysis_id}")
+        logger.info(f"[DEBUG] Full request payload: {request.dict()}")
         # Log all dream_sessions IDs in the DB for this user
         all_sessions = await db.fetch("SELECT id, project_id, status FROM dream_sessions WHERE project_id IN (SELECT id FROM projects WHERE user_id = $1)", user_id)
         logger.info(f"[DEBUG] All dream_sessions for user {user_id}: {[dict(row) for row in all_sessions]}")
+        # Log all project IDs for the user
+        all_projects = await db.fetch("SELECT id, project_name FROM projects WHERE user_id = $1", user_id)
+        logger.info(f"[DEBUG] All projects for user {user_id}: {[dict(row) for row in all_projects]}")
+        # Log the exact query used for dream_session
+        logger.info(f"[DEBUG] Query: SELECT ds.*, p.founder_ai_agreement, p.project_name FROM dream_sessions ds JOIN projects p ON ds.project_id = p.id WHERE ds.id = {request.analysis_id} AND p.user_id = {user_id}")
         
         # Check if dream engine is available
         if not service_manager.dream_engine:
@@ -179,6 +185,7 @@ async def generate_production_code(
         )
         
         if not dream_session:
+            logger.error(f"[DEBUG] No dream_session found for analysis_id={request.analysis_id} and user_id={user_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Strategic analysis not found"

@@ -603,4 +603,11 @@ if __name__ == "__main__":
         log_level="info"
     )
 
+# Catch-all logging middleware (logs every request before routing)
+@app.middleware("http")
+async def catch_all_logging_middleware(request: Request, call_next):
+    logger.info(f"[CATCH-ALL] {request.method} {request.url.path}")
+    response = await call_next(request)
+    return response
+
 
