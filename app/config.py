@@ -5,6 +5,7 @@ Centralized settings for all application components
 
 import os
 import sys
+import secrets
 from typing import List, Optional
 from functools import lru_cache
 from pydantic_settings import BaseSettings
@@ -12,21 +13,24 @@ from pydantic import Field, validator
 
 
 class Settings(BaseSettings):
-    """Application settings with validation"""
+    """Application settings with validation and secure defaults"""
     
     # Core Application
     APP_NAME: str = Field(default="AI Debugger Factory", description="Application name")
     ENVIRONMENT: str = Field(default="development", description="Environment: development, staging, production")
     DEBUG: bool = Field(default=True, description="Debug mode")
-    SECRET_KEY: str = Field(..., description="Secret key for security")
+    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32), description="Secret key for security")
     
     # API Configuration
     API_HOST: str = Field(default="0.0.0.0", description="API host")
     API_PORT: int = Field(default=8000, description="API port")
     API_WORKERS: int = Field(default=1, description="Number of worker processes")
     
-    # Database
-    DATABASE_URL: str = Field(..., description="Database connection URL")
+    # Database - with default connection string
+    DATABASE_URL: str = Field(
+        default="postgresql://ai_debugger_factory_user:Nz7YsUqQdmYSU62GghoWcV4xaeW3OXqc@dpg-d15csb6uk2gs73c2ubng-a/ai_debugger_factory",
+        description="Database connection URL"
+    )
     DATABASE_POOL_SIZE: int = Field(default=20, description="Database connection pool size")
     DATABASE_MAX_OVERFLOW: int = Field(default=30, description="Database max overflow connections")
     DATABASE_ECHO: bool = Field(default=False, description="Echo SQL queries")
@@ -94,11 +98,11 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: Optional[str] = Field(default=None, description="Redis password")
     REDIS_DB: int = Field(default=0, description="Redis database number")
     
-    # Security
-    JWT_SECRET_KEY: str = Field(..., description="JWT secret key")
+    # Security - with secure defaults
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32), description="JWT secret key")
     JWT_ALGORITHM: str = Field(default="HS256", description="JWT algorithm")
     JWT_EXPIRATION_HOURS: int = Field(default=24, description="JWT expiration in hours")
-    API_KEY_SALT: str = Field(..., description="API key salt")
+    API_KEY_SALT: str = Field(default_factory=lambda: secrets.token_urlsafe(16), description="API key salt")
     HTTP_TIMEOUT: int = Field(default=60, description="HTTP timeout in seconds")
     
     # Monitoring
