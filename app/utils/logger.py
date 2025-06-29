@@ -17,32 +17,37 @@ class EnhancedLogger:
         self._setup_logger()
         
     def info(self, message):
+        print(f"[INFO] {message}")
         return self.logger.info(message)
     
     def error(self, message):
+        print(f"[ERROR] {message}")
         return self.logger.error(message)
 
     def warning(self, message):
+        print(f"[WARNING] {message}")
         return self.logger.warning(message)
 
     def debug(self, message):
+        print(f"[DEBUG] {message}")
         return self.logger.debug(message)
     
     def _setup_logger(self):
         """Setup structured logging"""
-        
+        # Prevent duplicate handlers
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
         # Create formatter
         formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
-        
-        # Console handler
-        console_handler = logging.StreamHandler()
+        # Console handler (stdout)
+        import sys
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
-        
         # Add handlers
         self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
     
     def log_structured(self, 
                       level: str,
