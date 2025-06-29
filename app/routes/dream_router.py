@@ -155,6 +155,12 @@ async def generate_production_code(
     try:
         # Handle authentication
         user_id = current_user.get("id") if current_user else DEMO_USER_ID
+
+        # Log incoming analysis_id
+        logger.info(f"[DEBUG] Incoming analysis_id: {request.analysis_id}")
+        # Log all dream_sessions IDs in the DB for this user
+        all_sessions = await db.fetch("SELECT id, project_id, status FROM dream_sessions WHERE project_id IN (SELECT id FROM projects WHERE user_id = $1)", user_id)
+        logger.info(f"[DEBUG] All dream_sessions for user {user_id}: {[dict(row) for row in all_sessions]}")
         
         # Check if dream engine is available
         if not service_manager.dream_engine:
