@@ -105,6 +105,12 @@ class Settings(BaseSettings):
     API_KEY_SALT: str = Field(default_factory=lambda: secrets.token_urlsafe(16), description="API key salt")
     HTTP_TIMEOUT: int = Field(default=60, description="HTTP timeout in seconds")
     
+    # CipherLux Integration
+    CIPHERLUX_BASE_URL: Optional[str] = Field(default=None, description="CipherLux API base URL (e.g. https://api.cipherlux.com)")
+    CIPHERLUX_FIREBASE_TOKEN: Optional[str] = Field(default=None, description="Firebase ID token for CipherLux API auth")
+    CIPHERLUX_BACKTEST_TIMEOUT: int = Field(default=300, description="Backtest polling timeout in seconds")
+    CIPHERLUX_MAX_OPT_ITERATIONS: int = Field(default=50, description="Max grid-search iterations per optimization run")
+
     # Monitoring
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error monitoring")
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")

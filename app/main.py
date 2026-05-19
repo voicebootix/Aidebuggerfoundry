@@ -50,6 +50,7 @@ from app.routes.smart_contract_router import router as smart_contract_router
 from app.routes.contract_method_router import router as contract_method_router
 from app.routes.project_router import router as project_router
 from app.routes.auth_router import router as auth_router
+from app.routes.cipher_lux_router import router as cipher_lux_router
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -346,6 +347,13 @@ app.include_router(
     auth_router,
     prefix=f"{API_PREFIX}/auth",
     tags=["🔐 Authentication"]
+)
+
+# CipherLux Trading Platform Integration
+app.include_router(
+    cipher_lux_router,
+    prefix=f"{API_PREFIX}/cipher-lux",
+    tags=["📈 CipherLux Trading"]
 )
 
 # ==========================================
